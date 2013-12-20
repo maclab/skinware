@@ -1,0 +1,789 @@
+index
+# Skinware: The Skin Middleware
+version v1.0.0.872 (Skin Kernel) and 1.0.0.894 (Skin Library)
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword ROBOSKIN
+keyword DIST
+keyword MacLAB
+
+# Introduction
+
+As part of the [ROBOSKIN project](custom http://www.roboskin.eu/), Skinware has been implemented to address many points regarding skin
+utilization that arise from a programmers point of view. It is strongly believed that through utilization of this middle-ware, implementing
+algorithms that make use of tactile data is greatly simplified. Although the primary target has been tactile sensing, integration with other
+sensing modalities has been provisioned.
+
+Much work has been done through the past thirty years on tactile sensing, the goal of most of which, producing a single taxel (a tactile sensor).
+Only recently have there been researches ongoing about utilizing taxels at large numbers to create what resembles the human skin. That is why
+work on software that facilitates use of such large amounts of data has been missing. Without the use of a middle-ware such as is implemented
+and discussed in this report, one needs to implement drivers, communication methods, synchronization algorithms and more only to achieve raw
+data from the skin, not to mention the debug time overhead and the fact that this process needs to be repeated with each different skin technology.
+
+Skinware has been implemented mainly to create a layer of abstraction between the specific hardware of the skin and a generic program
+using its data. This abstraction allows one to not only use the same program over different skins, but even with a mixture of them. Furthermore,
+there have been added facilities, such as representing the raw tactile data from multiple organized views or certain preprocessing, that benefits
+end-user programs greatly. Last but not least, there has been strong emphasis on real-time aspects of Skinware.
+
+The research leading to these results has received funding from the European Commission's Seventh Framework Programme (FP7) under
+Grant Agreement n. 231500 (ROBOSKIN). This program has been primarily written by Shahbaz Youssefi based with the help of members of MacLab, DIST,
+University of Genova, especially Fulvio Mastrogiovanni and Simone Denei.
+
+In the [next section](#Terminology), the terminology of Skinware is introduced. In [#Features] section, the different implemented features
+are discussed thoroughly. Section [#Architecture] gives an overview of the structure of Skinware. Section [#Protocols] describes the protocols
+defined by Skinware while section [#Algorithms] describes some of the more significant algorithms implemented. Using Skinware itself,
+there have been helper programs implemented which are discussed in section [#Accompanying Software].
+
+# Terminology
+
+The terminology of Skinware can be divided in mainly three parts; terminology related to the skin hardware, middle-ware components and
+extended concepts.
+
+## The Skin Hardware
+
+Inspired by the current technologies of robotic skins, especially the one implemented during ROBOSKIN, the skin is considered to be composed of the
+following components.
+
+- **Taxel**: A taxel is a single tactile sensor. Different types of taxels have been developed, each with different properties. This means that the
+  value they represent are different in meaning.
+- **Module**: A module is a set of _taxels_ located closely and handled by a microcontroller.
+- **Patch**: A patch is a network of _modules_. The patch controls the modules, obtains tactile data and processes them using a more complicated hardware.
+- **Network**: Network refers to the network connecting _patches_ in the skin. There could be multiple networks present in the skin, e.g. EtherCAT and
+  CAN managing different parts of the skin.
+
+## The Middle-ware Components
+
+Skinware is primarily written for the Linux operating system patched with [RTAI](custom https://www.rtai.org/) real-time extension. Parts of Skinware
+are written as Linux kernel modules. There are APIs for drivers and services (as explained later) at kernel level and a user-space API for
+user level applications. The following terms are related to parts of Skinware.
+
+- **Skin Kernel**: The skin kernel is the core of Skinware. It is written as a Linux kernel module. In this report, the terms _skin kernel_ and
+  _kernel_ are used interchangeably.
+- **Library**: The terms _API_ and _library_ both refer to the user-space API, used by end-users to inquire tactile data.
+- **Driver API**: An API provided by the _skin kernel_ for implementation of skin drivers.
+- **Service API**: Another API provided by the _skin kernel_ for implementation of skin services.
+- **Writer**: This refers to a real-time thread in the _skin kernel_ that is responsible for acquiring data from the hardware (through a driver) and
+  _writing_ them to internal buffers.
+- **Reader**: This refers to a real-time thread in either the _library_ or _service API_ that _read_ the data from _skin kernel_'s buffers and place
+  them at user's disposal.
+
+Both _drivers_ and _services_ are defined in the following section.
+
+## Extended Concepts
+
+Skinware extends the entities present in the skin beyond the physical ones introduced by the hardware. These terms help the programmer view the
+skin from a more abstract point of view and therefore contribute to the portability of the implemented software.
+
+- **Sensor**: Although the skin is designed firstly to contain only taxels, it is certain that in the near future it would be extended to contain other
+  types of sensors as well. These sensors may include temperature which is more natural to human beings or electro-magnetic sensors that are found
+  in certain animals.
+- **Sensor Type/Layer**: Similar to how the human skin hosts different types of sensors in a layered fashion, it is provisioned in Skinware
+  for the underlying skin to have multiple sensor types located in multiple layers. The terms _sensor type_, _sensor layer_ and simply _layer_ refer
+  to the same entity. Each _network_ of the skin may carry information from multiple layers.
+- **Data Frame**: A frame of data is a set of data acquired from sensors of a certain layer in one acquisition period. Each data frame forms a snapshot
+  of the activity in the layer.
+- **Region**: A region is an area-of-interest over the skin. This abstract entity represents a set of sensors in the skin that need to be grouped for
+  any purpose the programmer may have. Example of such regions include _hand palm_, _forearm_ and _manipulators_. The regions may also overlap if the
+  same set of sensors belong to two different conceptual groups, e.g. _forearm_ and _robot front_. [Sensors, modules, patches and regions in a single
+  layer of skin](svg files/sensor-module-patch-region.svg) shows construction of regions over sensors.
+- **Driver**: A driver is a Linux kernel module that is responsible for communicating both with a _network_ in the skin and the skin kernel. The skin
+  kernel is capable of communicating with multiple drivers simultaneously, obtaining data from different sensor types connected with different robots.
+  It is also possible for a each driver to shut down and restart later during the execution of Skinware, whether it is for power saving or due to
+  a fault. Drivers are identified by a name.
+- **Service**: A service is a user of sensor data that provides processed data to other users. It is implemented either as a user-space application or a
+  Linux kernel module that acquires sensor data similar to how user-space applications do and generates other data which the skin kernel helps propagate to
+  other users.
+
+# Features
+
+Skinware has many features integrated with it that are essential in ensuring its quality as well as providing facilities to users. In the rest
+of this section, these features are listed and discussed individually.
+
+## Real-Time
+
+Skinware works in real-time. This important property of Skinware guarantees that the data acquisition is done within a restricted
+dead-line and thus ensures responsiveness of the applications that depend on tactile data. This aspect is one that is not present in most common robotic
+platforms due to lack of scientific background in their development. Yet, as robotic systems evolve, real-time behavior will doubtlessly be a major
+common ground between all robotic applications.
+
+As was mentioned before, currently only the RTAI extension of the Linux kernel is supported to produce real-time behavior. It has been foreseen however,
+that Skinware may be ported to other platforms. Therefore, an interface to the real-time infrastructure is developed that can possibly be
+adapted to different underlying real-time systems to enhance portability of Skinware. This interface is made available to end-users also and
+enables them to implement their own applications with real-time behavior.
+
+## Concurrency
+
+Most platforms today support and make use of concurrency among their tasks. It is also of utmost importance to robots as they require multiple tasks
+to be performed at the same time. Skinware is not an exception to such a need and therefore it supports concurrency among its almost every
+module. To name a few, the _drivers_ are initialized concurrently, the _writers_ acquire data concurrently, the _readers_ read the data concurrently
+both among themselves and the _writers_, the _services_ too run concurrently with the _writers_ and finally end-user applications run in parallel
+with all of the aforementioned tasks.
+
+Concurrency requires utmost attention to synchronization. Synchronization is required to ensure correctness of running algorithms when accessing
+shared data. It is also used to notify another thread of certain events. The synchronization among the tasks running with Skinware has been
+perfected through detailed designs and thorough testing to ensure both its correctness and to bring its overhead on concurrency to a minimum.
+
+## Data Coherency
+
+Skinware enables the end-users to access data coherently. This means that Skinware ensures that the data read by the end-users belong
+to the same time-frame in which the data were generated. Some algorithms may not be critically dependent on this coherency, but there exist others that
+indeed are. It is therefore important that Skinware wouldn't change the data being inspected by the end-user during their processing.
+
+One such example of applications for which data coherency is vital, is texture detection. Texture detection algorithms rely on filtering of tactile
+data with differential filters, i.e. they depend on difference of sensor values of each sensor with regards to its neighboring ones. If data coherency
+is not ensured, data may be overwritten during the application of the filter, resulting in incorrect output that are accentuated especially by these
+high-pass filters.
+
+## Acquisition Methods
+
+The sensors of robotic skins produce data continually. However, some time is required for them to be minimally processed (for example through an
+analog-to-digital converter) and therefore these data are available periodically. Depending on the sensor type and processing hardware, these periods
+could be different. Accordingly, _writers_ read the sensor data periodically, each with a specified rate.
+
+The end-users however, may require the data at a different pace. The following applications have been foreseen using Skinware.
+
+- **Time-critical applications**: These applications require the data immediately as they are made available. These applications are mainly safety measures
+  such as a movement override in case of obstacle. However, other applications may benefit from having data immediately available to them. Therefore,
+  a _reader_ in these applications can choose an _ASAP_ (as-soon-as-possible) acquisition method.
+- **Periodic applications**: Some applications may require the data periodically and not necessarily with the same period as they are acquired from the
+  network. Most of a robot's routine tasks fall into this category. These tasks can choose a _periodic_ acquisition method.
+- **Aperiodic applications**: Applications that require large and likely unknown execution time, such as AI applications, can choose a _sporadic_ acquisition
+  method. In this method, acquisition is done only upon request.
+
+It is possible to have different acquisition methods for different sensor types. It is also possible to have multiple instances of _readers_ in a single
+application each reading data of the same sensor type at different rates.
+
+## Data Indices
+
+An index over data denotes a certain structure that allows the data to be viewed in a specific way. Often, indices help reduce search time of a specific
+data or property over the data. Indices are common in database applications where large amount of data exist and access to these data needs to be
+optimized. As the skin contains tens of thousands of sensors, few indices have been introduced to optimize searching for active areas in the skin,
+inspecting an area of interest or to generally structure the data.
+
+The Entity-Relationship Diagram (ERD) of the indices integrated in Skinware are presented in [The Entity-Relationship Diagram of Skinware.
+Entity attributes are omitted for brevity](svg files/ERD.svg). In this diagram, the entity attributes are omitted for simplicity.
+
+- **Sensor/Module/Patch/Type structure**: Skinware allows the users to view the data through the hierarchy imposed on them by the hardware. For an
+  abstract program, the use of this structure is not desirable, while a maintenance program benefits greatly from such a view. This structure is
+  implemented as shown in [The Sensor/Module/Patch/Type indices implementation](svg files/sensor-module-patch-type.svg).
+- **Sensor/Region structure**: Regions as were mentioned before are user-defined areas of interest on the skin, independent of the hardware structuring of
+  sensors. Through the use of the sensor-region relation, one can inspect certain areas of the skin without getting involved in its physical structure.
+  This also allows the designers of the skin to focus on hardware optimizations rather than placing hardware patches in certain shapes that could be of
+  interest to user. Furthermore, regions of the skin can be redefined without changing the underlying hardware structure. This structure is implemented as
+  shown in [The Sensor/Region index implementation](svg files/sensor-region.svg). Sub-regions as are introduced in this figure are sets of sensors that belong
+  to the same set of regions, i.e. each region either includes all of sensors in a sub-region or none. The sub-regions are introduced merely for a performance
+  gain and can be invisible to users.
+- **2D transformation map**: To be able to use common and well developed techniques in computer vision and signal processing, work has been done in
+  transforming the 3D structure of sensors scattered over the skin to a 2D flattened image. This mapping is integrated within Skinware and is done
+  after calibration is done.
+- **Sensor vicinity graph**: During calibration of the skin, a vicinity graph over the sensors is created. For each individual sensor, this graph indicates
+  the neighboring sensors. Through the use of this graph, one can track motion over the skin as well as determine contact shape and size.
+
+## Calibration
+
+Before the skin is calibrated, the skin kernel is already functional, in the sense that data acquisition from the hardware is done and propagated to user
+programs. However, solely having the sensor responses would not be of much interest if not coupled with calibration data indicating the 3D position and
+orientation of each sensor.
+
+In the calibration phase of Skinware, it is possible for a calibration program to start using the skin data and by controlling the robot, perform
+calibration. The calibration data is then propagated to the skin kernel and through that, to all other users of the skin. During this phase, the 2D
+transformation of the skin, as well as the sensor vicinity graph are generated.
+
+Skinware is capable of caching and reloading the calibration data so that in case of robot shutdown and restart, or merely restart of Skinware,
+calibration would not need to be redone.
+
+More details on calibration and the calibrator program written for Skinware are present in [#Accompanying Software] section.
+
+## Regionalization
+
+The next phase in initializing Skinware is to create regions in the skin. This task is done by creating sets of sensors, each set indicating one
+region. Similar to calibration, during regionalization phase, a regionalization program is allowed to acquire data from the skin and decide the regions.
+The regionalization data is then propagated to the skin kernel, through which all end-users would have access to these data.
+
+Skinware can also cache and reload the regionalization data so that it would not need to be repeated upon each restart.
+
+Along with the calibrator program, the regionalizer program written for Skinware is also explained more in details in [#Accompanying Software] section.
+
+## Driver Interface
+
+As was mentioned above, drivers are responsible for initializing each sensor network and the actual acquisition of data. A particular protocol has been
+implemented, as described in [#Protocols] section, that allows each driver to communicate with Skinware. This protocol allows a
+network driver to register itself with the skin kernel and control whether each sensor layer supported by it should be paused or running. To increase fault
+tolerance, the drivers are allowed to detach themselves from Skinware at any time and reattach themselves later as they see fit.
+
+The skin kernel is responsible for handling requests by the drivers and managing the acquisition threads. The later includes thread creation, execution,
+watchdog and synchronization with end-users and services. Therefore, the skin kernel facilitates the task of data acquisition by the drivers greatly and
+simplifies their content. This in turn reduces implementation costs of each new driver as well as reducing the chance of introducing a bug in the system.
+
+## Service Interface
+
+Similar to drivers, services are modules that can attach to and detach from the skin kernel during its execution, providing useful processed data to
+other users. The protocol of communication between the service modules and the skin kernel is similar to that of the drivers and is explained in
+[#Protocols] section.
+
+The skin kernel is similarly responsible for handling service requests and managing service threads. Unlike drivers, the threads created for the services
+are not _writer_ threads, but are _reader_ threads, i.e. services are a type of users of Skinware. The services, however, may have output usable
+by other users. Both the skin kernel and the library sub-modules of Skinware are responsible for handling communication and synchronization
+between those users and the services.
+
+The service interface has been written with the goal of introducing extendibility in Skinware. The use of services has multiple benefits.
+
+- **Code reuse**: A service can be easily used per need and copied across different platforms as it ensures decoupling of the service process from the use
+  of its data. Without the services, each program would be inclined towards packaging both the preprocessing the service could offer and the final usage,
+  making it impossible, or costly at best, to reuse the implemented preprocessing algorithm.
+- **Data reuse**: Certain preprocessing on data may be beneficial to multiple end-users. Without the use of services, the users are bound to either redo the
+  preprocessing each on their own, or implement a mechanism to share these data themselves, which would be the same functionality the service interface
+  of Skinware is providing, with the exception that Skinware can handle this mechanism more proficiently.
+- **Extend users to kernel space**: Normally, the users of Skinware are user-space applications linked with the skin library. However, there may
+  be need for certain processes to take place in kernel-space, with more precise real-time constraints, higher priority and direct hardware access. Examples
+  of such services include one that checks for hardware failure and issues the relevant command, or a service monitoring skin for certain patterns
+  indicating a dangerous situation for the robot and issuing a halt.
+
+To combine the usefulness of services with relative safety of programs in user-space, a service interface in the library is also provided. Through this
+interface, normal user-space applications can register themselves as services, viewed by other users as if they were services run at kernel level.
+
+# Architecture
+
+Skinware is implemented in a two-layer architecture. The bottom layer is one closer to the hardware, interacting with the drivers, while
+the top layer handles user requests. The bottom layer is implemented as the skin kernel and the top layer is the user-space library. This architecture
+is specifically designed to fulfill the aforementioned features as well as the following properties.
+
+- **Ceaseless acquisition**: The skin kernel must at all times be able to perform data acquisition. This means that the writers must never be blocked due
+  to the synchronization mechanism with the readers.
+- **Independence from users**: The data acquisition in the skin kernel must remain sound regardless of existence of readers or their number. This property
+  guarantees predictable behavior in systems where the number of readers could dynamically change.
+
+The overall architecture of Skinware can be viewed in [The architecture of Skinware](svg files/architecture.svg). This diagram
+consists of the following components.
+
+- **The skin hardware**: As can be viewed in this diagram, the physical skin may consist of multiple layers of sensors, connected to the processing unit
+  with different networks, each network handled by a driver which is specifically designed for communication with it. At this point all data are raw,
+  distinguished by the layers, modules and patches of their corresponding sensors.
+- **The network drivers**: Each network driver is responsible for handling one or more sensor layers. By registering itself with the skin kernel, it first
+  provides Skinware with the topology of the layers it handles and then the responses from the sensors themselves. Skinware, while
+  allowing the drivers to have full control over the network, hides all complexities regarding the transfer and usage of those data. Using the
+  provided [#Driver Interface] following [#Driver Protocol], the complexity of the drivers are greatly reduced, which implies accelerated and
+  more secure driver implementation.
+- **The skin kernel**: The skin kernel consists of the following components.
+  + **Writers**: Each writer is a thread corresponding to a single layer of the skin. Its responsibilities include communication with the drivers and
+    synchronization with the readers using the algorithm defined in [#Readers-Writer Synchronization].
+  ... The choice of multiple threads handling the skin data results in robustness and graceful degradation. A fault in a driver only disables those layers
+    handled by it. It also allows parts of the skin to be selectively activated or deactivated while the rest of the skin is functioning. In other words,
+    it is possible to soft reboot the drivers without affecting the execution of users or services.
+  + **Data**: These data consist mainly of those acquired from the hardware. Additionally, the data indices as were introduces [previously](#Data Indices)
+    are present here. These data are shared within Skinware, and are accessible by the users through the skin library and to the services
+    through the [service API](#Service Interface). This unique source of data ensures consistency among users of the skin. These data are kept in multiple
+    versions using a method similar to that of MVCC or Multi-Version Concurrency Control (TODO: cite), except with a bounded memory overhead. This greatly
+    reduces the chance of conflicts between readers and writer. Section [#Swap Skips] discusses these conflicts more in details.
+  + **Service manager**: The service manager handles services that may be attached to the skin kernel. These services can be permanent or temporary. The
+    service manager is a simplified version of the user-space library, in the sense that it spawns readers for each layer the service requests to read.
+    It also creates a service handler thread that handles the output of the service.
+  + **Service results**: The service results, similar to the data from the network, are stored in shared memory accessible by user programs or other services.
+- **The skin services**: Skinware takes responsibility of any complexities regarding communication with various sub-modules of Skinware
+  and therefore, through the [#Service Interface] following [#Service Protocol], the complexity of the services themselves is brought to a minimum.
+  Each service selectively reads data from layers of the skin and provides arbitrary data. These data are not interpreted by Skinware itself, but
+  by the users of each service. Therefore, the responsibility of providing the users with an understanding of their output is left to the services themselves.
+- **The skin library**: The skin library consists of the following components.
+  + **Readers**: Corresponding to each writer in the skin kernel, there is a reader thread in the library. Each layer's reader is responsible for creating a
+    local copy of that layer's data at a selected rate. Section [#Readers-Writer Synchronization] discusses the types of
+    acquisition the reader can handle. Each application then can execute on its own local copy without conflicting with other applications.
+  + **Service manager**: The applications of Skinware can also register services with Skinware for each of which a service handler
+    thread is spawned, managing its output. Depending on the task, the applications may also choose to create local copies of other services' results.
+- **The skin applications**: The end user of Skinware is an application linked with the skin library. This could be a standalone application or a
+  component of a robotic software platform, such as ROS or YARP. Two special applications are the calibrator and the regionalizer which are discussed
+  in section [#Accompanying Software].
+
+# Protocols
+
+This section is devoted to discussing protocols designed for communication between the skin kernel and network drivers and between the skin kernel and
+services. These protocols ensure consistency of not only the state of Skinware, but the Linux kernel itself.
+
+The network drivers and skin services use data of Skinware, therefore by design of the Linux kernel, the skin kernel must already be present
+before those Linux kernel modules can be used. On the other hand, the skin kernel needs information from those modules. This creates a circular
+dependency in the Linux kernel which needs to be resolved. Two approaches have been studied to address this issue.
+
+1) Passive skin kernel: Using this approach, the skin kernel awaits invocation by the driver or service modules and handles their requests. Therefore,
+   the skin kernel does not need to invoke functionality of the mentioned modules. In this approach, certain aspects of the communication protocols are
+   simplified. On the other hand, the skin kernel cannot take control of the writer, reader or service handler threads, which implies greater risk of
+   error by the driver and service programmers as well as complicating other aspects of the protocols.
+2) Active skin kernel: In this approach, the drivers and services are passive. The skin kernel stores callback functions from these modules and takes
+   responsibility of creating the necessary threads, performing synchronization and ensuring consistency of the skin kernel itself. This approach
+   greatly reduces complexity of those external modules. The main issue with this approach however, is that the Linux kernel is not aware of the fact
+   that drivers and services are in use by the skin kernel and allows removal of those modules without notifying the skin kernel. Therefore, strict
+   accordance to the provided protocols is fatal.
+
+Skinware has adopted the second approach, in which the skin kernel actively takes part in management of the modules, based on the following
+arguments.
+
+- In the first approach, the external modules need to get involved, if ever slightly, with the internal algorithms of the skin kernel. This has the
+  following consequences.
+  * The complexity of the communication protocols would be much higher in the first approach as each module needs to implement algorithms unrelated to
+    its own functionality.
+  * The risk of introducing a bug would be higher, and consequently the production cost and time would increase.
+  * Error recovery could not be done by the skin kernel and would be left to each module itself.
+  * Forward compatibility is jeopardized. In other words, changes to the internals of the of Skinware results in changes in every external
+    module implemented for it.
+- Furthermore in the first approach, the order of tasks requested from the skin kernel are not controllable. This greatly increases the complexity of
+  both the skin kernel for ensuring its consistency and the external modules dealing with resulting failures.
+- Finally, the second approach, even though more dangerous, results in a much simpler protocol.
+
+Our own implementations of drivers and services have confirmed that indeed the second approach is more reliable, faster and less error prone.
+
+## Driver Protocol
+
+This section discusses the protocol of communication between the skin kernel and the network drivers. This protocol allows the drivers to pause and
+resume their data acquisition as well as removal from the Linux kernel and reattaching to the skin kernel. The skin kernel ensures complete independence
+of users from the network drivers.
+
+According to this protocol, the drivers need to provide three callbacks to the skin kernel.
+
+- `hardware_details`: This function fills in information regarding the topology of the skin hardware, i.e. the layer/patch/module/sensor hierarchy.
+- `acquire_data`: This function is periodically called by the skin kernel, asking the network driver to fill in new data from the hardware.
+- `is_busy`: This simple function is used by the skin kernel to let the driver know whether it is being used or not. If the driver is under use, it must
+  under no circumstances allow being unloaded from the Linux kernel.
+
+The driver has five stages.
+
+1) **Network Initialization:** At this stage, the driver needs to initialize the network it handles. This is internal to the driver itself.
+2) **Data Structure Initialization:** Once the network is initialized, the driver needs to gather information on the topology of the network and
+   build internal data structures reflecting this hierarchy.
+3) **Registration:** The driver needs to register itself with the skin kernel providing the three aforementioned callbacks and minimal information
+   regarding the hierarchy of the network.
+4) **Acquisition:** If the registration was successful, the driver can _resume_ itself (through the driver API). From this point on, the driver doesn't
+   need to perform any further actions. It is the choice of the driver implementer to spawn useful threads. One such thread could be a watchdog.
+5) **Removal:** At this stage, the driver needs to _pause_ itself (through the driver API) and wait until the skin kernel issues a call to `is_busy`
+   with a _false_ argument. It can then proceed with removal.
+
+The driver is allowed to resume its work if loaded in the Linux kernel again. This case is labeled as _revival_ of the driver. The driver needs to
+adhere to the following rules and conditions.
+
+- Result of registration is either _success_, _revival_ or _failure_. If successful, the `hardware_details` will be called, but if reviving, it will not,
+  as the information has already been given to the skin kernel in the previous registration of the driver. As a result:
+  * The driver needs to be able to function even if `hardware_details` is never called.
+  * Upon revival, the driver needs to rediscover the sensors in the same order as it did the first time.
+  * In case of failure, the driver must take action based on the failure type. It may need to retry registration later, or do so with a different name.
+- _Pause_ and _resume_ operations can create a race condition. Therefore, upon removal, the driver must make sure all _resume_ operations have finished
+  before issuing a _pause_, as well as ensuring no further _resume_<>s are called afterwards.
+- During removal, after the _pause_ command is issued, the driver needs to wait until the skin kernel states that it is not busy by a call to
+  `is_busy` with `false` argument.
+
+A conforming structure for drivers is presented as follows.
+
+```
+`Global space:`
+    busy        &larr; false
+    init_thread &larr; not running
+    internal_ds &larr; uninitialized
+
+`Module load:`
+    (1) create initialization thread
+
+`Initialization thread:`
+    (1) init_thread &larr; running
+    (2) initialize network
+    (3) scan network
+    (4) internal_ds &larr; hardware hierarchy
+    (5) register:
+        (5.1) too early: wait and go to 5
+        (5.2) in use: change name and go to 5
+        (5.3) success or revived: go to 6
+        (5.4) other: go to 7
+    (6) resume
+    (7) init_thread &larr; not running
+
+`hardware_details:`
+    input: layer (skin kernel structure)
+    (1) layer &larr; internal_ds
+
+`is_busy:`
+    input: b (boolean)
+    (1) busy &larr; b
+
+`acquire:`
+   input: layer (skin kernel structure)
+   (1) possibly request data from network
+   (2) layer &larr; data from network
+
+`Module remove:`
+   (1) wait while init_thread is running
+   (2) pause
+   (3) wait while busy is true
+   (4) clean up
+```
+
+## Service Protocol
+
+Similar to the drivers, the services need to follow a particular although simpler protocol. The services need to provide the following callbacks.
+
+- `read_layer`: This function is called by the reader threads spawned for the service to provide the service with sensor data for each layer. The service
+  may choose arbitrary layers to be read. This callback may be different for each layer. It is also possible for a service to only use data from other
+  services, in which case this callback is unnecessary and unused.
+- `service_function`: This function is called by the service handler thread. It is provided with its own memory whose interpretation is left to the
+  service itself. The internals of the service are not restricted by the skin kernel.
+
+The service has four stages.
+
+1) **Initialization:** At this stage, the service inspects the hierarchy of the skin and decides its output layout.
+2) **Registration:** The service then needs to register its callbacks with the skin kernel.
+3) **Start:** If the registration was successful, the service can _start_ itself (through the service API). From this point on, the service doesn't
+   need to perform any further actions. Similar to drivers, the service implementer may decide to spawn useful threads such as a watchdog.
+4) **Removal:** At this stage, the service needs to _stop_ itself (through the service API). It can then proceed with removal.
+
+The services could arbitrarily _pause_ or _resume_ their operation. This is useful for certain services that are required under particular circumstances.
+The _pause_ operation halts the functionality of the service, but does not entirely remove it. Therefore, it can be _resume_<>d with minimal overhead.
+The service needs to adhere to the following rules and conditions.
+
+- The service must predict its memory usage before starting. This is crucial to consistency and performance. Additionally, the RTAI real-time platform
+  restricts real-time tasks from changing their memory layout.
+- _Start_, _resume_, _pause_ and _stop_ commands create a race condition. Therefore, upon removal, the service must ensure any call to _start_ or _resume_
+  are concluded before issuing a _stop_ command.
+- During removal, the service must issue a _stop_ command. It then must detach itself from other services' shared memories, if previously attached.
+
+A conforming structure for services is presented as follows.
+
+```
+`Global space:`
+    init_thread    &larr; not running
+    other_services &larr; not attached
+
+`Module load:`
+    (1) create initialization thread
+
+`Initialization thread:`
+    (1) init_thread    &larr; running
+    (2) inspect skin hierarchy
+    (3) register callbacks
+    (4) start
+        (4.1) too early: wait and go to 4
+        (4.2) success: go to 5
+        (4.3) other: go to 6
+    (5) other_services &larr; attach to selected services
+    (6) init_thread    &larr; not running
+
+`read_layer:`
+    input: layer (skin kernel structure)
+    (1) inspect sensor data
+        (1.1) optionally make a copy
+        (1.2) optionally compute results
+
+`service_function:`
+   input: service memory
+   (1) write service results
+       (1.1) either from local copy of data
+       (1.2) or from results computed while reading layer
+
+`Module remove:`
+   (1) wait while init_thread is running
+   (2) stop
+   (3) if other_services were attached
+       (3.1) detach from other_services
+   (4) clean up
+```
+
+Generally, the service can be viewed as computationally cheap or expensive. A service is computationally cheap if generating its result is faster than
+copying the sensor data. In this case, it is inefficient to make a local copy of the sensor data and therefore, `read_layer` would generate the service
+results during its read (step `(1.2)`) and correspondingly `service_function` uses these results and copies them in designated memory (step `(1.2)`).
+
+Alternatively, a service is computationally expensive if it requires more than a single pass over the sensor data. In this case, `read_layer` needs to
+make a local copy of the service data (step `(1.1)`) which in turn is processed by `service_function` (step `(1.1)`) before the results are written to
+the service result memory.
+
+During execution of `read_layer`, the layer for which the callback is being called is locked and its data protected from being overwritten by the
+corresponding writer. It is important for this function to be as short as possible. Longer execution times in readers may create unwanted results.
+These unwanted results are discussed in details in section [#Swap Skips].
+
+# Algorithms
+
+This section presents a few of the more important algorithms implemented in Skinware. First, the algorithm for synchronization between the
+readers and writers are discussed. Next, an inevitable issue arisen by this synchronization is discussed and resolved. TODO: more algorithms?
+
+## Readers-Writer Synchronization
+
+Given the nature of the hardware, large amount of sensors periodically producing data, there is one writer spawned per sensor layer, requesting data
+periodically. To ensure data coherency in the users and to avoid blocking writers, there are multiple buffers between the readers and the writers. This
+allows users to read from a free buffer while the writer is simultaneously acquiring data into another buffer.
+
+The writer thus, using readers-writer locks, keeps its working buffer locked while the other buffers are free. Once the acquisition is done, the writer
+searches a buffer unused by the readers and swap its working buffer with that. If no free buffers were available, the writer periodically retries swapping
+buffers until its execution period is over. The writer algorithm is presented below.
+
+```
+buffer &larr; 0
+write_lock(buffer)
+while (running) do
+	write_time &larr; now
+	buffer_being_written &larr; buffer
+
+	write_data(buffer)
+
+	could_swap &larr; false
+	while period time left > threshold and not could_swap
+		for i from 0 to buffer_count
+			if buffer != i and try_write_lock(i) = success
+				last_written_buffer &larr; buffer
+				timestamps\[buffer]  &larr; write_time
+				write_unlock(buffer)
+				buffer     &larr; i
+				could_swap &larr; true
+				break
+		if not could_swap
+			sleep
+	wait period
+```
+
+In this algorithm, `buffer_count` is the number of buffers, `timestamps` is timestamp of write to each buffer, `buffer_being_written` is the buffer currently
+being written and `last_written_buffer` is the buffer that was last written by the writer. This buffer is free and available to readers.
+
+This algorithm, always has one buffer locked, therefore it is never blocked by this synchronization mechanism. It also never writes to a buffer locked by users
+and therefore ensures coherency of data received by the readers. If none of the other buffers where available to the writer, the buffer swap is skipped, which
+is undesirable as the current buffer would be overwritten without a chance for the users to read them. This issue is discussed later.
+
+For each writer, and therefore each sensor layer, a reader is spawned in one of the three acquisition methods that have been introduced in section [#Acquisition
+Methods]; _ASAP_, _periodic_ and _sporadic_. In the following three sections, the reader algorithm is presented, with each section introducing the relevant part.
+
+### ASAP Read
+
+Readers in ASAP mode are not aware of the period in which writers work, but depend on the synchronization mechanism to be awaken. These readers basically wait
+on the buffer being written to be unlocked and immediately perform acquisition after. The algorithm of ASAP readers is as follows.
+
+```
+last_buffer    &larr; invalid
+last_timestamp &larr; invalid
+while running do
+	buffer    &larr; last_written_buffer
+	timestamp &larr; timestamps(buffer)
+	if buffer = last_buffer and timestamps = last_timestamp
+		{Buffer is already read}
+		read_lock(buffer_being_written)
+		buffer    &larr; buffer_being_written
+		timestamp &larr; timestamps\[buffer]
+	else
+		if try_read_lock(buffer) = fail
+			{A buffer swap has just happened}
+			continue
+
+	acquire_data(buffer)
+
+	read_unlock(buffer)
+	last_buffer    &larr; buffer
+	last_timestamp &larr; timestamp
+```
+
+This algorithm, first checks whether the `last_written_buffer` is already read. If so, it sleeps on `buffer_being_written`, effectively continuing once the
+writer has finished acquisition of that buffer. Otherwise, it locks the buffer and continues with acquisition.
+
+In both periodic and sporadic acquisition methods, this part of the algorithm is present, i.e. too fast invocation of the reader results in it synchronizing
+itself with the writer, avoiding unnecessary locking and data copy.
+
+### Periodic Read
+
+This acquisition method is similar to ASAP mode, with the difference that it now periodically tries to read from the free buffer. The algorithm is presented
+below.
+
+```
+last_buffer    &larr; invalid
+last_timestamp &larr; invalid
+while running do
+	buffer    &larr; last_written_buffer
+	timestamp &larr; timestamps(buffer)
+	if buffer = last_buffer and timestamps = last_timestamp
+		{Buffer is already read}
+		read_lock(buffer_being_written)
+		buffer    &larr; buffer_being_written
+		timestamp &larr; timestamps\[buffer]
+	else
+		if try_read_lock(buffer) = fail
+			{A buffer swap has just happened}
+			continue
+
+	acquire_data(buffer)
+
+	read_unlock(buffer)
+	last_buffer    &larr; buffer
+	last_timestamp &larr; timestamp
+	`if in periodic mode`
+		`wait period`
+```
+
+### Sporadic Read
+
+In sporadic mode, the readers wait on a request from the user to start acquisition and then respond to the user waiting on the results. In this algorithm
+also, the mechanism of ASAP mode is present, i.e. too fast read requests result in a wait on the buffer being written. The complete reader algorithm is
+thus presented below introducing the `request` and `response` semaphores.
+
+```
+last_buffer    &larr; invalid
+last_timestamp &larr; invalid
+while running do
+	`if in sporadic mode`
+		`wait(request)`
+	buffer    &larr; last_written_buffer
+	timestamp &larr; timestamps(buffer)
+	if buffer = last_buffer and timestamps = last_timestamp
+		{Buffer is already read}
+		read_lock(buffer_being_written)
+		buffer    &larr; buffer_being_written
+		timestamp &larr; timestamps\[buffer]
+	else
+		if try_read_lock(buffer) = fail
+			{A buffer swap has just happened}
+			continue
+
+	acquire_data(buffer)
+
+	read_unlock(buffer)
+	last_buffer    &larr; buffer
+	last_timestamp &larr; timestamp
+	if in periodic mode
+		wait period
+	`if in sporadic mode`
+		`users &larr; 1`
+		`while try_wait(request) = success`
+			`users &larr; users + 1`
+		`for users times`
+			`signal(response)`
+```
+
+This algorithm waits for a request by a user. After the acquisition is done, it signals the users. It is possible for multiple users to simultaneously
+request data acquisition. In this case, the data acquisition needs not repeat for each user. Therefore, before signaling the requesting user, the
+reader counts the number of additional requests that have been made in the meantime. It then signals as many users as there have been requests, therefore
+servicing all the simultaneous requests in a single read.
+
+The request from the users is simply done by signaling `request` and waiting on `response`.
+
+## Swap Skips
+
+During the presentation of the writer algorithm, an issue was mentioned named _swap skips_. This issue arises when the writer tries to lock a buffer
+not being used by the readers (and unlock the one it has been writing to), but no such buffer exists. Assuming two buffers and a single layer, [How a
+swap skip can occur. Numbers indicate the buffer data is being written to or read from. The execution times are exaggerated for the sake of example]
+(svg files/swap-skip.svg) shows how a buffer swap may not be possible in a double-buffer instance of Skinware working on a single processing
+unit with preemption. The writer resolves to skip the buffer swap and carry on with overwriting its currently held buffer.
+
+Swap skips are most undesirable as they prevent a whole data frame from being accessed by any readers. The following sections present a method to first
+predict swap skips and then avoid it.
+
+It is worth mentioning that, higher execution time in the readers increase the chance of swap skips. This is the reason `read_layer` function of services
+was noted to be as short as possible.
+
+### Swap Skip Prediction
+
+A swap skip occurs when a reader tries reading from a free buffer slightly before the next writer period while the writer still has not performed a buffer swap.
+For the sake of this argument, assume there are only two buffers. To predict the swap therefore, the reader checks whether it can perform the data copy in time.
+The writer can aid this prediction greatly by providing its next expected swap. The algorithm of the writer is thus augmented by the following line after the
+swap is done and before waiting for the next period.
+
+```
+next_swap &larr; now + period
+```
+
+The reader on the other hand keeps track of its own performance. Assuming `execution_time` to be the reader's expected execution time, the reader can
+predict whether it will be able to perform the read before the writer tries to swap buffers. This is the case if the following inequation holds.
+
+```
+now + execution_time < next_swap
+```
+
+### Swap Skip Avoidance
+
+The strategy to avoid swap skips is for readers to stall until next time writer swaps buffers and then continue with reading. This is shown in [How a swap
+skip can be avoided](svg files/swap-skip-avoidance.svg). To prevent starvation however, this delay is only made once. Therefore, if the reader task is scheduled
+in such a way that once awaken, it still produces a swap skip, the read is done anyway. This can be the case where the system is heavily loaded. This
+strategy is a compromise between losing one data frame for all other readers and starvation of the current, possibly critical, reader.
+
+The algorithm of the reader is thus modified as follows.
+
+```
+...
+execution_time &larr; 0
+while running do
+	...
+	if (buffer = last_buffer and timestamps = last_timestamp) or
+		now + execution_time >= next_swap
+		{Buffer is already read or}
+		{The read cannot be made in time}
+	...
+
+	this_time &larr; now
+
+	acquire_data(buffer)
+
+	this_time &larr; now - this_time
+	if this_time > execution_time
+		execution_time &larr; this_time
+
+	...
+```
+
+In a special, yet common case, the swap skips can be avoided altogether by proper task scheduling. This is the case where the reader is periodic and has the
+same period as the writer, or an integer multiple of it. A real-time periodic task is scheduled based on its _period_ and _task offset_. By assigning the task
+offset of the readers to a time slightly after the next writer invocation, the system task scheduler will invoke the readers after the writer has been awakened.
+If the load on the system is high, it is still possible for readers to try accessing the buffers too late.
+
+Another effective method is to increase the number of buffers. The higher the number of buffers is, the smaller is the chance for the writer to not find any
+free buffers. In the normal execution of Skinware, the writer has `buffer_being_written` locked while the readers have `last_written_buffer` locked.
+The other buffers are thus free and available to the writer. A system overload, or a reader fault can still cause a swap skip. Higher number of buffers thus
+also increases fault tolerance, e.g. if there are `N` buffers, it is possible for `N-2` readers to crash, leaving their buffers locked, and the acquisition
+would still function, having been reduced to a double-buffered one. A watchdog can be responsible for unlocking these buffers and recovering the readers to
+further improve fault tolerance.
+
+Theoretically, this issue can be completely resolved by introducing additional buffers instead of a skipping buffer swaps, which is done in Multi-Version Concurrency Control
+systems. This has multiple drawbacks, such as efficiency and memory consumption issues. MVCC systems are normally user-space programs with access to
+large amount of physical and virtual memory and therefore can freely extend their working memory. The skin kernel however is a Linux kernel module that only has
+access to the limited memory available to the kernel. Therefore, such a solution is not acceptable in this context.
+
+# Accompanying Software
+
+Skinware is shipped with a extra pieces of software. These are introduced in the following sections.
+
+## Calibrator
+
+The calibrator program is a normal user-space application that uses the skin library to perform calibration. Currently, it is only able to read the calibration
+values from cache, but in the near future will also be attached to a calibration program currently in development.
+
+This program first connects to the skin kernel and reads sensor values like any other user-space application, except other user-space applications are not allowed
+to work while the skin is still not calibrated. Having provided sensor values to the calibrator, it then waits for that program to finish. Once done, it creates
+a 2D map of the skin (still in development) and sends calibration data to the skin kernel. Once this program is done, the skin kernel has finished calibration phase.
+
+This program caches the calibration results for later use.
+
+## Regionalizer
+
+This program is similar to the calibrator, in the sense that it is like any other user-space application, except those are not allowed to execute before the skin
+is regionalized. This program provides a GUI for regionalization with on-screen help. The regions are chosen either by touching the skin itself, or manually selecting
+the sensors by mouse. Either way, regions can be defined one by one. Once done, the program generates sub-region data and communicates all regionalization data with
+the skin kernel.
+
+This program caches the regionalization results for later use.
+
+## Drivers
+
+There are already drivers written for Skinware, both for demonstration and real use. They are explained more in details as follows.
+
+### Virtual
+
+This driver is one used by the developers to test the correctness of Skinware under heavy load. It can create many layers with arbitrarily large number of sensors
+and generate data for those layers, acting as if those data were generated from physical sensors.
+
+Accompanying this driver is a program that generates input file for the driver's initializer as well as calibration and regionalization cache files based on a
+configuration file.
+
+### Others
+
+There exist other drivers but they are currently not bundled with Skinware.
+
+## Services
+
+Currently, only a demo service accompanies Skinware.
+
+### Motion Tracking
+
+The motion tracking service is one that, by inspecting sensor data between data frames, detects the direction and magnitude of motions on the skin. This means that
+a sliding motion on the skin will be detected by this service.
+
+This service is very basic and serves only to show how a service is implemented, and could be used as a template.
+
+## Visualizer
+
+The visualizer opens an OpenGL window that visualizes responses from the skin that are possibly filtered, zoomed, scaled etc.

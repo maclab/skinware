@@ -1,0 +1,43 @@
+struct skink_module
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+prev struct skink_sensor
+next struct skink_patch
+
+A module is a set of sensors in the skin, physically grouped together. As far as algorithms over the skin are concerned, details of modules are irrelevant. However,
+for those services that need to inspect the hardware itself, the following information are available.
+
+VARIABLE id: skink_module_id
+	The id of this module
+
+	This is the id of the module, which shows its index in `[#modules](skink_sensor_layer)` of `skink_sensor_layer` in the [sensor layer](#layer) it belongs to.
+
+VARIABLE layer: skink_sensor_layer_id
+	Layer this module belongs to
+
+	This is an index to `[#sensor_layers](skink_data_structures)` of `skink_data_structures` which shows the [sensor layer](skink_sensor_layer) this module belongs to.
+
+VARIABLE patch: skink_patch_id
+	Patch this module belongs to
+
+	This is an index to `[#patches](skink_sensor_layer)` of `skink_sensor_layer` which shows the [patch](skink_patch) this module belongs to.
+
+VARIABLE sensors_begin: skink_sensor_id
+	Start index of sensors in this module
+
+	This is an index to `[#sensors](skink_sensor_layer)` of `skink_sensor_layer` which contains the sensors of this module. The sensors of this module are located
+	in indices `\[sensors_begin, sensors_begin + [#sensors_count])`.
+
+VARIABLE sensors_count: skink_sensor_size
+	Number of sensors in this module
+
+	See `[#sensors_begin]`.

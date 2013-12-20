@@ -1,0 +1,58 @@
+#! /bin/bash
+
+command -v skin-config > /dev/null 2>&1 || { printf -- "Could not execute skin-config\n"; exit 1; }
+skin_bin_dir="$(skin-config --bin-dir)"
+skin_modules_dir="$(skin-config --mod-dir)"
+
+# take all init-* scripts
+possible_drivers=($skin_bin_dir/init-*)
+possible_drivers=(${possible_drivers[@]#$skin_bin_dir/})
+# see which ones actually correspond to drivers
+drivers=()
+for d in "${possible_drivers[@]}"; do
+	driver_name="${d#init-}"
+	[ -e "$skin_modules_dir/$driver_name.ko" ] && drivers+=("$driver_name")
+done
+
+if [ ${#drivers[@]} -eq 0 ]; then
+	printf -- "No drivers were installed with Skinware\n"
+	exit 0
+fi
+
+usage()
+{
+cat <<EOF
+Usage: init-driver driver_name args
+Available drivers:
+EOF
+for d in "${drivers[@]}"; do cat << EOF
+	$d
+EOF
+done
+cat <<EOF
+
+\`args\` arguments, if any, are passed to \`init-driver\`.
+
+EOF
+exit $1
+}
+
+if [ $# -lt 1 ]; then
+	usage 1 1>&2
+fi
+
+init_driver_name="$1"
+shift
+
+found=n
+for i in "${drivers[@]}"; do
+	if [ "$i" == "$init_driver_name" ]; then
+		found=y
+		break
+	fi
+done
+if [ "$found" != "y" ]; then
+	usage 1 1>&2
+fi
+
+"$skin_bin_dir"/init-"$init_driver_name" "$@"

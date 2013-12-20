@@ -1,0 +1,340 @@
+api Service Functions
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous api Callbacks
+next api Service Manager
+
+These functions allows a kernel module to act as a service for the skin. The services can register an [acquire callback](Callbacks#skink_service_acquire) for the
+[layers](skink_sensor_layer) of their choice and a [service callback](Callbacks#skink_service_function) to perform the service function when necessary.
+
+Once the service is started, the acquire and service callbacks will be called based on the frequency they are needed. It is the responsibility of the service itself
+to synchronize the callbacks. It is important for the acquire callback to be as short as possible. Therefore, it may be a good idea for the acquire callback to copy
+data to one buffer while the service callback processes them in another buffer. This [multiple buffering](custom http://en.wikipedia.org/wiki/Multiple_buffering) approach
+is fairly well-known and can be easily implemented.
+
+FUNCTION skink_get_data_structures: (data_structures: skink_data_structures *): int
+	Retrieves skin data structures
+
+	This function retrieves the skin [data structures](skink_data_structures) such as [sensor layers](skink_sensor_layer) and [regions](skink_region). This function
+	blocks until the data structures are available (or the skin kernel fails to initialize). Once the service is started, it can use this function to inspect the
+	skin structure to decide how to initialize the service, especially regarding the amount of output memory the service needs.
+
+	INPUT data_structures
+		An object of `[skink_data_structures]` that will be filled by this function
+	OUTPUT
+		This function returns `[#SKINK_SUCCESS](constants)` if successful or `[#SKINK_FAIL](constants)` if failed. Failure can be a result of `NULL` input or
+		the skin kernel failing to initialize
+
+FUNCTION skink_get_data_structures_nonblocking: (data_structures: skink_data_structures *): int
+	Retrieves skin data structures (non-blocking)
+
+	This function retrieves the skin [data structures](skink_data_structures) such as [sensor layers](skink_sensor_layer) and [regions](skink_region). It is similar
+	to `[#skink_get_data_structures]`, but with the difference that it fails if the skin kernel is not yet initialized. Once the service is started, it can use this
+	function to inspect the skin structure to decide how to initialize the service, especially regarding the amount of output memory the service needs.
+
+	INPUT data_structures
+		An object of `[skink_data_structures]` that will be filled by this function
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)` if the skin is not yet initialized. The service may try again later.
+			- `[#SKINK_FAIL](constants)` if failed. Failure can be a result of `NULL` input or the skin kernel failing to initialize.
+
+FUNCTION skink_initialize_periodic_service: (service_name: const char *, elem_size: size_t, count: size_t, rwl_name: const char *, period: skin_rt_time): int
+	Initializes a periodic service
+
+	Once the [skin data structures](#skink_get_data_structures) have been inspected, the service module needs to request and initialize a service slot in the skin
+	kernel. This function initializes a periodic service.
+
+	This function cannot be called from a real-time context. If so, it will fail with the proper return value.
+
+	INPUT service_name
+		The name of the shared memory for output. The service needs to provide this name to its users, whether it's a reserved name or one taken by a call
+		to `[#skin_rt_get_free_name](skin_rt)`.
+	INPUT elem_size
+		It is assumed, although not enforced, that the service memory is an array of objects unknown to the skin kernel. This parameter is the size of those
+		objects that together with **`count`** define the size of memory. The service needs to provide the declaration of these objects to its users, most
+		likely through a header file.
+	INPUT count
+		The number of **`elem_size`** objects the memory will be made of.
+	INPUT rwl_name
+		The name of a shared readers-writers lock used for synchronization between the service and its users. Similar to **`service_name`**, this name should be
+		made available to the service users.
+	INPUT period
+		The period in nanoseconds that the [service callback](Callbacks#skink_service_function) will be called.
+	OUTPUT
+		This function returns the id of the service slot initialized. This id must be used with other functions (e.g. `[#skink_start_service]`) that require
+		the service id. This id is non-negative. In case of failure, one of the following negative values are returned:
+			- `[#SKINK_TOO_EARLY](constants)` if it is too early to initialize a service. The service may try again later.
+			- `[#SKINK_TOO_LATE](constants)` if it is too late to initialize a service, either because the skin kernel has failed, is quitting or maximum
+			   number of services has reached. The service must give up.
+			- `[#SKINK_BAD_DATA](constants)` if at least one argument is invalid.
+			- `[#SKINK_BAD_NAME](constants)` if a given name is already in use.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from real-time context.
+			- `[#SKINK_NO_MEM](constants)` if memory could not be acquired for service.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skink_initialize_sporadic_service: (service_name: const char *, elem_size: size_t, count: size_t, request_name: const char *, response_name: const char *): int
+	Initializes a sporadic service
+
+	Once the [skin data structures](#skink_get_data_structures) have been inspected, the service module needs to request and initialize a service slot in the skin
+	kernel. This function initializes a sporadic service, i.e. it runs only upon request.
+
+	This function cannot be called from a real-time context. If so, it will fail with the proper return value.
+
+	INPUT service_name
+		The name of the shared memory for output. The service needs to provide this name to its users, whether it's a reserved name or one taken by a call
+		to `[#skin_rt_get_free_name](skin_rt)`.
+	INPUT elem_size
+		It is assumed, although not enforced, that the service memory is an array of objects unknown to the skin kernel. This parameter is the size of those
+		objects that together with **`count`** define the size of memory.
+	INPUT count
+		The number of **`elem_size`** objects the memory will be made of.
+	INPUT request_name
+		The name of a shared semaphore used for synchronization between the service and its users. Similar to **`service_name`**, this name should be
+		made available to the service users.
+	INPUT response_name
+		The name of another shared semaphore used for synchronization which also should be made available to the service users.
+	OUTPUT
+		This function returns the id of the service slot initialized. This id must be used with other functions (e.g. `[#skink_start_service]`) that require
+		the service id. This id is non-negative. In case of failure, one of the following negative values are returned:
+			- `[#SKINK_TOO_EARLY](constants)` if it is too early to initialize a service. The service may try again later.
+			- `[#SKINK_TOO_LATE](constants)` if it is too late to initialize a service, either because the skin kernel has failed, is quitting or maximum
+			   number of services has reached. The service must give up.
+			- `[#SKINK_BAD_DATA](constants)` if at least one argument is invalid.
+			- `[#SKINK_BAD_NAME](constants)` if a given name is already in use.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from real-time context.
+			- `[#SKINK_NO_MEM](constants)` if memory could not be acquired for service.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skink_acquire_layer: (service_id: unsigned int, layer: skink_sensor_layer_id, acquire: skink_service_acquire, mode: int, period: skin_rt_time): int
+	Requests acquisition from layer and registers callback
+
+	Once the service is inititialized (either [periodic](#skink_initialize_periodic_service) or [sporadic](#skink_initialize_sporadic_service)), it may choose
+	to setup reader threads for layers of its choice. Similar to readers in user-space, the reader threads can work in three modes:
+
+		- ASAP: In this mode, the readers are awakened as soon as the writers (in the skin kernel) swap buffers. This mode achieves lowest latency.
+		- Periodic: This for readers that acquire data periodically, possibly slower than writers produce them.
+		- Sporadic: In this mode, the readers are blocked until read is requested through a call to `[#skink_request_read]`.
+
+	This function registers [a callback](Callbacks#skink_service_acquire) that will be called when acquisition is needed. The synchronization with the writer
+	is completely managed by the skin kernel itself.
+
+	Note that the acquisition methods of the readers of the service are independent from the type (periodic or sporadic) of the service itself.
+
+	If `[#SKINK_ALL_LAYERS](constants)` is given as the **`layer`** argument, this function will register the callback and set up acquisition for all sensor layers.
+
+	INPUT service_id
+		The id of the service returned when [initialized](#skink_initialize_periodic_service).
+	INPUT layer
+		The [layer](Data Types#skink_sensor_layer_id) for which a callback is being registered. If `[#SKINK_ALL_LAYERS](constants)` is given, the callback
+		will be registered for all layers.
+	INPUT acquire
+		A callback that would be called whenever acquisition is needed to be made.
+	INPUT mode
+		The acquisition mode for this layer. This is one of the following three values:
+			- `[#SKINK_ACQUISITION_ASAP](constants)`
+			- `[#SKINK_ACQUISITION_PERIODIC](constants)`
+			- `[#SKINK_ACQUISITION_SPORADIC](constants)`
+	INPUT period
+		The period of acquisition _only_ if **`mode`** is `[#SKINK_ACQUISITION_PERIODIC](constants)`.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)` if it is too early to register a callback. If the service has been correctly initialized, this value
+			  should not be returned.
+			- `[#SKINK_TOO_LATE](constants)` if it is too late to register a callback, either because the skin kernel has failed, or is quitting.
+			  The service must [clean up](#skink_stop_service) and give up.
+			- `[#SKINK_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKINK_BAD_DATA](constants)` if at least one of the other arguments is invalid.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skink_start_service: (service_id: unsigned int, function: skink_service_function, data: void *): int
+	Registers callback and starts service
+
+	Once the service is initialized (either [periodic](#skink_initialize_periodic_service) or [sporadic](#skink_initialize_sporadic_service)), and callbacks with layers
+	of choice have been [registered](#skink_acquire_layer), the service may start.
+
+	INPUT service_id
+		The id of the service returned when [initialized](#skink_initialize_periodic_service).
+	INPUT function
+		The [service callback](Callbacks#skink_service_function) that would be called whenever service is needed.
+	INPUT data
+		User defined data to be passed to the callback
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_PARTIAL](constants)` if service could only partially be started. This is a non-negative value returned that indicates not a total
+			  failure, but partial. This happens if some but not all of the reader threads could not be created. In such a case, the service must either
+			  be able to function with less data or [stop](#skink_stop_service).
+			- `[#SKINK_TOO_EARLY](constants)` if it is too early to start a service. If the service has been correctly initialized, this value
+			  should not be returned.
+			- `[#SKINK_TOO_LATE](constants)` if it is too late to start a service, either because the skin kernel has failed, or is quitting.
+			  The service must [clean up](#skink_stop_service) and give up.
+			- `[#SKINK_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKINK_BAD_DATA](constants)` if **`function`** is `NULL`.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skink_stop_service: (service_id: unsigned int): int
+	Stops and cleans up service
+
+	This function stops and cleans up a service. It blocks until all threads have exited. This function must be called before the service Linux kernel module can
+	be unloaded.
+
+	**Note:** If the service is not stopped and is unloaded from the Linux kernel, the callbacks would be dangling pointers, most probably causing a kernel crash.
+	If the service is implemented incorrectly and contains a bug, it may have destroyed critical information, resulting in this function failing. In such a case,
+	it is advised to put `cleanup_module` of the service in an infinite loop and force a restart rather than continue with unloading and possibly causing a crash.
+
+	INPUT service_id
+		The id of the service returned when [initialized](#skink_initialize_periodic_service).
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKINK_FAIL](constants)` if failed to acquire internal locks. It is possible for the function to be successful on retry.
+
+FUNCTION skink_pause_service: (service_id: unsigned int): int
+	Pauses a running service
+
+	This function pauses an already running service. It is possible for the [callbacks](Callbacks) to be called one more time after this function has returned.
+
+	INPUT service_id
+		The id of the service returned when [initialized](#skink_initialize_periodic_service).
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			  The service must [clean up](#skink_stop_service) and give up.
+			- `[#SKINK_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skink_resume_service: (service_id: unsigned int): int
+	Resumes a paused service
+
+	This function resumes a [paused](#skink_pause_service) service.
+
+	INPUT service_id
+		The id of the service returned when [initialized](#skink_initialize_periodic_service).
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			  The service must [clean up](#skink_stop_service) and give up.
+			- `[#SKINK_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skink_request_read: (service_id: unsigned int, layer: skink_sensor_layer_id, must_stop: bool *): int
+	Requests a read to sporadic reader of layer and awaits response
+
+	This function signals a [sporadic](constants#SKINK_ACQUISITION_SPORADIC) reader created for a given [layer](Data Types#skink_sensor_layer_id). The
+	reader will then proceed with the acquisition and signals back. This function will wait until the acquisition is complete.
+
+	If `[#SKINK_ALL_LAYERS](constants)` is given as the **`layer`** argument, this function will send parallel requests to all readers of the service that
+	are sporadic. It then waits for all of them to signal back.
+
+	**Note:** This function performs real-time operations and therefore must be called from a real-time context. If not, it will fail with an appropriate
+	return value.
+
+	INPUT service_id
+		The id of the service returned when [initialized](#skink_initialize_periodic_service).
+	INPUT layer
+		The reader corresponding to layer for which the request is being made. If `[#SKINK_ALL_LAYERS](constants)` is given, the request is made to all
+		sporadic layers.
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the request. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_PARTIAL](constants)`. This value is returned only if `[#SKINK_ALL_LAYERS](constants)` is given as parameter. It is returned if some
+			  but not all of the read requests have been successful.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from a non-real-time thread.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason, including **`must_stop`** becoming true. The operation _may_ be successful on retry.
+
+FUNCTION skink_request_read_nonblocking: (service_id: unsigned int, layer: skink_sensor_layer_id): int
+	Only requests a read to sporadic reader of layer but does not await its response
+
+	This function signals a [sporadic](constants#SKINK_ACQUISITION_SPORADIC) reader created for a given [layer](Data Types#skink_sensor_layer_id). The
+	caller must call `[#skink_await_read_response]` later to complete the request. If that function is not called, the [acquire callback]
+	(Callbacks#skink_service_acquire) is still called, but the sporadic request synchronization mechanism breaks, which becomes an issue if more than one
+	thread is calling this function.
+
+	The purpose of this function is to allow parallel requests to be sent to different readers and then later await their responses. For example, instead
+	of three calls to `[#skink_request_read]`, which performs the reads sequentially, a code such as the following can be used which performs the reads in
+	parallel. Proper error handling needs to be done.
+
+		```
+		skink_request_read_nonblocking(sid, layer0);
+		skink_request_read_nonblocking(sid, layer1);
+		skink_request_read_nonblocking(sid, layer2);
+		skink_await_read_response(sid, layer0, NULL);
+		skink_await_read_response(sid, layer1, NULL);
+		skink_await_read_response(sid, layer2, NULL);
+		```
+
+	If `[#SKINK_ALL_LAYERS](constants)` is given as the **`layer`** argument, this function will send requests to all readers of the service that
+	are sporadic.
+
+	**Note:** This function performs real-time operations and therefore must be called from a real-time context. If not, it will fail with an appropriate
+	return value.
+
+	INPUT service_id
+		The id of the service returned when [initialized](#skink_initialize_periodic_service).
+	INPUT layer
+		The reader corresponding to layer for which the request is being made. If `[#SKINK_ALL_LAYERS](constants)` is given, the request is made to all
+		sporadic layers.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_PARTIAL](constants)`. This value is returned only if `[#SKINK_ALL_LAYERS](constants)` is given as parameter. It is returned if some
+			  but not all of the read requests have been successful. For every failed request, the response is raised so that a call to
+			  `[#skink_await_read_response]` with `SKINK_ALL_LAYERS` would work regardless of this error.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from a non-real-time thread.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skink_await_read_response: (service_id: unsigned int, layer: skink_sensor_layer_id, must_stop: bool *): int
+	Awaits response from a sporadic reader for which a request has already been sent
+
+	This function is the complement of `[#skink_request_read_nonblocking]`. That function sends a request to the sporadic reader, while this function awaits its
+	response. See the comments of `skink_request_read_nonblocking` for more information.
+
+	If `[#SKINK_ALL_LAYERS](constants)` is given as the **`layer`** argument, this function will await responses from all readers of the service that
+	are sporadic.
+
+	**Note:** This function performs real-time operations and therefore must be called from a real-time context. If not, it will fail with an appropriate
+	return value.
+
+	INPUT service_id
+		The id of the service returned when [initialized](#skink_initialize_periodic_service).
+	INPUT layer
+		The reader corresponding to layer for which the request has been made and this function must wait for. If `[#SKINK_ALL_LAYERS](constants)` is given,
+		this function awaits responses from all sporadic layers.
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the wait. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_PARTIAL](constants)`. This value is returned only if `[#SKINK_ALL_LAYERS](constants)` is given as parameter. It is returned if some
+			  but not all of the wait-response requests were successfully handled. Normally, this shouldn't happen, but it is possible if there are unlikely
+			  failures in internal lock acquisitions.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from a non-real-time thread.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason, including **`must_stop`** becoming true. The operation _may_ be successful on retry.

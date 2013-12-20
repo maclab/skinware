@@ -1,0 +1,114 @@
+example Mean Pressure on Skin
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_object
+next struct skin_sensor
+seealso `[skin_object]`
+seealso `[skin_reader]`
+seealso `[skin_sensor]`
+
+This simple example shows a quick startup of the skin and scanning its sensors. Additional data structures and other sensor properties (such as
+[position](skin_sensor#global_position) etc) are not used.
+
+```
+#include \<stdio.h\>
+``#include "skin.h"``
+
+#define INTERVAL 1000000
+
+static int _sum(skin_sensor *s, void *d)
+{
+	unsigned int *sum = d;
+
+	*sum += ``skin_sensor_get_response(s)``;
+	return [#SKIN_CALLBACK_CONTINUE](constants);
+}
+
+void process(skin_object *skin)
+{
+	/* A simple process. For example, to go over all sensors in the skin and get the average */
+	unsigned int sum = 0, count = 0;
+	count = `[#skin_object_sensors_count](skin_object)(skin)`;
+	``[#skin_object_for_each_sensor](skin_object)(skin, _sum, &sum);``
+	if (count == 0)
+		printf("No sensors in the skin!!\\n");
+	else
+		printf("Average skin response is: %f\\n", sum / (float)count);
+}
+
+int main(int argc, char *argv\[\])
+{
+	`[skin_object] skin;`
+	``[#skin_object_init](skin_object)(\&skin);``
+	if (``[#skin_object_load](skin_object)(\&skin)`` != SKIN_SUCCESS)
+	{
+		const char *error = skin_object_last_error(\&skin);
+		printf("Skin initialization error: %s\\n", error?error:"Out of memory");
+		return 0;
+	}
+	``[#skin_reader_start](skin_reader)([#skin_object_reader](skin_object)(\&skin), SKIN_ALL_SENSOR_TYPES, SKIN_ACQUISITION_ASAP, 0);``
+	/* while ESC is not hit */
+	while (/* program running */)
+	{
+		usleep(INTERNAL);		/* Sleep a little (1s) */
+		process(skin);			/* Process the data */
+	}
+	``[#skin_object_free](skin_object)(\&skin);``
+	return 0;
+}
+```
+
+The same example in C++ can be written as follows:
+
+```
+#include \<iostream\>
+``#include "skin.h"``
+
+using namespace std;
+
+#define INTERVAL 1000000
+
+void process(skin_object \&skin)
+{
+	// A simple process. For example, to go over all sensors in the skin and get the average
+	unsigned int sum = 0, count = 0;
+	`for (skin_object::[skin_sensor_iterator](skin_X_iterator) i = `<>``skin.[#sensors_iter_begin](skin_object)()``<>`,`
+					     `end = `<>``skin.[#sensors_iter_end](skin_object)()``<>`; i != end; ++i)`
+	{
+		sum += `i-\>`<>``[#get_response](skin_sensor)()``<>`;`
+		++count;
+	}
+	if (count == 0)
+		cout \<\< "No sensors in the skin!!" \<\< endl;
+	else
+		cout \<\< "Average skin response is: " \<\< sum / count \<\< endl;
+}
+
+int main(int argc, char *argv\[\])
+{
+	`[skin_object] skin;`
+	if (``skin.[#load](skin_object)()`` != SKIN_SUCCESS)
+	{
+		cout \<\< "Skin initialization error: " \<\< skin.last_error() \<\< endl;
+		return 0;
+	}
+	``skin.[#reader](skin_object)()-\>[#start](skin_reader)();``
+	// while ESC is not hit
+	while (/* program running */)
+	{
+		usleep(INTERNAL);		// Sleep a little (1s)
+		process(skin);			// Process the data
+	}
+	// skin_object will automatically cleanup after itself
+	return 0;
+}
+```

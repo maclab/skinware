@@ -1,0 +1,30 @@
+# include Makefile.config before this file
+
+ifndef UNAME
+  UNAME := $(shell uname)
+  ifeq (Linux,$(findstring Linux, $(UNAME)))
+	OS_TYPE := Linux
+    ifeq (/bin/bash, $(findstring /bin/bash, $(wildcard /bin/bash*)))
+	SHELL := /bin/bash
+    endif
+	ECHO := /bin/echo -e
+  else
+    ifeq (MINGW,$(findstring MINGW, $(UNAME)))
+	OS_TYPE := Windows
+	ECHO := echo
+    else
+	OS_TYPE := Unknown
+	ECHO := echo
+    endif
+  endif
+endif
+
+ifeq ($(OS_TYPE),Windows)
+  INSTALL_DIRECTORY := $(INSTALL_DIRECTORY_WINDOWS)
+else
+  ifeq ($(OS_TYPE),Linux)
+    INSTALL_DIRECTORY := $(INSTALL_DIRECTORY_OTHER)
+  else
+    INSTALL_DIRECTORY := $(INSTALL_DIRECTORY_OTHER)
+  endif
+endif

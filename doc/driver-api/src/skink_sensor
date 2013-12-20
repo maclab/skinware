@@ -1,0 +1,26 @@
+struct skink_sensor
+# Skinware - Driver API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+seealso `[skink_device]` functions
+seealso `[skink_sensor layer]`
+prev struct skink_sensor_layer
+next struct skink_module
+
+The device driver needs to periodically acquire data from the sensors every time the [acquire callback](Callbacks#skink_device_acquire) is called. The `skink_sensor`
+structure has many fields that are available to users, but not to the device drivers. The network driver can only access the variables described here.
+
+VARIABLE response: skink_sensor_response
+	The response of this sensor
+
+	This is an array of responses, allowing Skinware to use multiple buffers for communication. Each time the [acquire callback](Callbacks#skink_device_acquire)
+	is called, it is given a buffer parameter which must be used to put the sensor response in that location in this array. The sensor values must be mapped to
+	`\[0, [#SKINK_SENSOR_RESPONSE_MAX](constants)]`.

@@ -1,0 +1,68 @@
+Building and Installation of Skinware
+=====================================
+
+    0. Overview
+    -----------
+
+See README for prerequisites of building Skinware.  Then proceed with
+configuration, build and installation of Skinware as instructed in this file.
+See section 3 (Usage) of README for instructions on how Skinware should be set
+up and how it can be used.
+
+Table of contents:
+1) Configuration
+2) Build
+3) Installation
+
+    1. Configuration
+    ----------------
+
+The configuration of Skinware is similar to that of the Linux kernel.  You can
+configure Skinware with any of the following methods:
+
+    $ make oldconfig
+    $ make config
+    $ make menuconfig
+    $ make gconfig
+    $ make xconfig
+
+Each option in the configuration has an associated help messages.  The
+following are some of the most important options:
+
+- Developer mode: If you are not a developer of Skinware, simply turn this
+  option off.
+- General/Installation directory: Where Skinware will be installed.
+- General/RTAI configuration tool: Path to rtai-config of RTAI package.
+- General/Documentation: If you need to build the documentation yourself.
+- Modules/Drivers: Which drivers to build.
+
+    2. Build
+    --------
+
+After configuration, simply write
+
+    $ make
+
+At this stage, there should be no error if all prerequisites have been
+installed.  If there was an error, it means that you are missing some
+prerequisite, which you can double check with README.  Unfortunately, I'm
+not yet proficient enough to write an autoconfig script (I would when I find
+the time), so for now, bare with me.
+
+    3. Installation
+    ---------------
+
+As root, simply write
+
+    $ make install
+
+to install Skinware at the configured location.  A link to skin-config script
+will be made in `/usr/bin`, hopefully in your PATH so it can be accessed from
+anywhere.
+
+If at any point you needed to uninstall Skinware, again as root, execute
+
+    $ make uninstall
+
+which removes all installed files.  If you have created any files in the
+installation directory, they will be left intact.

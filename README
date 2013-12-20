@@ -1,0 +1,188 @@
+Skinware: The Skin Middle-ware
+==============================
+
+    0. Overview
+    -----------
+
+Skinware consists of two components; the skin kernel and a user-space library.
+The skin kernel is a kernel module, to which many devices can attach,
+providing data from the skin sensors.  Each instance of the user-space program
+(using the skin library) attaches itself to the skin kernel, providing data to
+the user programs in real-time.
+
+Table of contents:
+1) Prerequisites
+2) Building and Installation
+3) Usage
+4) License
+5) Coding style
+
+    1. Prerequisites
+    ----------------
+
+First and foremost, you need to have a running kernel with RTAI patched and
+RTAI installed.  Make sure you see README.RTAI for critical RTAI configuration
+needed by Skinware.
+
+To compile Skinware, you need the following compilers:
+
+- gcc : for compiling kernel level codes as well as the library
+- g++ : for compiling the calibrator, regionalizer and tests
+
+The configuration of Skinware is similar to that of the Linux kernel.
+Therefore, depending on your choice of configuration interface you may need
+the following additional libraries:
+
+- ncurses  : if configuring with menuconfig
+- GTK+ 2.0 : if configuring with gconfig
+- QT       : if configuring with xconfig
+
+There are a few graphical libraries needed by the visualizer, but as of the
+current version, they are my own simple libraries and I have included them
+with Skinware.  Besides the tests, the regionalizer uses these libraries and
+therefore you would need to build them anyway.  You will need the following
+additional libraries:
+
+- SDL    : Simple DirectMedia Library (for window handling)
+- OpenGL : Graphical rendering (higher than v1.2)
+- GLU    : OpenGL utilities library
+
+To build the documentation files, I have developed a program, named DocThis!
+along with a compiler library named shCompiler.  They are not yet available as
+Linux packages so I have also included them in Skinware.  They don't have any
+additional prerequisites.  Feel free to install DocThis! and use it, or
+contact me for updates.  Let us cleanse this world of the horror that is
+doxygen!
+
+To build the documentation in pdf, the following software are also needed:
+
+- pdflatex : To compile LaTeX files
+- inkscape : To convert SVG files to PDF
+
+    2. Building and Installation
+    ----------------------------
+
+See INSTALL
+
+    3. Usage
+    --------
+
+Use skin-config a lot.  During installation, a link to this script is created
+in /usr/bin which is hopefully in your PATH.  To get a summary of usage of
+this script, run:
+
+    $ skin-config --help
+
+NOTE: if you use sudo to execute your actions, you should know that sudo
+resets the PATH variable and therefore, if you have not given the full path
+to rtai-config, then `sudo skin-config ...` would not properly work.  One
+option is to provide the full path to rtai-config (recommended), or
+alternatively, call skin-config like this:
+
+    $ sudo PATH=$PATH skin-config ...
+
+To use Skinware, you should first load the skin kernel, which is skin_kernel.o
+inside `skin-config --modules-dir`:
+
+    $ insmod `skin-config --modules-dir`/skin_kernel.ko
+
+Then you need to load drivers, either yours or the ones you compiled, residing
+in `skin-config --modules-dir`.  The drivers accompanying Skinware need to be
+initialized themselves using
+
+    $ `skin-config --driver-initializer` driver data
+
+where driver is one of the installed driver names and data is a file
+containing its initialization data.  If you run this program without
+arguments, you can see a list of possible actions.  After all drivers are
+loaded, you must call
+
+    $ `skin-config --device-finalizer`
+
+This is equivalent to `echo devs > /proc/skink_command`.  Currently, you must
+make sure all your drivers have reached the registration phase before this is
+called, otherwise your driver gets rejected.  To do so, monitor the contents
+of `/sys/skin_kernel/registered_devices`.  At this point, the acquisition of
+data from the skin starts, but the skin is not quite ready yet.  You first
+need to calibrate the skin which is done by
+
+    $ `skin-config --calibrator` cache_file
+
+where cache_file is a file to store the calibration results.  Later, when the
+skin is restarted, this cache will be used.  To force calibration to be
+performed again, use the `--recalibrate` option.  Use `--help` for options.
+Calibration phase can be ignored by `echo clbr > /proc/skink_command` but the
+skin may not be so useful without the calibration data.
+
+After calibration, you need to regionalize the kernel.  Similar to
+calibration, this is done by
+
+    $ `skin-config --regionalizer` cache_file
+
+with the same use for cache_file as in calibration.  You can force
+regionalization to be redone by `--reregionalize` option.  Use `--help` for
+options.  If you want to skip regionlization phase, you can do so by
+`echo rgn > /proc/skink_command`.
+
+The skin kernel is now ready and user programs can start using the skin.
+
+        3.1. Writing drivers
+        --------------------
+
+To write drivers, you need to follow a certain protocol to communicate with
+the skin kernel.  The protocol can be found in the documentation.  It can also
+be seen in the sample drivers included with Skinware.  To compile the driver,
+use `skin-config --cc` as compiler, add `skin-config --module-cflags` to
+`EXTRA_CFLAGS` and add `skin-config --module-symbols` to `KBUILD_EXTRA_SYMBOLS`.
+
+For more information, please see the documentation.
+
+        3.2. Writing services
+	---------------------
+
+See the documentation on service API and the demo services included to get an
+idea how it is done.  Building the services is similar to building drivers
+described in section 3.1.
+
+        3.3. Using the library
+        ----------------------
+
+To write user-space programs using the skin, please see the documentation for
+examples and references.  You need to compile your files with
+`skin-config --cc` and add `skin-config --lib-cflags` to compiler options,
+or if compiling in C++, compile with `skin-config --cxx` and add
+`skin-config --lib-cxxflags` to compiler options, and in both cases add
+`skin-config --lib-ldflags` to linker options.
+
+For more information, please see the documentation.
+
+    4. License
+    ----------
+
+Copyright (C) 2011-2012  Shahbaz Youssefi <ShabbyX@gmail.com>
+
+Skinware consisting of the skin kernel and library along with their
+documentations and accompanying drivers, services and software including
+but not limited to the calibrator and regionalizer are published under the GNU
+General Public License version 2.0 or later (GPL v2.0+).
+
+Skinware is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+Skinware is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Skinware.  If not, see <http://www.gnu.org/licenses/>.
+
+Other included libraries and software (Ngin, Ngin3d, shImage, shFont, shCompiler
+and DocThis!) have their own licenses and are not part of Skinware.
+
+    5. Coding style
+    ---------------
+
+See README.STYLE

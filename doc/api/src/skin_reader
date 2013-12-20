@@ -1,0 +1,505 @@
+struct skin_reader
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_object
+next struct skin_service_manager
+seealso `[skin_sensor]`
+seealso `[skin_sensor_type]`
+seealso `[skin_object]`
+seealso `[skin_task_statistics]`
+seealso `[skin_rt]` Functions
+
+This struct and associated functions are responsible for communicating with the [skin kernel](index#Overview), creating one or more real-time threads to acquire
+the data and store a local copy. It also computes statistical information. There are a number of possibilities for how the thread would act.
+
+First, the skin kernel could be working in single buffer or multi buffer mode. Basically, in single buffer mode, there are no locking mechanisms and
+thus the kernel may write new data to buffer while the library is in the middle of reading. In multi buffer mode, the library synchronizes its reads with
+the kernel so that the data are coherent. A _swap skip_ occurs if the skin kernel wants to swap buffers and notices there are still readers reading on the
+other buffers. In this case, the skin kernel rewrites the buffer it is holding, causing previous data to be lost. Therefore swap skips are undesirable and
+although mechanisms to predict and avoid them have been implemented, they are still possible in an unfortunate case (even though the chances are extremely small).
+An example of such cases is that due to unforeseen reasons, threads die while having a buffer locked. The swap skips can be reduced by reducing unnecessary reads.
+Please refer to the Skinware's scientific papers for details. Alternatively, the number of buffers can be increased to lessen this chance. Normally, swap skips
+are rare and two buffers are sufficient. An experimental compromise between the number of objects associated with each buffer and the chances of swap skips is 3 buffers.
+Choosing more buffers, for example 5 buffers would make swap skips practically impossible.
+
+Second, there are three modes of data acquisition on the skin API's side for each acquisition thread; _[ASAP mode](constants#SKIN_ACQUISITION_ASAP)_,
+_[periodic mode](constants#SKIN_ACQUISITION_PERIODIC)_ and _[sporadic mode](constants#SKIN_ACQUISITION_SPORADIC)_. In ASAP mode, the skin API acquisition
+thread (_reader_) tries to read from the kernel as fast as possible. The best achievable rate is the same frequency as the kernel is writing data. In periodic
+mode, the reader reads from the kernel with a given period. This period however is capped by kernel's period which means the reader cannot read faster the
+kernel writes. In sporadic mode, the reader does not read from the kernel unless requested to. Therefore, by a call to `[#skin_reader_request]` the
+programmer can have the reader read the tactile data once and pause until the next request. If not in sporadic mode, then to allow synchronization between the
+user program and the reader, the user can register a mutex with the library through `[#skin_reader_register_user]` and on its periods, wait for the reader to
+awaken it by `[#skin_reader_wait_read]`. Unless [stopping acquisition](#skin_reader_stop), in which case all mutexes are unregistered, the programmer
+is required to unregister the mutex through a call to `[#skin_reader_unregister_user]` before deleting the mutex.
+
+Combining these two operating modes, the reader behaves in the following way:
+
+	- Single Buffer mode
+		* ASAP mode: In this mode, since there are no lockings, to avoid extra reading, the thread switches to periodic mode with period equal to
+		  the kernel's.
+		* Periodic mode: In this mode, the thread reads data periodically. If the provided period is smaller than the kernel's, it is made equal to it.
+		* Sporadic mode: In this mode, the thread waits for the programmer to signal it (using `[#skin_reader_request]`) and then immediately
+		  reads the data from kernel.
+	- Double Buffer mode
+		* ASAP mode: In this mode, the reader reads data from the last updated free buffer of the kernel and waits for the buffer being written to be unlocked
+		  by the kernel or if the current buffer's timestamp has changed, it would reread it. In the former case, if a swap skip happens, then the reader would
+		  not get a chance to read the data being overwritten by the kernel. In the later case, the reader had been too slow to read the data (which is most
+		  unlikely) and therefore has missed at least one buffer.
+
+		... This mode has the advantage of complete synchronization with the kernel and thus reduces risk of swap skips. On the other hand may read
+		  data faster than the programmer needs which might introduce swap skips. However, compared to periodic mode with period equal to kernel's,
+		  ASAP mode is less likely to have swap skips.
+
+		* Periodic mode: In this mode, the reader thread periodically reads data from the last updated free buffer of the kernel. If this buffer has data
+		  that is already read, it would wait for the buffer being written to get unlocked. In the event where this wait is too long (which is unlikely), the
+		  thread will miss its deadline. However, since no new and unlocked data exist, it wouldn't make a difference (unless a certain algorithm is devised
+		  for such a case to for example predict the new data. In the current version however, there is no such algorithm)
+
+		* Sporadic mode: In this mode, similar to single buffer mode, the thread waits for the programmer to signal it (using `[#skin_reader_request]`)
+		  and then tries to read the data. If there are new available data, then the read is done and the user program is allowed to continue execution.
+		  However, if there are no new data, the reader waits for the buffer being written to get unlocked, thus blocking the user program until the read
+		  operation is complete.
+
+VARIABLE tasks_count: skin_sensor_type_size
+	Number of acquisition tasks
+
+	This variable holds the number of data acquisition threads. In the current version of Skinware, this value is the same as [number of sensor types]
+	(skin_object#skin_object_sensor_types_count) in the skin and hence the type `[#skin_sensor_type_size](skin_object)`.
+
+VARIABLE tasks_statistics: skin_task_statistics *
+	Statistics for each acquisition task
+
+	This is an array of `[skin_task_statistics]` that contains statistics for each acquisition threads. The size of this array is `[#tasks_count]`
+	and they can be indexed by [sensor types](skin_sensor_type#id).
+
+FUNCTION skin_reader_init: (reader: skin_reader *): void
+	Class constructor
+
+	Default constructor of the class. Sets the internal variables so that the object would be invalid.
+
+	INPUT reader
+		The object of operation
+
+FUNCTION skin_reader_free: (reader: skin_reader *): void
+	Class destructor
+
+	Destructor of the class. Terminates all operating threads.
+
+	INPUT reader
+		The object of operation
+
+FUNCTION skin_reader_start: (reader: skin_reader *, sensor_type: skin_sensor_type_id, type: skin_acquisition_type, period: skin_rt_time): int
+	Create thread acquiring data for all or a certain sensor type from the skin kernel
+
+	This function connects to the [skin kernel](index#Overview) and starts a thread reading data of sensor types **`sensor_type`** from the
+	kernel in the specified mode. For detailed explanation of the modes of operation, please see the [explanation](#Overview) on the top of this page.
+	Note that **`period`** is only used if **`type`** is set to `[#SKIN_ACQUISITION_PERIODIC](constants)`, and if **`period`** is set to 0, it would default to
+	kernel's period. If the skin is not [loaded](skin_object#skin_object_load) yet, connection to the skin was impossible, or there was not enough memory,
+	the function would return `[#SKIN_FAIL](constants)`.
+
+	The following data are acquired from the skin kernel within each read period:
+
+		- Sensor responses - available from `[#skin_sensor_get_response](skin_sensor)`
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT reader
+		The object of operation
+	INPUT sensor_type
+		The layer for which the acquisition thread is being created. See `[skin_sensor_type]` for ways to retrieve sensor types.
+		If `[#SKIN_ALL_SENSOR_TYPES](constants)` is given, all layers will be started with the same method.
+	INPUT type
+		The data acquisition type. Please see the [explanation](#Overview) on the top of this page.
+
+		`skin_acquisition_type` is merely an enumeration accepting values `[#SKIN_ACQUISITION_ASAP](constants)`,
+		`[#SKIN_ACQUISITION_PERIODIC](constants)` or `[#SKIN_ACQUISITION_SPORADIC](constants)`.
+	INPUT period
+		If specified **`type`** is equal to `SKIN_ACQUISITION_PERIODIC`, then this value will hold the period in nanoseconds. In other modes of
+		operation this input is ignored. If smaller than the period of the corresponding writer, the period of the writer will be used.
+
+		The type `[#skin_rt_time](skin_rt)` is defined in the [real-time interface](skin_rt) to hold values of time in nanoseconds.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful, `[#SKIN_BAD_ID](constants)` if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+		If no parameter is given, `[#SKIN_PARTIAL](constants)` may be returned if some but not all sensor types could be started.
+
+FUNCTION skin_reader_request: (reader: skin_reader *, sensor_type: skin_sensor_type_id, must_stop: bool *): int
+	Request and block until all or a certain reader acquire one frame of data
+
+	This function works only if the data acquisition thread is started in sporadic mode. A call to this function blocks execution and signals the thread
+	to read the data of sensor type **`sensor_type`** from kernel once. Then, the user program is unblocked and can continue execution. Note that if
+	`[#skin_reader_stop]` is called, then this function returns with `[#SKIN_SUCCESS](constants)`, unblocking the user program, and sets a warning
+	message retrievable via `[#skin_object_last_error](skin_object)`. For more details please refer to the [explanation](#Overview) on the top of this page.
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT reader
+		The object of operation
+	INPUT sensor_type
+		The layer for which the read is being requested. See `[skin_sensor_type]` for ways to retrieve sensor types.
+		If `[#SKIN_ALL_SENSOR_TYPES](constants)` is given, all layers will be requested.
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the request. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful, `[#SKIN_BAD_ID](constants)` if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+		If no parameter is given, `[#SKIN_PARTIAL](constants)` may be returned if some but not all sensor types could be requested.
+
+FUNCTION skin_reader_request_nonblocking: (reader: skin_reader *, sensor_type: skin_sensor_type_id): int
+	Request all or a certain reader to acquire one frame of data but don't wait for its response
+
+	This function is similar to `[#skin_reader_request]`, except it doesn't wait for the acquisition thread to respond. The caller needs to call
+	`[#skin_reader_await_response]` later to complete the request. The purpose of this function is to allow parallel requests to be sent to different
+	readers and then later await their responses. For example, instead of three calls to `[#skin_reader_request]`, which performs the reads sequentially,
+	a code such as the following can be used which performs the reads in parallel. Proper error handling needs to be done.
+
+		```
+		skin_reader *reader = skin_object_reader(&skin);
+		skin_reader_request_nonblocking(reader, type0);
+		skin_reader_request_nonblocking(reader, type1);
+		skin_reader_request_nonblocking(reader, type2);
+		skin_reader_await_response(reader, type0, NULL);
+		skin_reader_await_response(reader, type1, NULL);
+		skin_reader_await_response(reader, type2, NULL);
+		```
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT reader
+		The object of operation
+	INPUT sensor_type
+		The layer for which the read is being requested. See `[skin_sensor_type]` for ways to retrieve sensor types.
+		If `[#SKIN_ALL_SENSOR_TYPES](constants)` is given, all layers will be requested.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful, `[#SKIN_BAD_ID](constants)` if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+		If no parameter is given, `[#SKIN_PARTIAL](constants)` may be returned if some but not all sensor types could be requested.
+
+FUNCTION skin_reader_await_response: (reader: skin_reader *, sensor_type: skin_sensor_type_id, must_stop: bool *): int
+	Await response from all or a certain acquisition thread to which a request has been sent
+
+	This function is the complement of `[#skin_reader_request_nonblocking]`. It awaits the response from the sporadic acquisition thread to which a request has been
+	previously sent. See that function for more information.
+
+	If no parameter is given, this function awaits responses from all readers.
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT reader
+		The object of operation
+	INPUT sensor_type
+		The layer for which the read is being requested. See `[skin_sensor_type]` for ways to retrieve sensor types.
+		If `[#SKIN_ALL_SENSOR_TYPES](constants)` is given, all layers will be waited on.
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the wait. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful, `[#SKIN_BAD_ID](constants)` if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+		If no parameter is given, `[#SKIN_PARTIAL](constants)` may be returned if some but not all sensor types could be waited for.
+
+FUNCTION skin_reader_stop: (reader: skin_reader *, sensor_type: skin_sensor_type_id): int
+	Stop the reader threads of all or a certain sensor type
+
+	This functions asks the thread created by `[#skin_reader_start]` to stop acquiring data and quit. After, it would clean up the acquired shared
+	memories and locks. Note that this function waits 1.5 seconds (plus period, if periodic) for the data acquisition thread to stop. If it doesn't stop
+	by this time, this function would kill it and continue with the cleanup.
+
+	INPUT reader
+		The object of operation
+	INPUT sensor_type
+		The layer for which the acquisition thread is being stopped. See `[skin_sensor_type]` for ways to retrieve sensor types.
+		If `[#SKIN_ALL_SENSOR_TYPES](constants)` is given, all layers will be stopped.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful, `[#SKIN_BAD_ID](constants)` if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+		If no parameter is given, `[#SKIN_PARTIAL](constants)` may be returned if some but not all sensor types could be stopped.
+
+FUNCTION skin_reader_pause: (reader: skin_reader *, sensor_type: skin_sensor_type_id): int
+	Pause the acquisition threads of all or a certain sensor type
+
+	If for any reason it was decided that data from a certain sensor type is no longer required, this function can be called to pause acquisition for that
+	specific **`sensor_type`**. Note that the acquisition thread itself is not terminated and could be [resumed](#skin_reader_resume) with minimum overhead.
+
+	INPUT reader
+		The object of operation
+	INPUT sensor_type
+		The layer for which the acquisition thread is being paused. See `[skin_sensor_type]` for ways to retrieve sensor types.
+		If `[#SKIN_ALL_SENSOR_TYPES](constants)` is given, all layers will be paused.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful, `[#SKIN_BAD_ID](constants)` if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+
+FUNCTION skin_reader_resume: (reader: skin_reader *, sensor_type: skin_sensor_type_id): int
+	Resume the acquisition threads of all or a certain sensor type
+
+	If the acquisition thread of sensor type **`sensor_type`** had been [paused](#skin_reader_pause), this function can be used to resume it.
+
+	INPUT reader
+		The object of operation
+	INPUT sensor_type
+		The layer for which the acquisition thread is being resumed. See `[skin_sensor_type]` for ways to retrieve sensor types.
+		If `[#SKIN_ALL_SENSOR_TYPES](constants)` is given, all layers will be resumed.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful, `[#SKIN_BAD_ID](constants)` if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+
+FUNCTION skin_reader_is_paused: (reader: skin_reader *, sensor_type: skin_sensor_type_id): int
+	Whether the acquisition threads of all or a certain sensor type are paused
+
+	This functions tells whether the reader thread created for **`sensor_type`** is [paused](#skin_reader_pause) or not.
+
+	INPUT reader
+		The object of operation
+	INPUT sensor_type
+		The layer for which the acquisition thread is created. See `[skin_sensor_type]` for ways to retrieve sensor types.
+		If `[#SKIN_ALL_SENSOR_TYPES](constants)` is given, all layers will be checked whether they are paused or not.
+	OUTPUT
+		Returns whether the acquisition thread corresponding to **`layer`** is paused or not. If `[#SKIN_ALL_SENSOR_TYPES](constants)` is given,
+		this function will return `true` if all layers are paused and `false` if at least one layer is not.
+		In case of error, `[#SKIN_BAD_ID](constants)` will be returned if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+
+FUNCTION skin_reader_register_user: (reader: skin_reader *, mutex: skin_rt_mutex *, sensor_type: skin_sensor_type_id): int
+	Register a mutex with the reader to be signaled upon reading of each frame
+
+	As explained [above](#Overview), the user program can register a mutex with the reader so that upon completion of data acquisition, the user program,
+	blocked on function `[#skin_reader_wait_read]` would be awakened.
+
+	If **`[sensor_type](skin_sensor_type)`** is set to `[#SKIN_ALL_SENSOR_TYPES](constants)`, then **`mutex`** is registered with all acquisition
+	threads. This means that **`mutex`** would be signaled with every read of each sensor type. Otherwise, **`mutex`** will be registered only to the
+	corresponding acquisition thread.
+
+	**Note:** Normally, this mechanism would be used with ASAP and periodic modes, since in sporadic mode, it is the user herself that
+	[requests](#skin_reader_request) the read. Nevertheless, this mechanism works with all read modes.
+
+	INPUT reader
+		The object of operation
+	INPUT mutex
+		A reference to a mutex of type `[#skin_rt_mutex](skin_rt)`. This mutex is used to synchronize the user program and the reader.
+	INPUT sensor_type
+		The layer **`mutex`** is being registered to. Set to `[#SKIN_ALL_SENSOR_TYPES](constants)` to register to all layers.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful, `[#SKIN_BAD_ID](constants)` if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+
+FUNCTION skin_reader_wait_read: (reader: skin_reader *, mutex: skin_rt_mutex *, wait_time: skin_rt_time): int
+	Wait on a mutex until the reader finishes reading a frame of data and signals it
+
+	As explained [above](#Overview), the user program can [register](#skin_reader_register_user) a mutex with the reader so that upon completion of data
+	acquisition, it could be notified. In order to do so, the user program is required to call this function, and upon return assume that the read is done
+	if `[#SKIN_SUCCESS](constants)` is returned. The reader ascertains that a slow user cannot be awakened while the acquisition is in progress. This means
+	that it is always true that this function will block the user program if acquisition is in progress. The opposite however is not true, that is if the
+	user program is reading the data, the reader may start writing over them.
+
+	If **`wait_time`** is set to `(skin_rt_time)-1`, this function waits until a lock on **`mutex`** is acquired. If `0` is passed as **`wait_time`**,
+	this function would act as a try-lock, immediately deciding whether the lock can be acquired (and if so, acquires it) or not. Otherwise, this function
+	tries to lock **`mutex`** within the given time and return if time expires.
+
+	INPUT reader
+		The object of operation
+	INPUT mutex
+		A reference to a mutex of type `[#skin_rt_mutex](skin_rt)`. This mutex is used to synchronize the user program and the reader.
+	INPUT wait_time
+		If -1, then the function blocks until **`mutex`** is acquired. If 0, then the function either immediately acquires **`mutex`**, or if it is
+		not available, returns. Otherwise, tries acquiring a lock on **`mutex`** for at most **`wait_time`** nanoseconds.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful and `[#SKIN_FAIL](constants)` if there was an error. If **`wait_time`** is 0, it can also
+		return `[#SKIN_LOCK_NOT_ACQUIRED](constants)` if lock was not available. If **`wait_time`** is bigger than 0, it can also return
+		`[#SKIN_LOCK_TIMEOUT](constants)` if lock could not be acquired within given time.
+
+FUNCTION skin_reader_unregister_user: (reader: skin_reader *, mutex: skin_rt_mutex *, sensor_type: skin_sensor_type_id): int
+	Unregister a registered mutex
+
+	Unregisters the mutex registered to the reader by a call to the function `[#skin_reader_register_user]`.
+
+	If **`[sensor_type](skin_sensor_type)`** is set to `[#SKIN_ALL_SENSOR_TYPES](constants)`, then **`mutex`** is unregistered from all
+	acquisition threads. Otherwise, **`mutex`** will be unregistered only from the corresponding acquisition thread.
+
+	INPUT reader
+		The object of operation
+	INPUT mutex
+		A reference to a mutex of type `[#skin_rt_mutex](skin_rt)`. This mutex is used to synchronize the user program and the reader.
+	INPUT sensor_type
+		The layer **`mutex`** is being unregistered from. Set to `[#SKIN_ALL_SENSOR_TYPES](constants)` to unregister from all layers.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful, `[#SKIN_BAD_ID](constants)` if an invalid id is given or `[#SKIN_FAIL](constants)` otherwise.
+
+FUNCTION skin_reader_enable_swap_skip_prediction: (reader: skin_reader *): void
+	Enable swap skip prediction (default)
+
+	By default, the data acquisition threads try to predict whether they can make the read in time, or the skin kernel needs to write new data soon. In the
+	later case, they wait for the new data and then start reading. This has the added benefit of avoiding [swap skips](#Overview), but introduces an increase
+	in the waiting time. Swap skips however cause all acquisition threads (among different programs, but for the same [sensor type](skin_sensor_type)) to lose
+	one frame of data. In our opinion, it is justified to have an increase in waiting time of one thread in order to prevent a swap skip. That is why swap
+	skip prediction and avoidance is enabled by default.
+
+	INPUT reader
+		The object of operation
+
+FUNCTION skin_reader_disable_swap_skip_prediction: (reader: skin_reader *): void
+	Disable swap skip prediction (for tests)
+
+	While [swap skip](#Overview) prediction is [enabled](#skin_reader_enable_swap_skip_prediction) by default, there may be special cases where they need to be
+	disabled. In such a case, this function can be called.
+
+	INPUT reader
+		The object of operation
+
+MEMBER_FUNCTION skin_reader: ()
+NOTICE C++
+	Class constructor
+
+	Default constructor of the class. Calls `[#skin_reader_init]`.
+
+MEMBER_FUNCTION ~skin_reader: ()
+NOTICE C++
+	Class destructor
+
+	Destructor of the class. Calls `[#skin_reader_free]`.
+
+MEMBER_FUNCTION start: (sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES, type: skin_acquisition_type = SKIN_ACQUISITION_ASAP, period: skin_rt_time = 0): int
+NOTICE C++
+	Wrapper for `skin_reader_start`
+
+	Calls `[#skin_reader_start]`.
+
+	INPUT sensor_type
+		See `[#skin_reader_start]`.
+	INPUT type
+		See `[#skin_reader_start]`.
+	INPUT period
+		See `[#skin_reader_start]`.
+	OUTPUT
+		See `[#skin_reader_start]`.
+
+MEMBER_FUNCTION request: (sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES, must_stop: bool * = NULL): int
+NOTICE C++
+	Wrapper for `skin_reader_request`
+
+	Calls `[#skin_reader_request]`.
+
+	INPUT sensor_type
+		See `[#skin_reader_request]`.
+	INPUT must_stop
+		See `[#skin_reader_request]`.
+	OUTPUT
+		See `[#skin_reader_request]`.
+
+MEMBER_FUNCTION request_nonblocking: (sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES): int
+NOTICE C++
+	Wrapper for `skin_reader_request_nonblocking`
+
+	Calls `[#skin_reader_request_nonblocking]`.
+
+	INPUT sensor_type
+		See `[#skin_reader_request_nonblocking]`.
+	OUTPUT
+		See `[#skin_reader_request_nonblocking]`.
+
+MEMBER_FUNCTION await_response: (sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES, must_stop: bool * = NULL): int
+NOTICE C++
+	Wrapper for `skin_reader_await_response`
+
+	Calls `[#skin_reader_await_response]`.
+
+	INPUT sensor_type
+		See `[#skin_reader_await_response]`.
+	INPUT must_stop
+		See `[#skin_reader_await_response]`.
+	OUTPUT
+		See `[#skin_reader_await_response]`.
+
+MEMBER_FUNCTION stop: (sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES): int
+NOTICE C++
+	Wrapper for `skin_reader_stop`
+
+	Calls `[#skin_reader_stop]`.
+
+	INPUT sensor_type
+		See `[#skin_reader_stop]`.
+	OUTPUT
+		See `[#skin_reader_stop]`.
+
+MEMBER_FUNCTION pause: (sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES): int
+NOTICE C++
+	Wrapper for `skin_reader_pause`
+
+	Calls `[#skin_reader_pause]`.
+
+	INPUT sensor_type
+		See `[#skin_reader_pause]`.
+	OUTPUT
+		See `[#skin_reader_pause]`.
+
+MEMBER_FUNCTION resume: (sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES): int
+NOTICE C++
+	Wrapper for `skin_reader_resume`
+
+	Calls `[#skin_reader_resume]`.
+
+	INPUT sensor_type
+		See `[#skin_reader_resume]`.
+	OUTPUT
+		See `[#skin_reader_resume]`.
+
+MEMBER_FUNCTION is_paused: (sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES): int
+NOTICE C++
+	Wrapper for `skin_reader_is_paused`
+
+	Calls `[#skin_reader_is_paused]`.
+
+	INPUT sensor_type
+		See `[#skin_reader_is_paused]`.
+	OUTPUT
+		See `[#skin_reader_is_paused]`.
+
+MEMBER_FUNCTION register_user: (mutex: skin_rt_mutex *, sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES): int
+NOTICE C++
+	Wrapper for `skin_reader_register_user`
+
+	Calls `[#skin_reader_register_user]`.
+
+	INPUT mutex
+		See `[#skin_reader_register_user]`.
+	INPUT sensor_type
+		See `[#skin_reader_register_user]`.
+	OUTPUT
+		See `[#skin_reader_register_user]`.
+
+MEMBER_FUNCTION wait_read: (mutex: skin_rt_mutex *, wait_time: skin_rt_time = -1): int
+NOTICE C++
+	Wrapper for `skin_reader_wait_read`
+
+	Calls `[#skin_reader_wait_read]`.
+
+	INPUT mutex
+		See `[#skin_reader_wait_read]`.
+	INPUT wait_time
+		See `[#skin_reader_wait_read]`.
+	OUTPUT
+		See `[#skin_reader_wait_read]`.
+
+MEMBER_FUNCTION unregister_user: (mutex: skin_rt_mutex *, sensor_type: skin_sensor_type_id = SKIN_ALL_SENSOR_TYPES): int
+NOTICE C++
+	Wrapper for `skin_reader_unregister_user`
+
+	Calls `[#skin_reader_unregister_user]`.
+
+	INPUT mutex
+		See `[#skin_reader_unregister_user]`.
+	INPUT sensor_type
+		See `[#skin_reader_unregister_user]`.
+	OUTPUT
+		See `[#skin_reader_unregister_user]`.
+
+MEMBER_FUNCTION enable_swap_skip_prediction: (): void
+NOTICE C++
+	Wrapper for `skin_reader_enable_swap_skip_prediction`
+
+	Calls `[#skin_reader_enable_swap_skip_prediction]`.
+
+MEMBER_FUNCTION disable_swap_skip_prediction: (): void
+NOTICE C++
+	Wrapper for `skin_reader_disable_swap_skip_prediction`
+
+	Calls `[#skin_reader_disable_swap_skip_prediction]`.

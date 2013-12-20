@@ -1,0 +1,16 @@
+<package>
+  <description brief="rosskin">
+
+     rosskin
+
+  </description>
+  <author>Shahbaz Youssefi</author>
+  <license>GPL</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://www.github.com/ShabbyX/rosskin</url>
+  <depend package="std_msgs"/>
+  <depend package="roscpp"/>
+
+</package>
+
+

@@ -1,0 +1,457 @@
+constants
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+
+Constants in the service API are divided in 5 groups:
+- Range limits
+- Return values
+- Flags
+- RT constants
+- Meta
+
+CONST_GROUP Range Limits
+	Limits to range of values
+
+	These constants are limits to range of values such as the maximum possible response from a sensor, or maximum number of sensors, patches etc
+	in the skin.
+
+	CONSTANT SKINK_SENSOR_RESPONSE_MAX: 65535
+		Maximum value of a sensor response
+
+		This is the maximum possible value of a sensor response. The minimum response of the sensors are 0.
+
+	CONSTANT SKINK_SENSOR_TYPE_MAX
+		Maximum number of sensor types in the skin
+
+		If Skinware is configured to support large skins, this value will be `2^32-2`. Otherwise, it is `2^16-2`. This number shows the
+		maximum possible number of sensor types in the skin.
+
+	CONSTANT SKINK_SENSOR_MAX
+		Maximum number of sensor in the skin
+
+		If Skinware is configured to support large skins, this value will be `2^32-2`. Otherwise, it is `2^16-2`. This number shows the
+		maximum number of possible sensors in the skin.
+
+	CONSTANT SKINK_REGION_MAX
+		Maximum number of regions in the skin
+
+		If Skinware is configured to support large skins, this value will be `2^32-2`. Otherwise, it is `2^16-2`. This number shows the
+		maximum possible number of regions in the skin.
+
+	CONSTANT SKINK_SUB_REGION_MAX
+		Maximum number of sub-regions in the skin
+
+		If Skinware is configured to support large skins, this value will be `2^32-2`. Otherwise, it is `2^16-2`. This number shows the
+		maximum possible number of sub-regions in the skin.
+
+	CONSTANT SKINK_MODULE_MAX
+		Maximum number of modules in the skin
+
+		If Skinware is configured to support large skins, this value will be `2^32-2`. Otherwise, it is `2^16-2`. This number shows the
+		maximum possible number of modules in the skin.
+
+	CONSTANT SKINK_PATCH_MAX
+		Maximum number of patches in the skin
+
+		If Skinware is configured to support large skins, this value will be `2^32-2`. Otherwise, it is `2^16-2`. This number shows the
+		maximum possible number of patches in the skin.
+
+	CONSTANT SKINK_MAX_NAME_LENGTH
+		Maximum length for sensor layer names
+
+		This is the maximum possible length of names for each sensor layer. Names with length exceeding this value are truncated. The terminating
+		NUL is accounted for and is not included in this value. This value is configurable, with default value 50.
+
+CONST_GROUP Function Return Values
+	Possible return values from the functions in the service API
+
+	These are the possible return values from any function in the service API unless otherwise indicated. Throughout the API, any function
+	that has a return value has its possible return values listed. Functions of `[skin_rt](#Real-time Interface)` set have different return
+	values, though.
+
+	CONSTANT SKINK_SUCCESS
+		Return value of operations if successful
+
+		A non-negative value indicating successful operation. Returned by the following functions:
+
+		- From [Service Functions]:
+
+			* `[#skink_get_data_structures](Service Functions)`
+			* `[#skink_get_data_structures_nonblocking](Service Functions)`
+			* `[#skink_initialize_periodic_service](Service Functions)`
+			* `[#skink_initialize_sporadic_service](Service Functions)`
+			* `[#skink_acquire_layer](Service Functions)`
+			* `[#skink_start_service](Service Functions)`
+			* `[#skink_pause_service](Service Functions)`
+			* `[#skink_resume_service](Service Functions)`
+			* `[#skink_stop_service](Service Functions)`
+			* `[#skink_request_read](Service Functions)`
+			* `[#skink_request_read_nonblocking](Service Functions)`
+			* `[#skink_await_read_response](Service Functions)`
+
+		- From [Service Manager]:
+
+			* `[#skink_connect_to_service](Service Manager)`
+			* `[#skink_lock_service](Service Manager)`
+			* `[#skink_unlock_service](Service Manager)`
+			* `[#skink_request_service](Service Manager)`
+			* `[#skink_request_service_nonblocking](Service Manager)`
+			* `[#skink_await_service_response](Service Manager)`
+
+	CONSTANT SKINK_PARTIAL
+		Return value of functions that are partially successful
+
+		A non-negative value indicating partial success for functions that are applied to multiple threads. This allows graceful degradation for services by
+		allowing them to operate on parts of the skin rather than failing altogether if one part failed.
+
+		Returned by the following functions:
+
+			- `[#skink_start_service](Service Functions)`
+			- `[#skink_request_read](Service Functions)`
+			- `[#skink_request_read_nonblocking](Service Functions)`
+			- `[#skink_await_read_response](Service Functions)`
+
+	CONSTANT SKINK_FAIL
+		Return value of operations if failed
+
+		A negative value indicating failed operation. Returned by the following functions:
+
+		- From [Service Functions]:
+
+			* `[#skink_get_data_structures](Service Functions)`
+			* `[#skink_get_data_structures_nonblocking](Service Functions)`
+			* `[#skink_initialize_periodic_service](Service Functions)`
+			* `[#skink_initialize_sporadic_service](Service Functions)`
+			* `[#skink_acquire_layer](Service Functions)`
+			* `[#skink_start_service](Service Functions)`
+			* `[#skink_pause_service](Service Functions)`
+			* `[#skink_resume_service](Service Functions)`
+			* `[#skink_stop_service](Service Functions)`
+			* `[#skink_request_read](Service Functions)`
+			* `[#skink_request_read_nonblocking](Service Functions)`
+			* `[#skink_await_read_response](Service Functions)`
+
+		- From [Service Manager]:
+
+			* `[#skink_connect_to_service](Service Manager)`
+			* `[#skink_lock_service](Service Manager)`
+			* `[#skink_unlock_service](Service Manager)`
+			* `[#skink_request_service](Service Manager)`
+			* `[#skink_request_service_nonblocking](Service Manager)`
+			* `[#skink_await_service_response](Service Manager)`
+
+		More detailed error messages will be logged in the kernel logs.
+
+	CONSTANT SKINK_TOO_EARLY
+		Return value of operations if it's still too early to do
+
+		A negative value indicating failed operation because it was requested too early. Returned by the following functions:
+
+		- From [Service Functions]:
+
+			* `[#skink_get_data_structures_nonblocking](Service Functions)`
+			* `[#skink_initialize_periodic_service](Service Functions)`
+			* `[#skink_initialize_sporadic_service](Service Functions)`
+			* `[#skink_acquire_layer](Service Functions)`
+			* `[#skink_start_service](Service Functions)`
+			* `[#skink_pause_service](Service Functions)`
+			* `[#skink_resume_service](Service Functions)`
+			* `[#skink_request_read](Service Functions)`
+			* `[#skink_request_read_nonblocking](Service Functions)`
+			* `[#skink_await_read_response](Service Functions)`
+
+		- From [Service Manager]:
+
+			* `[#skink_connect_to_service](Service Manager)`
+			* `[#skink_lock_service](Service Manager)`
+			* `[#skink_unlock_service](Service Manager)`
+			* `[#skink_request_service](Service Manager)`
+			* `[#skink_request_service_nonblocking](Service Manager)`
+			* `[#skink_await_service_response](Service Manager)`
+
+	CONSTANT SKINK_TOO_LATE
+		Return value of operations if it's too late to do
+
+		A negative value indicating failed operation because it was requested too late. Returned by the following functions:
+
+		- From [Service Functions]:
+
+			* `[#skink_initialize_periodic_service](Service Functions)`
+			* `[#skink_initialize_sporadic_service](Service Functions)`
+			* `[#skink_acquire_layer](Service Functions)`
+			* `[#skink_start_service](Service Functions)`
+			* `[#skink_pause_service](Service Functions)`
+			* `[#skink_resume_service](Service Functions)`
+			* `[#skink_request_read](Service Functions)`
+			* `[#skink_request_read_nonblocking](Service Functions)`
+			* `[#skink_await_read_response](Service Functions)`
+
+		- From [Service Manager]:
+
+			* `[#skink_connect_to_service](Service Manager)`
+			* `[#skink_lock_service](Service Manager)`
+			* `[#skink_unlock_service](Service Manager)`
+			* `[#skink_request_service](Service Manager)`
+			* `[#skink_request_service_nonblocking](Service Manager)`
+			* `[#skink_await_service_response](Service Manager)`
+
+	CONSTANT SKINK_BAD_ID
+		Return value of operations if it's called with a bad id
+
+		A negative value indicating failed operation because it was given an out of range service or layer id, or given an id that does not correspond to an
+		initilized service. Returned by the following functions:
+
+		- From [Service Functions]:
+
+			* `[#skink_acquire_layer](Service Functions)`
+			* `[#skink_start_service](Service Functions)`
+			* `[#skink_pause_service](Service Functions)`
+			* `[#skink_resume_service](Service Functions)`
+			* `[#skink_stop_service](Service Functions)`
+			* `[#skink_request_read](Service Functions)`
+			* `[#skink_request_read_nonblocking](Service Functions)`
+			* `[#skink_await_read_response](Service Functions)`
+
+		- From [Service Manager]:
+
+			* `[#skink_lock_service](Service Manager)`
+			* `[#skink_unlock_service](Service Manager)`
+			* `[#skink_request_service](Service Manager)`
+			* `[#skink_request_service_nonblocking](Service Manager)`
+			* `[#skink_await_service_response](Service Manager)`
+
+	CONSTANT SKINK_BAD_DATA
+		Return value of operations if it's given bad data
+
+		A negative value indicating failed operation because it was given bad data such as `NULL` pointers. Returned by the following functions:
+
+			- `[#skink_initialize_periodic_service](Service Functions)`
+			- `[#skink_initialize_sporadic_service](Service Functions)`
+			- `[#skink_acquire_layer](Service Functions)`
+			- `[#skink_start_service](Service Functions)`
+
+	CONSTANT SKINK_BAD_NAME
+		Return value of operations if it's given bad names
+
+		A negative value indicating failed operation because it was given names that are already in use.
+		Returned by the following functions:
+
+			- `[#skink_initialize_periodic_service](Service Functions)`
+			- `[#skink_initialize_sporadic_service](Service Functions)`
+
+	CONSTANT SKINK_BAD_CONTEXT
+		Return value of operations if it's called in a bad context
+
+		A negative value indicating failed operation because it was run in a bad context, e.g. called by a non-real-time thread when the function expects
+		real-time context. Returned by the following functions:
+
+		- From [Service Functions]:
+
+			* `[#skink_initialize_periodic_service](Service Functions)`
+			* `[#skink_initialize_sporadic_service](Service Functions)`
+			* `[#skink_request_read](Service Functions)`
+			* `[#skink_request_read_nonblocking](Service Functions)`
+			* `[#skink_await_read_response](Service Functions)`
+
+		- From [Service Manager]:
+
+			* `[#skink_lock_service](Service Manager)`
+			* `[#skink_unlock_service](Service Manager)`
+			* `[#skink_request_service](Service Manager)`
+			* `[#skink_request_service](Service Manager)`
+			* `[#skink_request_service_nonblocking](Service Manager)`
+			* `[#skink_await_service_response](Service Manager)`
+
+	CONSTANT SKINK_NO_MEM
+		Return value of operations if it failed to acquire memory
+
+		A negative value indicating failed operation because it could not allocate memory.
+		Returned by the following functions:
+
+			- `[#skink_initialize_periodic_service](Service Functions)`
+			- `[#skink_initialize_sporadic_service](Service Functions)`
+
+CONST_GROUP Flag Values
+	Values used as flags in the library
+
+	These are constants that are used within the library as flags, either to flag a certain data, or as input to functions of the library.
+
+	CONSTANT SKINK_INVALID_ID: 0xffffffffu
+		An invalid id for sensor layers, sensors, modules, patches, sub-regions and regions
+
+		A value indicating an erroneous or non-existing entity; a sensor layer, a sensor, a module, a patch, a sub-region or a region.
+		When comparing ids with this value, make sure you cast it to the proper type. For example, checking if a sensor has invalid
+		id, its id needs to be compared with `([skink_sensor_id](DataTypes#skink_sensor_id))SKINK_INVALID_ID`.
+
+	CONSTANT SKINK_INVALID_SIZE: 0xffffffffu
+		An invalid size for sensor layers, sensors, modules, patches, sub-regions and regions
+
+		A value indicating an erroneous number of entities; sensor layers, sensors, modules, patches, sub-regions or regions.
+		When comparing sizes with this value, make sure you cast it to the proper type. This value is currently unused.
+
+	CONSTANT SKINK_ACQUISITION_ASAP
+		ASAP acquisition mode with the skin kernel
+
+		This value is used by the `[#skink_acquire_layer](Service Functions)` function to determine the mode in which data
+		acquisition is done. With this value, the acquisition will be done in _ASAP_ mode.
+
+		For a complete description of how this mode works, please refer to [service functions' overview](Service Functions#Overview).
+
+	CONSTANT SKINK_ACQUISITION_PERIODIC
+		Periodic acquisition mode with the skin kernel
+
+		This value is used by the `[#skink_acquire_layer](Service Functions)` function to determine the mode in which data
+		acquisition is done. With this value, the acquisition will be done in _Periodic_ mode.
+
+		For a complete description of how this mode works, please refer to [service functions' overview](Service Functions#Overview).
+
+	CONSTANT SKINK_ACQUISITION_SPORADIC
+		Sporadic acquisition mode with the skin kernel
+
+		This value is used by the `[#skink_acquire_layer](Service Functions)` function to determine the mode in which data
+		acquisition is done. With this value, the acquisition will be done in _Sporadic_ mode.
+
+		For a complete description of how this mode works, please refer to [service functions' overview](Service Functions#Overview).
+
+	CONSTANT SKINK_ALL_LAYERS
+		Perform operation on all layers instead of one
+
+		This flag can be used with `[#skink_request_read](Service Functions)`, `[#skink_request_read_nonblocking](Service Functions)` and
+		`[#skink_await_read_response](Service Functions)` functions given as their `layer` argument to perform the operation on all layers instead
+		of one.
+
+CONST_GROUP Real-time Interface
+	Constants related to real-time interface of the skin kernel
+
+	This library provides an interface to the real-time facilities provided by the native platform. This interface can be used instead of
+	directly using the native platform's functions, both for simplicity and portability.
+
+	CONSTANT SKIN_RT_SUCCESS: 0
+		Return value of real-time operations if successful
+
+		Return value of many of [real-time functions](skin_rt). This value is defined as zero and indicates that the operation had been successful.
+
+	CONSTANT SKIN_RT_FAIL
+		Return value of real-time operations if failed
+
+		Return value of many of [real-time functions](skin_rt). This value indicates that the operation had failed due to some error.
+
+	CONSTANT SKIN_RT_INVALID
+		Return value of real-time operations if given an invalid input
+
+		Return value of some of [real-time functions](skin_rt). This value indicates that the operation is invalid.
+
+	CONSTANT SKIN_RT_NO_MEM
+		Return value of real-time operations if memory could not be acquired
+
+		Return value of some of [real-time functions](skin_rt). This value indicates that the operation has failed because of insufficient memory.
+
+	CONSTANT SKIN_RT_TIMEOUT
+		Return value of real-time operations if timeout happens
+
+		Return value of timed [real-time functions](skin_rt). This value indicates that a timed function, for example `[#skin_rt_mutex_timed_lock](skin_rt)`
+		has returned, not failed (that is nothing is wrong), but not successful either. In the example above, the process had been blocked for
+		the specified time, yet could not acquire lock and is being unblocked.
+
+	CONSTANT SKIN_RT_SYNC_MECHANISM_ERROR
+		Return value of real-time operations if there was an error operating on a lock
+
+		Return value of some of [real-time functions](skin_rt) related to synchronization mechanisms. This value indicates that the operation has
+		failed because of any unforeseen error.
+
+	CONSTANT SKIN_RT_LOCK_NOT_ACQUIRED
+		Return value of real-time operations if a try-lock did not acquire lock
+
+		Return value of some of [real-time functions](skin_rt) related to synchronization mechanisms. This value indicates that the requested lock
+		could not be acquired. This value is returned by conditional lock functions such as `[#skin_rt_mutex_try_lock](skin_rt)`.
+
+	CONSTANT SKIN_RT_INVALID_SEM
+		Return value of real-time operations if an invalid semaphore was given
+
+		Return value of some of [real-time functions](skin_rt) related to synchronization mechanisms. This value indicates that the operation has
+		failed because an invalid semaphore had been sent as argument.
+
+	CONSTANT SKIN_RT_INVALID_MUTEX
+		Return value of real-time operations if an invalid mutex was given
+
+		Return value of some of [real-time functions](skin_rt) related to synchronization mechanisms. This value indicates that the operation has
+		failed because an invalid mutex had been sent as argument.
+
+	CONSTANT SKIN_RT_INVALID_RWLOCK
+		Return value of real-time operations if an invalid readers-writer lock was given
+
+		Return value of some of [real-time functions](skin_rt) related to synchronization mechanisms. This value indicates that the operation has
+		failed because an invalid readers-writer lock had been sent as argument.
+
+	CONSTANT SKIN_RT_MIN_PRIORITY
+		Minimum possible real-time priority
+
+		The minimum possible priority for the task when setting priority through `[skin_rt_kernel_task_init](skin_rt)`.
+
+	CONSTANT SKIN_RT_MAX_PRIORITY
+		Maximum possible real-time priority
+
+		The maximum possible priority for the task when setting priority through `[skin_rt_kernel_task_init](skin_rt)`.
+
+	CONSTANT SKIN_RT_LINUX_PRIORITY
+		Real-time priority given to linux kernel
+
+		Priority for the task equal to that of the linux kernel's when setting priority through `[skin_rt_kernel_task_init](skin_rt)`.
+
+	CONSTANT SKIN_RT_MORE_PRIORITY
+		Adding priority by this constant yields higher priority
+
+		This value is the means to obtain higher or lower priorities. The reason for this is that in some real-time platforms, the minimum
+		priority could be 0, while in others (which is the case in this version of the API) 0 is the maximum priority. Therefore by
+		adding `SKIN_RT_MORE_PRIORITY` to a certain priority, you will certainly obtain a higher priority. Likewise,
+		subtracting it from a priority yields a lower priority.
+
+		Note that you should not exceed `[#SKIN_RT_MAX_PRIORITY]` and `[#SKIN_RT_MIN_PRIORITY]`. However, it is not possible to directly check
+		against these two values because of the above reason, that is, 0 could be the maximum priority. The function
+		`[#skin_rt_priority_is_valid](skin_rt)` could be used to determine whether the obtained priority is within range or not.
+
+	CONSTANT SKIN_RT_MAX_NAME_LENGTH: 6
+		Names used to share objects between real-time threads can have at most this many characters
+
+		To share memory or objects between real-time threads, they need to be assigned a name. The length of these names can be at most `SKIN_RT_MAX_NAME_LENGTH`.
+
+CONST_GROUP Meta
+	Constants providing information about the API
+
+	These are constants that give information about the service API itself. Currently, they only include version-related constants.
+
+	CONSTANT SKINK_VERSION_MAJOR: 1
+		The major number of the version of the service API
+
+		The major number in the API version. This number changes only in case of fundamental changes in the API.
+
+	CONSTANT SKINK_VERSION_MINOR: 0
+		The minor number of the version of the service API
+
+		The minor number in the API version. This number increases with added functionality or partial changes in the API.
+
+	CONSTANT SKINK_VERSION_REVISION: 0
+		The revision number of the version of the service API
+
+		The revision number in the API version. This number increases only when minor changes to the API take place while the
+		overall functionality of the skin is the same. This includes bug-fixing, renaming functions and variables, added error-checking
+		and such.
+
+	CONSTANT SKINK_VERSION_BUILD: 872
+		The build number of the version of the service API
+
+		This number shows how many times the skin kernel has been successfully compiled.
+
+	CONSTANT SKINK_VERSION: "1.0.0.872"
+		The complete version of the service API as a string
+
+		This number is merely a string concatenation of the previous four values in the following format:
+		```SKINK_VERSION_MAJOR.SKINK_VERSION_MINOR.SKINK_VERSION_REVISION.SKINK_VERSION_BUILD```

@@ -1,0 +1,83 @@
+index
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut globals
+shortcut constants
+
+# Introduction
+
+Skinware consists of two main parts.
+
+	- The _skin kernel_ is a Linux kernel module that acquires sensor data from drivers and makes them available to users. The acquisition threads
+	  in the skin kernel are called _writer_<>s.
+	- The _user-side library_ is a user-space library that allows reading sensor data from the skin kernel along with other features. The
+	  acquisition threads in the library are called _reader_<>s.
+
+The drivers and user-side library are documented in separate documentations.
+
+The skin kernel provides API for services that acquire data with readers similar to those in the user-side library and provide processed information. The
+user-side library as well as other services can then attach to this service and make use of its results. In the near future, it will also be possible for
+user space applications to register services that would be usable by other applications or services. See the documentation on the user-side API itself
+for more information.
+
+## List of Structures
+
+### `[skink_data_structures]`
+>	Before the service can start, it normally needs to inspect the structure of the skin. Depending on the service, this need may vary from selecting
+	a certain sensor layer to deciding the size of computation output. This structure can be used with [#skink_get_data_structures](Service Functions)
+	to retrieve skin kernel's data structures.
+### `[skink_sensor_layer]`
+>	Sensor layers are groups of sensors, normally of the same type. Services can choose which of the layers they want to read from, and with which
+	[acquisition mode](Service Functions#Overview).
+### `[skink_sensor]`
+>	A sensor is a basic tactile element. It is a single entity, sensing pressure and providing a single scaled value corresponding to the sensed
+	pressure. Sensors have fixed relative positions and orientation with respect to the robot link they are situated on. These values are computed
+	in the calibration phase. The global position and orientation of the sensor can be computed if needed. The sensors could be of different types,
+	whether it is different kind of pressure sensors or another kind such as temperature sensors.
+### `[skink_region]`
+>	A region is a logical division of the skin and consists of a set of sensors. The purpose of regions is to provide more meaningful information
+	on which body part (robot link or part of a link) is sensing pressure. Similar to human sensory system, the regions can overlap and share sensors.
+	For efficiency, sub-regions are introduced.
+### `[skink_sub_region]`
+>	A sub-region is a collection of sensors forming a small area of interest. Their purpose is to improve efficiency of the program. A region consists
+	of (possibly) many sub-regions and different regions could share sub-regions.
+### `[skink_module]`
+>	A module contains a number of sensors. In the current physical implementation of ROBOSKIN, there are 12 sensors on each module, but the
+	`skink_module` structure has the ability to hold any different number of sensors for each module.
+### `[skink_patch]`
+>	A patch is a collection of modules controlled by one microcontroller. Patches exist due to the limitation that a microcontroller can handle only
+	a certain number of modules (currently 16).
+### `[skink_service]`
+>	Once attached to a service, an object of this type is created by the [Service Manager]. This object is used to access the data from the service
+	as well as synchronize with it.
+
+## Types
+
+### [Data Types]
+>	Skinware may be configured to support larger skins. Therefore, the data types, such as sensor ids, use custom types described here.
+### [Callbacks]
+>	The services need to provide callbacks to the skin kernel. This allows Skinware to take control of the complexities of acquisition and
+	synchronization, making the services simpler.
+
+## Functions
+
+### [Service Functions]
+>	These are functions used to create services. They allow the services to selectively acquire data from sensor layers in different acquisition modes
+	and pause or resume themselves.
+### [Service Manager]
+>	The service manager is a set of functions, similar to the `skin_service_manager` class in the user-side library, which enables interaction with the
+	services, such as requesting a sporadic service or connecting to another service.  TODO put `SKINK_SERVICE_\*` macros here
+### `[skin_rt]`
+>	These functions are used in real-time contexts. This API can be used to create real-time threads, for example a watchdog thread, and
+	perform synchronization in real-time.
+
+## Examples
+
+### [Template]
+>	This is a sample service that serves as a demo. It can be used as a template.

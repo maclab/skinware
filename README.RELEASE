@@ -1,0 +1,8 @@
+					Things to remember upon release
+					===============================
+
+Here are the things that you must make sure are done before you release a new version:
+
+- update the kernel and library versions in Makefile.common
+- check the documentation files and see if they are of an older version.  If so, update them and update their version also.
+- in the documentation, SKIN[K]_VERSION should be updated

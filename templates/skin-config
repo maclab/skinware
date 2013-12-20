@@ -1,0 +1,173 @@
+#! /bin/bash
+
+rtai_config=@RTAI_CONFIG@
+
+skin_version="@SKIN_VERSION@"
+skin_prefix="@INSTALL_PREFIX@"
+skin_bin_dir="$skin_prefix/bin"
+skin_kernel_include_dir="$skin_prefix/include/kernel"
+skin_lib_include_dir="$skin_prefix/include/user"
+skin_rosskin_include_dir="$skin_prefix/include/rosskin"
+skin_lib_dir="$skin_prefix/lib"
+skin_modules_dir="$skin_prefix/modules"
+skin_settings_dir="$skin_prefix/settings"
+skin_cc="gcc"
+skin_cxx="g++"
+skin_kernel_cflags="-I$skin_kernel_include_dir $($rtai_config --module-cflags) -D_FORTIFY_SOURCE=0"
+skin_kbuild_symbols="$($rtai_config --prefix)/modules/Module.symvers $skin_modules_dir/Module.symvers"
+skin_cflags="-I$skin_lib_include_dir -I$skin_kernel_include_dir $($rtai_config --lxrt-cflags) -O2 -Wall"
+skin_cxxflags="-I$skin_lib_include_dir -I$skin_kernel_include_dir $($rtai_config --lxrt-cflags | sed -e 's/-Wstrict-prototypes//g') -O2 -Wall"
+skin_ldflags="$($rtai_config --lxrt-ldflags) -L$skin_lib_dir -lskin -lrt"
+skin_rosskin_cxxflags="-I$skin_lib_include_dir -I$skin_kernel_include_dir -I$skin_rosskin_include_dir -O2 -Wall -DSKIN_DS_ONLY"
+skin_rosskin_ldflags="-L$skin_lib_dir -lrosskin"
+skin_calibrator="$skin_bin_dir/calibrate"
+skin_regionalizer="$skin_bin_dir/regionalize"
+skin_visualizer="$skin_bin_dir/visualize"
+skin_init_driver="$skin_bin_dir/init-driver"
+skin_device_finalizer="$skin_bin_dir/finalize-devices"
+skin_rosskin_server="$skin_bin_dir/rosskin-server"
+
+skin_has_rosskin="@SKIN_HAS_ROSSKIN@"
+skin_rosskin_only="@SKIN_ROSSKIN_ONLY@"
+
+usage()
+{
+cat <<EOF
+Usage: skin-config OPTIONS
+Options:
+		--help                   print this help message
+		--version                print skin version
+		--cc                     c compiler
+		--cxx                    c++ compiler
+		--prefix                 skin installation directory
+		--bin-dir                directory containing skin executables
+EOF
+[ "$skin_rosskin_only" != "y" ] && cat <<EOF
+		--modules-dir            directory containing skin modules
+		--module-include-dir     include directory for kernel modules
+		--lib-include-dir        include directory for user-space programs
+EOF
+[ "$skin_has_rosskin" == "y" ] && cat <<EOF
+		--rosskin-include-dir    include directory for rosskin modules
+EOF
+cat <<EOF
+		--lib-dir                directory containing skin library
+EOF
+[ "$skin_rosskin_only" != "y" ] && cat <<EOF
+		--settings-dir           settings including regionalizer's
+		--module-cflags          c flags for kernel modules
+		--module-symbols         symbols for KBUILD_EXTRA_SYMBOLS
+		--lib-cflags             c flags for user-space programs
+		--lib-cxxflags           c++ flags for user-space programs
+		--lib-ldflags            link flags for user-space programs
+EOF
+[ "$skin_has_rosskin" == "y" ] && cat <<EOF
+		--rosskin-cxxflags       c++ flags for programs using rosskin
+		--rosskin-ldflags        link flags for programs using rosskin
+EOF
+if [ "$skin_rosskin_only" != "y" ]; then
+cat <<EOF
+		--calibrator             the calibrator program
+		--regionalizer           the regionalizer program
+		--visualizer             the visualizer program
+		--driver-initializer     the driver initializer program
+		--device-finalizer       the device finalizer program
+		--rosskin-server         the rosskin server
+	
+EOF
+fi
+exit $1
+}
+
+error()
+{
+	usage 1 1>&2
+}
+
+if [ $# -eq 0 ]; then
+	error
+fi
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--help)
+			usage 0
+			;;
+		--version)
+			printf -- "$skin_version\n"
+			;;
+		--prefix)
+			printf -- "$skin_prefix\n"
+			;;
+		--bin*-dir)
+			printf -- "$skin_bin_dir\n"
+			;;
+		--mod*-inc*-dir|--kern*-inc*-dir)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_kernel_include_dir\n" || error
+			;;
+		--lib*-inc*-dir|--user-inc*-dir)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_lib_include_dir\n" || error
+			;;
+		--lib*-dir|--user-lib*-dir)
+			printf -- "$skin_lib_dir\n"
+			;;
+		--ros*-inc*-dir)
+			[ "$skin_has_rosskin" == "y" ] && printf --"$skin_rosskin_include_dir\n" || error
+			;;
+		--mod*-dir)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_modules_dir\n" || error
+			;;
+		--settings-dir)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_settings_dir\n" || error
+			;;
+		--cc)
+			printf -- "$skin_cc\n"
+			;;
+		--cxx)
+			printf -- "$skin_cxx\n"
+			;;
+		--mod*-cflags|--kern*-cflags)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_kernel_cflags\n" || error
+			;;
+		--mod*-symbols|--kern*-symbols|--mod*-extra-symbols|--kern*-extra-symbols|--kbuild-extra-symbols|--kbuild-symbols)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_kbuild_symbols\n" || error
+			;;
+		--lib*-cflags|--user-cflags)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_cflags\n" || error
+			;;
+		--lib*-cxxflags|--user-cxxflags)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_cxxflags\n" || error
+			;;
+		--lib*-ldflags|--user-ldflags)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_ldflags\n" || error
+			;;
+		--ros*-cxxflags)
+			[ "$skin_has_rosskin" == "y" ] && printf -- "$skin_rosskin_cxxflags\n" || error
+			;;
+		--ros*-ldflags)
+			[ "$skin_has_rosskin" == "y" ] && printf -- "$skin_rosskin_ldflags\n" || error
+			;;
+		--calibrat*)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_calibrator\n" || error
+			;;
+		--regionaliz*)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_regionalizer\n" || error
+			;;
+		--visual*|--view*)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_visualizer\n" || error
+			;;
+		--driver-init*)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_init_driver\n" || error
+			;;
+		--dev*-fin*)
+			[ "$skin_rosskin_only" != "y" ] && printf -- "$skin_device_finalizer\n" || error
+			;;
+		--ros*-server)
+			[ "$skin_has_rosskin" == "y" ] && printf -- "$skin_rosskin_server\n" || error
+			;;
+		*)
+			error
+			;;
+	esac
+	shift
+done

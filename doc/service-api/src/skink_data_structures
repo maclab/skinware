@@ -1,0 +1,95 @@
+struct skink_data_structures
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+seealso [Service Functions]
+prev api Service Functions
+next struct skink_sensor
+
+The services normally need to inspect the skin structure to decide which layers they want to work as well as their internal and output memory sizes.
+During the execution of the services too, they might need access to structures such as [regions](skink_region). An object of this structure can be
+filled with a call to `[#skink_get_data_structures](Service Functions)` and used.
+
+VARIABLE sensor_layers: skink_sensor_layer *
+	Sensor layers of the skin
+
+	This is the array of all [sensor layers](skink_sensor_layer) in the skin. The size of this array is given in [#sensor_layers_count].
+	The [sensors](skink_sensor), [modules](skink_module) and [patches](skink_patch) of the skin can be individually inspected per layer.
+
+VARIABLE sensor_layers_count: skink_sensor_layer_size
+	Number of sensor layers in the skin
+
+	This is the number of sensor layers in the skin. This value is the size of [#sensor_layers] array.
+
+VARIABLE regions: skink_region *
+	Regions of the skin
+
+	This is the array of all [regions](skink_region) in the skin. The size of this array is given in [#regions_count].
+
+VARIABLE regions_count: skink_region_size
+	Number of regions in the skin
+
+	This is the number of regions in the skin. This value is the size of [#regions] array.
+
+VARIABLE sub_regions: skink_sub_region *
+	Sub-regions of the skin
+
+	This is the array of all [sub-regions](skink_sub_region) in the skin. The size of this array is given in [#sub_regions_count].
+
+VARIABLE sub_regions_count: skink_sub_region_size
+	Number of sub-regions in the skin
+
+	This is the number of sub-regions in the skin. This value is the size of [#sub_regions] array.
+
+VARIABLE region_indices: skink_region_id *
+	List of region indices marking regions containing sub-regions
+
+	This is the array of indices to regions containing sub-regions of the skin. The size of this array is given in [#region_indices_count].
+	See `[#region_indices_begin](skink_sub_region)` of `skink_sub_region` for more information.
+
+VARIABLE region_indices_count: skink_region_index_size
+	Size of `region_indices` array
+
+	This value is the size of [#region_indices] array.
+
+VARIABLE sub_region_indices: skink_sub_region_id *
+	List of sub-region indices marking sub-regions contained in regions
+
+	This is the array of indices to sub-regions contained in regions of the skin. The size of this array is given in [#sub_region_indices_count].
+	See `[#sub_region_indices_begin](skink_region)` of `skink_sub_region` for more information.
+
+VARIABLE sub_region_indices_count: skink_sub_region_index_size
+	Size of `sub_region_indices` array
+
+	This value is the size of [#sub_region_indices] array.
+
+VARIABLE sensor_neighbors: skink_sensor_id *
+	List of sensor neighbors of all sensors
+
+	This is the array of neighbors of all sensors of the skin. The size of this array is given in [#sensor_neighbors_count].
+	See `[#neighbors_begin](skink_sensor)` of `skink_sensor` for more information.
+
+	**Note:** If no neighborhood information was provided during calibration phase, or this information was not available due to lack of memory or other
+	failures, this pointer could be `NULL`. In such a case, `[#sensor_neighbors_count]` will contain 0.
+
+VARIABLE sensor_neighbors_count: uint32_t
+	Size of `sensor_neighbors` array
+
+	This value is the size of [#sensor_neighbors] array.
+
+VARIABLE sensors: skink_sensor *
+	Global list of sensors
+
+	This is the array of all sensors of the skin. The `[#sensors](skink_sensor_layer)` field of `skink_sensor_layer` points to this array.
+
+	**Important note:** The sensor ids in the skin are always relative to the layer and they should be indexed in `[#sensors](skink_sensor_layer)`
+	of `skink_sensor_layer`, except those indices in `[#sensor_neighbors]`. The reason is that sensors can be neighbors to sensors of other layers and
+	therefore the global id of the sensors are used. See also `[#neighbors_begin](skink_sensor)` of `skink_sensor`.

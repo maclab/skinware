@@ -1,0 +1,5 @@
+#! /bin/bash
+
+source setup.bash
+
+make --no-print-directory -C rosskin $@

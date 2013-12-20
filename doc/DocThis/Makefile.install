@@ -1,0 +1,85 @@
+include Makefile.config
+include Makefile.common
+
+TARGET := docthis
+RM := rm -f
+CP := cp
+MKDIR := mkdir
+
+ifeq ($(OS_TYPE),Windows)
+  TARGET := $(TARGET).exe
+  RMDIR := rm -R				# TODO: check this
+  IGNORE_OUTPUT := > NUL 2>&1 || exit 0		# TODO: check this
+else
+  ifeq ($(OS_TYPE),Linux)
+    RMDIR := rmdir --ignore-fail-on-non-empty
+    IGNORE_OUTPUT := > /dev/null 2>&1 || exit 0
+    BASH_COMPLETION_SCRIPT := $(subst \n ,\n,\
+	"_docthis()\n\
+	{\n\
+		\tlocal cur opts\n\
+		\tCOMPREPLY=()\n\
+		\tcur=\"\$${COMP_WORDS[COMP_CWORD]}\"\n\
+		\topts=\"-h --help --version --home --verbose --css-default --no-summary -only-summary -texmain-compact -verbose-pdflatex +html +tex +texmain +texmain-all +css\"\n\
+		\thiddens=\"---rebuild-all ---rebuild-parse\"\n\
+		\tif [[ \$${cur} == ---* ]] ; then\n\
+			\t\tCOMPREPLY=(\$$(compgen -W \"\$${hiddens}\" -- \$${cur}))\n\
+			\t\treturn 0\n\
+		\tfi\n\
+		\tif [[ \$${cur} == -* || \$${cur} == +* ]] ; then\n\
+			\t\tCOMPREPLY=(\$$(compgen -W \"\$${opts}\" -- \$${cur}))\n\
+			\t\treturn 0\n\
+		\tfi\n\
+		\treturn 0\n\
+	}\n\
+	complete -o bashdefault -o default -F _docthis docthis > /dev/null 2>&1")
+  else
+    # Try with linux style, hopefully it will work
+    RMDIR := rmdir
+    IGNORE_OUTPUT := > /dev/null 2>&1 || exit 0
+  endif
+endif
+
+GRAMMAR_FILES := letters.in tokens.in keywords.in grammar.in
+
+.PHONY: install
+install:
+	-@$(MKDIR) $(INSTALL_DIRECTORY) $(IGNORE_OUTPUT)
+	-@$(MKDIR) $(INSTALL_DIRECTORY)/grammar $(IGNORE_OUTPUT)
+	@$(CP) $(TARGET) $(INSTALL_DIRECTORY)
+	@$(CP) $(addprefix grammar/, $(GRAMMAR_FILES)) $(INSTALL_DIRECTORY)/grammar
+ifeq ($(OS_TYPE), Windows)
+	-@install.bat --install $(INSTALL_DIRECTORY)
+else
+  ifeq ($(OS_TYPE),Linux)
+	@$(ECHO) $(BASH_COMPLETION_SCRIPT) > /etc/bash_completion.d/docthis
+	-@$(RM) /usr/bin/$(TARGET)
+	ln -s $(INSTALL_DIRECTORY)/$(TARGET) /usr/bin/$(TARGET)
+  else
+	@$(ECHO) $(subst \n ,\n,"I don't know your operating system.\n\
+				Please add $(INSTALL_DIRECTORY) to your PATH or create a link\n\
+				to $(INSTALL_DIRECTORY)/$(TARGET) from somewhere in your PATH")
+  endif
+endif
+	@$(ECHO) Setting up first usage...
+	@$(INSTALL_DIRECTORY)/$(TARGET) ---rebuild-all
+	@$(ECHO) Installation complete
+.PHONY: uninstall
+uninstall:
+	@$(RM) $(addprefix $(INSTALL_DIRECTORY)/grammar/, $(GRAMMAR_FILES))
+	@$(RM) $(INSTALL_DIRECTORY)/$(TARGET)
+	-@$(RMDIR) $(INSTALL_DIRECTORY)/grammar $(IGNORE_OUTPUT)
+	-@$(RMDIR) $(INSTALL_DIRECTORY) $(IGNORE_OUTPUT)
+ifeq ($(OS_TYPE), Windows)
+	-@install.bat --uninstall $(INSTALL_DIRECTORY)
+else
+  ifeq ($(OS_TYPE),Linux)
+	-$(RM) /etc/bash_completion.d/docthis
+	-$(RM) /usr/bin/$(TARGET)
+  else
+	@$(ECHO) $(subst \n ,\n,"I don't know your operating system.\n\
+				Please remove $(INSTALL_DIRECTORY) from your PATH or remove the link\n\
+				to $(INSTALL_DIRECTORY)/$(TARGET) you have created before")
+  endif
+endif
+	@$(ECHO) Uninstallation complete

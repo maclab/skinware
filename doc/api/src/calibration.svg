@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="600"
+   height="400"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.0 r9654"
+   sodipodi:docname="New document 1">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.4"
+     inkscape:cx="334.6184"
+     inkscape:cy="197.27885"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1440"
+     inkscape:window-height="823"
+     inkscape:window-x="0"
+     inkscape:window-y="48"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-652.36087)">
+    <path
+       sodipodi:type="arc"
+       style="fill:none;stroke:#550000;stroke-width:2.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path2985"
+       sodipodi:cx="150.51273"
+       sodipodi:cy="97.964386"
+       sodipodi:rx="6.0609155"
+       sodipodi:ry="6.0609155"
+       d="m 156.57364,97.964386 a 6.0609155,6.0609155 0 1 1 -12.12183,0 6.0609155,6.0609155 0 1 1 12.12183,0 z"
+       transform="matrix(1.9210606,0,0,1.9210606,-117.14376,558.87981)" />
+    <text
+       xml:space="preserve"
+       style="font-size:76.84242249px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="41.982502"
+       y="708.26398"
+       id="text2987"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2989"
+         x="41.982502"
+         y="708.26398"
+         style="font-size:26.89484787px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Sensor 0</tspan></text>
+    <path
+       transform="matrix(1.9210606,0,0,1.9210606,-46.45968,643.3417)"
+       sodipodi:type="arc"
+       style="fill:none;stroke:#550000;stroke-width:2.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path2985-6"
+       sodipodi:cx="150.51273"
+       sodipodi:cy="97.964386"
+       sodipodi:rx="6.0609155"
+       sodipodi:ry="6.0609155"
+       d="m 156.57364,97.964386 a 6.0609155,6.0609155 0 1 1 -12.12183,0 6.0609155,6.0609155 0 1 1 12.12183,0 z" />
+    <text
+       xml:space="preserve"
+       style="font-size:76.84242249px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="87.439247"
+       y="841.23999"
+       id="text2987-8"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2989-4"
+         x="87.439247"
+         y="841.23999"
+         style="font-size:26.89484787px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Sensor 1</tspan></text>
+    <path
+       transform="matrix(1.9210606,0,0,1.9210606,12.727528,558.87981)"
+       sodipodi:type="arc"
+       style="fill:none;stroke:#550000;stroke-width:2.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path2985-6-3"
+       sodipodi:cx="150.51273"
+       sodipodi:cy="97.964386"
+       sodipodi:rx="6.0609155"
+       sodipodi:ry="6.0609155"
+       d="m 156.57364,97.964386 a 6.0609155,6.0609155 0 1 1 -12.12183,0 6.0609155,6.0609155 0 1 1 12.12183,0 z" />
+    <text
+       xml:space="preserve"
+       style="font-size:76.84242249px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="229.55946"
+       y="708.26398"
+       id="text2987-8-1"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2989-4-2"
+         x="229.55946"
+         y="708.26398"
+         style="font-size:26.89484787px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Sensor 2</tspan></text>
+    <path
+       transform="matrix(1.9210606,0,0,1.9210606,78.706717,642.32407)"
+       sodipodi:type="arc"
+       style="fill:none;stroke:#550000;stroke-width:2.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path2985-6-9"
+       sodipodi:cx="150.51273"
+       sodipodi:cy="97.964386"
+       sodipodi:rx="6.0609155"
+       sodipodi:ry="6.0609155"
+       d="m 156.57364,97.964386 a 6.0609155,6.0609155 0 1 1 -12.12183,0 6.0609155,6.0609155 0 1 1 12.12183,0 z" />
+    <text
+       xml:space="preserve"
+       style="font-size:76.84242249px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="414.56915"
+       y="842.44855"
+       id="text2987-8-13"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2989-4-4"
+         x="414.56915"
+         y="842.44855"
+         style="font-size:26.89484787px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Sensor 3</tspan></text>
+    <path
+       transform="matrix(1.9210606,0,0,1.9210606,146.79586,557.71046)"
+       sodipodi:type="arc"
+       style="fill:none;stroke:#550000;stroke-width:2.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path2985-6-3-0"
+       sodipodi:cx="150.51273"
+       sodipodi:cy="97.964386"
+       sodipodi:rx="6.0609155"
+       sodipodi:ry="6.0609155"
+       d="m 156.57364,97.964386 a 6.0609155,6.0609155 0 1 1 -12.12183,0 6.0609155,6.0609155 0 1 1 12.12183,0 z" />
+    <text
+       xml:space="preserve"
+       style="font-size:76.84242249px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="418.51523"
+       y="708.46674"
+       id="text2987-8-1-1"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2989-4-2-2"
+         x="418.51523"
+         y="708.46674"
+         style="font-size:26.89484787px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Sensor 4</tspan></text>
+    <path
+       transform="matrix(1.9210606,0,0,1.9210606,-116.08565,742.95559)"
+       sodipodi:type="arc"
+       style="fill:none;stroke:#550000;stroke-width:2.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path2985-2"
+       sodipodi:cx="150.51273"
+       sodipodi:cy="97.964386"
+       sodipodi:rx="6.0609155"
+       sodipodi:ry="6.0609155"
+       d="m 156.57364,97.964386 a 6.0609155,6.0609155 0 1 1 -12.12183,0 6.0609155,6.0609155 0 1 1 12.12183,0 z" />
+    <text
+       xml:space="preserve"
+       style="font-size:76.84242249px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="58.134644"
+       y="991.13708"
+       id="text2987-7"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2989-41"
+         x="58.134644"
+         y="991.13708"
+         style="font-size:26.89484787px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Sensor 5</tspan></text>
+    <path
+       transform="matrix(1.9210606,0,0,1.9210606,13.785635,742.95559)"
+       sodipodi:type="arc"
+       style="fill:none;stroke:#550000;stroke-width:2.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path2985-6-3-00"
+       sodipodi:cx="150.51273"
+       sodipodi:cy="97.964386"
+       sodipodi:rx="6.0609155"
+       sodipodi:ry="6.0609155"
+       d="m 156.57364,97.964386 a 6.0609155,6.0609155 0 1 1 -12.12183,0 6.0609155,6.0609155 0 1 1 12.12183,0 z" />
+    <text
+       xml:space="preserve"
+       style="font-size:76.84242249px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="245.71165"
+       y="991.13708"
+       id="text2987-8-1-6"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2989-4-2-4"
+         x="245.71165"
+         y="991.13708"
+         style="font-size:26.89484787px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Sensor 6</tspan></text>
+    <path
+       transform="matrix(1.9210606,0,0,1.9210606,147.85397,741.78623)"
+       sodipodi:type="arc"
+       style="fill:none;stroke:#550000;stroke-width:2.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path2985-6-3-0-4"
+       sodipodi:cx="150.51273"
+       sodipodi:cy="97.964386"
+       sodipodi:rx="6.0609155"
+       sodipodi:ry="6.0609155"
+       d="m 156.57364,97.964386 a 6.0609155,6.0609155 0 1 1 -12.12183,0 6.0609155,6.0609155 0 1 1 12.12183,0 z" />
+    <text
+       xml:space="preserve"
+       style="font-size:76.84242249px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="434.66736"
+       y="991.33984"
+       id="text2987-8-1-1-3"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan2989-4-2-2-7"
+         x="434.66736"
+         y="991.33984"
+         style="font-size:26.89484787px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Sans;-inkscape-font-specification:Sans">Sensor 7</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.92106068px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 242.36901,830.57266 -71.35368,-83.70335 130.35767,0 134.47425,0 -68.6093,83.70335 68.6093,98.7974 -133.10204,0 -130.35768,1.37219 z"
+       id="path3144"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.92106068px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 301.373,746.86931 -57.63181,83.70335 59.00402,100.16959 64.49274,-101.54176 z"
+       id="path3146"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.92106068px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 242.36901,830.57266 123.49675,-1.37217"
+       id="path3148"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>

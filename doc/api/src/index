@@ -1,0 +1,122 @@
+index
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut globals
+shortcut constants
+
+# Introduction
+
+Skinware consists of two main parts.
+
+	- In kernel space, a main module is responsible for obtaining data from the skin network and give it basic
+	  structuring as well as providing hardware abstraction. Other modules may be implemented to provide services
+	  on these data. Throughout this documentation, the main kernel module is simply referred to as _skin kernel_.
+	  Also, whenever communication or synchronization _with kernel_ is mentioned, communication or synchronization with
+	  the skin kernel is intended.
+
+	- In user space, a set of structures and functions are provided enabling one to obtain the tactile data and use it through the
+	  _skin API_. This documentation is on the user space API. Throughout the documentation, the terms _skin API_ and
+	  _library_ are interchangeably used. If you are a developer developing a driver or service module for the skin, please refer
+	  to the documentation on the skin kernel in the respective part.
+
+The skin API upon initialization connects to the skin kernel and gathers initialization data from it. Then, upon request
+tactile data acquisition is started and stopped. The data is then available to the programmer in the provided data structures.
+
+To see the details of the naming convention of the library, see [here](Naming Convention).
+
+The skin kernel provides APIs for implementing skin drivers and services. See their respective documentations.
+
+## List of Structures
+
+### `[skin_object]`
+>	The main structure of the library. For the skin, one object of this struct must be instantiated and
+	access to all functionalities and data are through the functions associated with this struct.
+### `[skin_reader]`
+>	The role of this structure is to connect to the skin kernel, after the data structures are initialized by
+	the `skin_object` object, and obtain data from it. Depending on the number of sensor types, otherwise known
+	as _layers_, many real-time threads are created that depending on acquisition mode, either synchronizes themselves
+	with the kernel, periodically read from kernel or read whenever the user desires. The library maintains a copy of
+	the sensor data for use by the programmer.
+### `[skin_service_manager]`
+>	This structure is used to interface access to custom made services written as kernel modules using the kernel
+	API. Since these services could provide data of any type, it is the responsibility of the service programmer
+	to provide a header file for the user of the service along with documentation on how the service works. The
+	kernel services could work both in periodic and sporadic modes, synchronization with both of which can be
+	done through the functions associated with the `[#skin_service]` structure. Using the service manager, one can
+	also implement services similar to those in the kernel module, but in user space.
+### `[skin_service]`
+>	This structure is initialized by `[#skin_service_manager]` upon connection to a service. It can be used to
+	access service data as well as synchronize with it.
+### `[skin_sensor]`
+>	A sensor is a basic tactile element. It is a single entity, sensing pressure and providing a single
+	scaled value corresponding to the sensed pressure. Sensors have fixed relative positions and orientation with
+	respect to the robot link they are situated on. These values are computed in the calibration phase. The global
+	position and orientation of the sensor can be computed if needed. The sensors could be of different types,
+	whether it is different kind of pressure sensors or another kind such as temperature sensors.
+### `[skin_sensor_type]`
+>	This structure groups sensors according to their type. Type is something that is determined in the skin kernel which
+	is in turn taken from the specific sensor network's driver. Each sensor type is processed separately and
+	therefore can have different acquisition rates. For example a certain type of fast sensors could be scanned at
+	1000Hz while another type is scanned at 25Hz.
+### `[skin_region]`
+>	A region is a logical division of the skin and consists of a set of sensors. The purpose of regions is
+	to provide more meaningful information on which body part (robot link or part of a link) is sensing pressure.
+	Similar to human sensory system, the regions can overlap and share sensors. For efficiency, sub-regions are
+	introduced. However, the user of this library does not necessarily need to know of these sub-regions.
+### `[skin_sub_region]`
+>	A sub-region is a collection of sensors forming a small area of interest. Their purpose is to improve
+	efficiency of the program. A region consists of (possibly) many sub-regions and different regions could share
+	sub-regions.
+### `[skin_module]`
+>	A module contains a number of sensors. In the current physical implementation of ROBOSKIN, there are 12 sensors
+	on each module, but the `skin_module` structure has the ability to hold any different number of sensors for each module.
+### `[skin_patch]`
+>	A patch is a collection of [modules](#skin_module) controlled by one microcontroller. Patches exist due to the
+	limitation that a microcontroller can handle only a certain number of modules (currently 16).
+### `[skin_task_statistics]`
+>	This basic structure holds statistics data generated by [acquisition threads](#skin_reader).
+### `[skin_sensor_iterator](skin_X_iterator)`
+>	C++ only. This is in fact not a single class, but public classes defined in `[#skin_module]`, `[#skin_patch]`, `[#skin_sub_region]`,
+	`[#skin_region]`, `[#skin_sensor_type]` and `[#skin_object]` structures giving a functionality similar to C++'s STL `iterator`s,
+	allowing iteration over sensors of a certain object without getting involved with the complexities of the underlying
+	structure. These classes have the same interface and therefore are documented as one, even though their implementations
+	are slightly different.
+### `[skin_sensor_type_iterator](skin_X_iterator)`
+>	C++ only. Similar to `[#skin_sensor_iterator]`, this is a public class defined in `[#skin_object]` structure to allow iteration
+	over all sensor types of the skin.
+### `[skin_region_iterator](skin_X_iterator)`
+>	C++ only. Similar to `[#skin_sensor_iterator]`, this is a public class defined in `[#skin_sensor]`, `[#skin_sub_region]` and
+	`[#skin_object]` structures to allow iteration over regions containing a sensor or a sub-region, or all regions of the skin.
+### `[skin_sub_region_iterator](skin_X_iterator)`
+>	C++ only. Similar to `[#skin_sensor_iterator]`, this is a public class defined in `[#skin_region]` and `[#skin_object]` structures
+	to allow iteration over sub-regions contained in a region or all sub-regions of the skin.
+### `[skin_module_iterator](skin_X_iterator)`
+>	C++ only. Similar to `[#skin_sensor_iterator]`, this is a public class defined in `[#skin_patch]` and `[#skin_object]` structures
+	to allow iteration over modules of a patch or all modules of the skin.
+### `[skin_patch_iterator](skin_X_iterator)`
+>	C++ only. Similar to `[#skin_sensor_iterator]`, this is a public class defined in `[#skin_object]` structure to allow iteration over
+	all patches of the skin.
+
+## Standalone Functions
+
+### `[skin_rt]`
+>	These functions serve to create real-time threads and work with them. They also provide shared memory, synchronization methods etc
+	for real-time tasks.
+
+## Input Files
+
+### [Calibration Cache]
+>	Contains information used to calibrate the skin.
+### [Regionalization Cache]
+>	Contains information used to regionalize the skin.
+
+## Examples
+
+### [Mean Pressure on Skin]
+>	This simple examples shows how to initialize the skin, acquire data at automatic rate and inspect all sensor responses.

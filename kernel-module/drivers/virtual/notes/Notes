@@ -1,0 +1,1 @@
+IMPORTANT: When sending initialization data to the module, there MUST be at least one byte trailing whitespace in the end of the data (see init.c, comments of function _get_next_int)

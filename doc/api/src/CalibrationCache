@@ -1,0 +1,58 @@
+iofile Calibration Cache
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class skin_object
+next iofile Regionalization Cache
+seealso `[skin_object]`
+seealso `[skin_sensor]`
+
+The calibration cache contains information necessary for calibrating the skin. The format of this file is as follows. The texts in parentheses are commentary
+and should not be included in the cache.
+
+```
+sensors-count  total-neighbors-count
+(sensors-count&times;)
+    (3&times;)position
+    (3&times;)orientation
+    (2&times;)flattened-position
+    radius
+    robot-link
+    neighbors-count
+    (neighbors-count&times;)
+        neighbors
+```
+
+In this format:
+  - `sensors-count` shows the number of sensors in the skin.
+  - `total-neighbors-count` is the sum of all `neighbors-count` of all sensors. The value is here for preallocation of memory.
+  - `position` consists of `x`, `y` and `z` values of the position of the sensor, relative to the robot link it is located on.
+  - `orientation` consists of `x`, `y` and `z` values of the normal to the skin at the position of sensor, relative to the robot link it is located on.
+  - `flattened-position` consists of `x` and `y` values of the sensor after flattening the skin.
+  - `radius` is the radius of the sensor (assuming it's a circle or a sphere)
+  - `robot-link` an id assigned by the calibrator program to the robot link the sensor is located on.
+  - `neighbors-count` number of neighbors assigned to this sensor during flattening of the skin.
+  - `neighbors` id of neighbors of the sensor.
+
+As an example, the corresponding cache file to [A hypothetical flat skin on robot link 0](svg files/calibration.svg) which is an already flat
+skin (on robot link 0) would be:
+
+```
+8 26
+0.015 0.010 0   0 0 1   0.015 0.010  0.001   0  2   1 2
+0.019 0.014 0   0 0 1   0.019 0.014  0.001   0  5   0 2 3 6 5
+0.022 0.010 0   0 0 1   0.022 0.010  0.001   0  4   4 3 0 1
+0.025 0.014 0   0 0 1   0.025 0.014  0.001   0  5   4 2 1 6 7
+0.029 0.010 0   0 0 1   0.029 0.010  0.001   0  2   3 2
+0.015 0.020 0   0 0 1   0.015 0.020  0.001   0  2   1 6
+0.022 0.020 0   0 0 1   0.022 0.020  0.001   0  4   5 3 1 7
+0.029 0.020 0   0 0 1   0.029 0.020  0.001   0  2   3 6
+```

@@ -1,0 +1,25 @@
+other Naming Convention
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+next struct skin_object
+
+The naming convention for this library is as follows.
+
+	- Each function and struct is prefixed by `skin\_`.
+	- Each macro is prefixed by `SKIN\_`.
+
+Similarly, the naming convention of the driver and service API in the skin kernel is as follows.
+
+	- Each function and struct is prefixed by `skink\_`.
+	- Each macro is prefixed by `SKINK\_`.
+
+Skinware uses underscore to separate words, for example `skin_object_load()`.

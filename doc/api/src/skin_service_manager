@@ -1,0 +1,421 @@
+struct skin_service_manager
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_reader
+next struct skin_service
+seealso `[skin_object]`
+seealso `[skin_rt]` Functions
+
+This struct and its associated functions are responsible for facilitating communication between kernel modules developed as services and the user program.
+Through these functios, it is also possible to register user programs as services. The connection to kernel or user space services is identical.
+
+Services could be programmed after the development of Skinware and therefore their results cannot be fully managed by Skinware.
+With the use of these functions however, synchronization with those services are made possible. The usage of these functions is as follows.
+
+Connecting to a periodic service:
+	```
+	skin_object           obj;
+	skin_service          service;
+	...
+	skin_service_manager  *`sm = skin_object_service_manager(\&obj);`
+	`skin_service_manager_connect_to_periodic_service(sm, "SRVRES", "SRVRWL", service);`
+	...
+	while (condition)
+	{
+	    ``[#skin_service_lock](skin_service)(\&service);``
+	    // Read the most recent values of the service from `service.[#memory](skin_service)`
+	    ``[#skin_service_unlock](skin_service)(\&service);``
+	}
+	...
+	`[#skin_service_disconnect](skin_service)(\&service);`
+	```
+**Important Note:** In periodic mode, real-time functions `[#skin_rt_rwlock_read_lock](skin_rt)` and `[#skin_rt_rwlock_read_unlock](skin_rt)` are being used
+for synchronization. As a result, this thread needs to be working in real-time. Otherwise, the functions `[#skin_service_lock](skin_service)` and
+`[#skin_service_unlock](skin_service)` momentarily turn the calling thread real-time, which may not be so efficient.
+
+Note that the locking mechanism is not necessary if the user program is not sensitive to fragmented results from the service.
+Also, it is the choice of the programmer to keep a local copy of the service results, which is advised if processing on the service
+results are time consuming.
+
+Similarly, connecting to a sporadic service:
+	```
+	skin_object           obj;
+	skin_service          service;
+	...
+	skin_service_manager  *`sm = skin_object_service_manager(\&obj);`
+	``skin_service_manager_connect_to_sporadic_service(sm, "SRVRES", "SRVMX1", "SRVMX2", service);``
+	...
+	while (condition)
+	{
+	    ``skin_service_request(\&service);``
+	    // Read the most recent values of the service from `service.memory`
+	}
+	...
+	``skin_service_disconnect(\&service)``
+	```
+
+To create a user space service, the program starts normally; with `[#skin_object_load](skin_object)` and
+`[#skin_reader_start](skin_reader)`. To register as a service, a [callback function](#skin_service_function) needs to be written and provided
+upon starting the service:
+	```
+	skin_object           obj;
+	skin_service          service;
+	int                   sid
+	...
+	skin_service_manager  *`sm = skin_object_service_manager(\&obj);`
+	``sid = [#skin_service_manager_initialize_periodic_service]\(sm, "SRVRES", sizeof(service_data),``
+	                                  ``number_of_results, "SRVRWL", period);``
+	if (sid < 0)
+		fatal_error("Could not create service", sid);
+	else
+	{
+		``ret = [#skin_service_manager_start_service]\(sm, si, [service_callback](#skin_service_function), NULL)) != SKIN_SUCCESS);``
+		if (ret != SKIN_SUCCESS)
+			fatal_error("Could not start service", ret);
+	}
+	``skin_service_manager_stop_service(sm, sid);``
+	```
+
+Of course, sufficient error checking is requiered. A sporadic service is also [initialized](#skin_service_manager_initialize_sporadic_service) similarly.
+
+TYPE skin_service_function: (void *, void *): void
+	Execute service process and store results
+
+	Once the service process is required to execute, this callback is called. It is given a **`memory`** argument that can be cast to
+	service's own interpretation. This memory is allocated when `[#skin_service_manager_initialize_periodic_service]` or
+	`[#skin_service_manager_initialize_sporadic_service]` is called by the service itself, therefore all information on the memory size and
+	its structuring is known to the service beforehand.
+
+	Additionally, a user defined pointer as passed to `[#skin_service_manager_start_service]` is passed to the function.
+
+FUNCTION skin_service_manager_init: (service_manager: skin_service_manager *): void
+	Initialize service manager to invalid
+
+	Initializer of the struct. Sets the service manager variables so that the service manager would be invalid.
+
+	INPUT service_manager
+		The object of operation
+
+FUNCTION skin_service_manager_free: (service_manager: skin_service_manager *): void
+	Free service manager
+
+	Free any resources and invalidate the service manager.
+
+	INPUT service_manager
+		The object of operation
+
+FUNCTION skin_service_manager_initialize_periodic_service: (service_manager: skin_service_manager *, service_name: const char *, elem_size: size_t, count: size_t, rwl_name: const char *, period: skin_rt_time): int
+	Initialize a periodic service
+
+	This function initializes a periodic service slot in the service manager.
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT service_manager
+		The object of operation
+	INPUT service_name
+		The name of the shared memory for output. The service needs to provide this name to its users, whether it's a reserved name or one taken by a call
+		to `[#skin_rt_get_free_name](skin_rt)`.
+	INPUT elem_size
+		It is assumed, although not enforced, that the service memory is an array of objects unknown to the skin kernel. This parameter is the size of those
+		objects that together with **`count`** define the size of memory. The service needs to provide the declaration of these objects to its users, most
+		likely through a header file.
+	INPUT count
+		The number of **`elem_size`** objects the memory will be made of.
+	INPUT rwl_name
+		The name of a shared readers-writers lock used for synchronization between the service and its users. Similar to **`service_name`**, this name should be
+		made available to the service users.
+	INPUT period
+		The period in nanoseconds that the [service callback](#skin_service_function) will be called.
+	OUTPUT
+		This function returns the id of the service slot initialized. This id must be used with other functions (e.g. `[#skin_service_manager_start_service]`)
+		that require the service id. This id is non-negative. In case of failure, one of the following negative values are returned:
+			- `[#SKIN_BAD_DATA](constants)` if at least one argument is invalid.
+			- `[#SKIN_BAD_NAME](constants)` if a given name is already in use.
+			- `[#SKIN_NO_MEM](constants)` if memory could not be acquired for service.
+			- `[#SKIN_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skin_service_manager_initialize_sporadic_service: (service_manager: skin_service_manager *, service_name: const char *, elem_size: size_t, count: size_t, request_name: const char *, response_name: const char *): int
+	Initialize a sporadic service
+
+	This function initializes a sporadic service slot in the service manager.
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT service_manager
+		The object of operation
+	INPUT service_name
+		The name of the shared memory for output. The service needs to provide this name to its users, whether it's a reserved name or one taken by a call
+		to `[#skin_rt_get_free_name](skin_rt)`.
+	INPUT elem_size
+		It is assumed, although not enforced, that the service memory is an array of objects unknown to the skin kernel. This parameter is the size of those
+		objects that together with **`count`** define the size of memory. The service needs to provide the declaration of these objects to its users, most
+		likely through a header file.
+	INPUT count
+		The number of **`elem_size`** objects the memory will be made of.
+	INPUT request_name
+		The name of a shared semaphore used for synchronization between the service and its users. Similar to **`service_name`**, this name should be
+		made available to the service users.
+	INPUT response_name
+		The name of another shared semaphore used for synchronization which also should be made available to the service users.
+	OUTPUT
+		This function returns the id of the service slot initialized. This id must be used with other functions (e.g. `[#skin_service_manager_start_service]`)
+		that require the service id. This id is non-negative. In case of failure, one of the following negative values are returned:
+			- `[#SKIN_BAD_DATA](constants)` if at least one argument is invalid.
+			- `[#SKIN_BAD_NAME](constants)` if a given name is already in use.
+			- `[#SKIN_NO_MEM](constants)` if memory could not be acquired for service.
+			- `[#SKIN_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skin_service_manager_start_service: (service_manager: skin_service_manager *, service_id: unsigned int, function: skin_service_function, data: void *): int
+	Registers callback and starts service
+
+	Once the service is initialized (either [periodic](#skin_service_manager_initialize_periodic_service) or
+	[sporadic](#skin_service_manager_initialize_sporadic_service)) the service may start.
+
+	INPUT service_manager
+		The object of operation
+	INPUT service_id
+		The id of the service returned when [initialized](#skin_service_manager_initialize_periodic_service).
+	INPUT function
+		The [service callback](#skin_service_function) that would be called whenever service is needed.
+	INPUT data
+		User defined data to be passed to the callback
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKIN_BAD_DATA](constants)` if **`function`** is `NULL`.
+			- `[#SKIN_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skin_service_manager_stop_service: (service_manager: skin_service_manager *, service_id: unsigned int): int
+	Stops and cleans up service
+
+	This function stops and cleans up a service. It blocks until service thread has exited. This function must be called before the user application quits.
+
+	**Note:** If the service is not stopped and the application is terminated, the callbacks would be dangling pointers, most probably causing users to crash.
+	If the service is implemented incorrectly and contains a bug, it may have destroyed critical information, resulting in this function failing. In such a case,
+	it is advised to put the user application in an infinite loop and force a restart rather than continue and possibly causing a crash.
+
+	**Note:** As a result of the previous note, it is important for the user application to catch `SIGTERM`, `SIGINT`, `SIGHUP`, `SIGQUIT` and possibly other
+	signals that may happen by registering a `sigaction` callback. This callback, in the very least, should make the application to call `stop_service` before
+	quitting.
+
+	INPUT service_manager
+		The object of operation
+	INPUT service_id
+		The id of the service returned when [initialized](#skin_service_manager_initialize_periodic_service).
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKIN_FAIL](constants)` if failed to acquire internal locks. It is possible for the function to be successful on retry.
+
+FUNCTION skin_service_manager_pause_service: (service_manager: skin_service_manager *, service_id: unsigned int): int
+	Pauses a running service
+
+	This function pauses an already running service. It is possible for the [callback](#skin_service_function) to be called one more time after this
+	function has returned.
+
+	INPUT service_manager
+		The object of operation
+	INPUT service_id
+		The id of the service returned when [initialized](#skin_service_manager_initialize_periodic_service).
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKIN_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skin_service_manager_resume_service: (service_manager: skin_service_manager *, service_id: unsigned int): int
+	Resumes a paused service
+
+	This function resumes a [paused](#skin_service_manager_pause_service) service.
+
+	INPUT service_manager
+		The object of operation
+	INPUT service_id
+		The id of the service returned when [initialized](#skin_service_manager_initialize_periodic_service).
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_BAD_ID](constants)` if **`service_id`** is invalid.
+			- `[#SKIN_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skin_service_manager_connect_to_periodic_service: (service_manager: skin_service_manager *, service_name: const char *, rwl_name: const char *rwl_name, service: skin_service *): int
+	Connect to a periodic service
+
+	This function connects to the service, initializing **`service`**. If unsuccessful or the service was not periodic, `[#SKIN_FAIL](constants)`
+	would be returned. The service programmer is supposed to provide a header file including the input names required by this function as well
+	as the result data type which the user program could use to cast **`service`**`->[#memory](skin_service)` to.
+
+	INPUT service_manager
+		The object of operation
+	INPUT service_name
+		The name of the shared memory used by the service to place the results. This name should be provided by the service
+		programmer in a header file.
+	INPUT rwl_name
+		The name of a readers-writers lock shared by the service for synchronization.
+	INPUT service
+		A `[skin_service]` object that would be initialized and attached to the service.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful and `[#SKIN_FAIL](constants)` if not.
+
+FUNCTION skin_service_manager_connect_to_sporadic_service: (service_manager: skin_service_manager *, service_name: const char *, mutex1_name: const char *, mutex2_name: const char *, service: skin_service *): int
+	Connect to a sporadic service
+
+	This function connects to the service, initializing **`service`**. If unsuccessful or the service was not sporadic, `[#SKIN_FAIL](constants)`
+	would be returned. The service programmer is supposed to provide a header file including the input names required by this function as well
+	as the result data type which the user program could use to cast **`service`**`->[#memory](skin_service)` to.
+
+	INPUT service_manager
+		The object of operation
+	INPUT service_name
+		The name of the shared memory used by the service to place the results. This name should be provided by the service
+		programmer in a header file.
+	INPUT mutex1_name
+		The name of the first mutex shared by the service for synchronization.
+	INPUT mutex2_name
+		The name of the second mutex shared by the service for synchronization.
+	INPUT service
+		A `[skin_service]` object that would be initialized and attached to the service.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful and `[#SKIN_FAIL](constants)` if not.
+
+MEMBER_FUNCTION skin_service_manager: ()
+NOTICE C++
+	Class constructor
+
+	Default constructor of the class. Sets the internal variables so that the object would be invalid.
+
+MEMBER_FUNCTION ~skin_service_manager: ()
+NOTICE C++
+	Class destructor
+
+	Destructor of the class.
+
+MEMBER_FUNCTION initialize_periodic_service: (service_name: const char *, elem_size: size_t, count: size_t, rwl_name: const char *, period: skin_rt_time): int
+NOTICE C++
+	Wrapper for `skin_service_manager_initialize_periodic_service`
+
+	Calls `[#skin_service_manager_initialize_periodic_service]`.
+
+	INPUT service_name
+		See `[#skin_service_manager_initialize_periodic_service]`.
+	INPUT elem_size
+		See `[#skin_service_manager_initialize_periodic_service]`.
+	INPUT count
+		See `[#skin_service_manager_initialize_periodic_service]`.
+	INPUT rwl_name
+		See `[#skin_service_manager_initialize_periodic_service]`.
+	INPUT period
+		See `[#skin_service_manager_initialize_periodic_service]`.
+	OUTPUT
+		See `[#skin_service_manager_initialize_periodic_service]`.
+
+MEMBER_FUNCTION initialize_sporadic_service: (service_name: const char *, elem_size: size_t, count: size_t, request_name: const char *, response_name: const char *): int
+NOTICE C++
+	Wrapper for `skin_service_manager_initialize_sporadic_service`
+
+	Calls `[#skin_service_manager_initialize_sporadic_service]`.
+
+	INPUT service_name
+		See `[#skin_service_manager_initialize_sporadic_service]`.
+	INPUT elem_size
+		See `[#skin_service_manager_initialize_sporadic_service]`.
+	INPUT count
+		See `[#skin_service_manager_initialize_sporadic_service]`.
+	INPUT request_name
+		See `[#skin_service_manager_initialize_sporadic_service]`.
+	INPUT response_name
+		See `[#skin_service_manager_initialize_sporadic_service]`.
+	OUTPUT
+		See `[#skin_service_manager_initialize_sporadic_service]`.
+
+MEMBER_FUNCTION start_service: (service_id: unsigned int, function: skin_service_function, data: void *): int
+NOTICE C++
+	Wrapper for `skin_service_manager_start_service`
+
+	Calls `[#skin_service_manager_start_service]`.
+
+	INPUT service_id
+		See `[#skin_service_manager_start_service]`.
+	INPUT function
+		See `[#skin_service_manager_start_service]`.
+	INPUT data
+		See `[#skin_service_manager_start_service]`.
+	OUTPUT
+		See `[#skin_service_manager_start_service]`.
+
+MEMBER_FUNCTION stop_service: (service_id: unsigned int): int
+NOTICE C++
+	Wrapper for `skin_service_manager_stop_service`
+
+	Calls `[#skin_service_manager_stop_service]`.
+
+	INPUT service_id
+		See `[#skin_service_manager_stop_service]`.
+	OUTPUT
+		See `[#skin_service_manager_stop_service]`.
+
+MEMBER_FUNCTION pause_service: (service_id: unsigned int): int
+NOTICE C++
+	Wrapper for `skin_service_manager_pause_service`
+
+	Calls `[#skin_service_manager_pause_service]`.
+
+	INPUT service_id
+		See `[#skin_service_manager_pause_service]`.
+	OUTPUT
+		See `[#skin_service_manager_pause_service]`.
+
+MEMBER_FUNCTION resume_service: (service_id: unsigned int): int
+NOTICE C++
+	Wrapper for `skin_service_manager_resume_service`
+
+	Calls `[#skin_service_manager_resume_service]`.
+
+	INPUT service_id
+		See `[#skin_service_manager_resume_service]`.
+	OUTPUT
+		See `[#skin_service_manager_resume_service]`.
+
+MEMBER_FUNCTION connect_to_periodic_service: (service_name: const char *, rwl_name: const char *rwl_name, service: skin_service *): int
+NOTICE C++
+	Wrapper for `skin_service_manager_connect_to_periodic_service`
+
+	Calls `[#skin_service_manager_connect_to_periodic_service]`.
+
+	INPUT service_name
+		See `[#skin_service_manager_connect_to_periodic_service]`.
+	INPUT rwl_name
+		See `[#skin_service_manager_connect_to_periodic_service]`.
+	INPUT service
+		See `[#skin_service_manager_connect_to_periodic_service]`.
+	OUTPUT
+		See `[#skin_service_manager_connect_to_periodic_service]`.
+
+MEMBER_FUNCTION connect_to_sporadic_service: (service_name: const char *, mutex1_name: const char *, mutex2_name: const char *, service: skin_service *): int
+NOTICE C++
+	Wrapper for `skin_service_manager_connect_to_sporadic_service`
+
+	Calls `[#skin_service_manager_connect_to_sporadic_service]`.
+
+	INPUT service_name
+		See `[#skin_service_manager_connect_to_sporadic_service]`.
+	INPUT mutex1_name
+		See `[#skin_service_manager_connect_to_sporadic_service]`.
+	INPUT mutex2_name
+		See `[#skin_service_manager_connect_to_sporadic_service]`.
+	INPUT service
+		See `[#skin_service_manager_connect_to_sporadic_service]`.
+	OUTPUT
+		See `[#skin_service_manager_connect_to_sporadic_service]`.

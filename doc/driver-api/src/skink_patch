@@ -1,0 +1,25 @@
+struct skink_patch
+# Skinware - Driver API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+seealso `[skink_device]` functions
+seealso `[skink_sensor layer]`
+prev struct skink_module
+next struct skink_sensor_layer
+
+The device driver needs to describe the structure of the hardware it is handling to the skin kernel. As far as patches are concerned, it needs to fill in the fields
+described here in the [details callback](Callbacks#skink_device_details).
+
+VARIABLE modules_count: skink_module_size
+	Number of modules in this patch
+
+	This is the number of modules in this patch. The device driver needs to fill this value for every patch in each layer once and if the [details callback]
+	(Callbacks#skink_device_details) is called.

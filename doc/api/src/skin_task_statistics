@@ -1,0 +1,44 @@
+struct skin_task_statistics
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_reader
+next struct skin_object
+seealso `[skin_reader]`
+
+This simple struct holds statistics for [data acquisition threads](skin_reader#skin_reader_start). From the
+[reader](skin_object#skin_object_reader), the `[#tasks_statistics](skin_reader)` array can be indexed with layer id to retrieve these statistics for each
+layer individually. Remember that a layer refers to sensors of a [sensor type](skin_sensor_type).
+
+VARIABLE worst_read_time: skin_rt_time
+	Worst case execution time of the reader thread
+
+	This variable will hold the worst case execution time of the reader thread for this layer. The type
+	`[#skin_rt_time](skin_rt)` is the same as RTAI's `RTIME`.
+
+VARIABLE best_read_time: skin_rt_time
+	Best case execution time of the reader thread
+
+	This variable will hold the best case execution time of the reader thread for this layer. The type
+	`[#skin_rt_time](skin_rt)` is the same as RTAI's `RTIME`.
+
+VARIABLE accumulated_read_time: skin_rt_time
+	Accumulated execution time of the reader thread
+
+	This variable will hold the sum of execution time of each cycle of the reader thread for this layer since its beginning.
+	The type `skin_rt_time` is the same as RTAI's `RTIME`. Divided by `[#number_of_reads]`, an average execution time
+	can be obtained. Note however that these values are updated with every read so in an unfortunate
+	case, the two variables may not refer to the same timestamp.
+
+VARIABLE number_of_reads: uint64_t
+	Number of frames read by the reader thread since its start
+
+	This variable will hold the number of times the reader has read data since beginning of execution.

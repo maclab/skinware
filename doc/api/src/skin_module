@@ -1,0 +1,211 @@
+struct skin_module
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_sensor
+next struct skin_patch
+seealso `[skin_sensor]`
+seealso `[skin_patch]`
+seealso `[skin_sensor_iterator]`
+seealso `[#skin_object_modules](skin_object)`
+
+The `skin_module` struct holds data of one module in the skin.
+
+VARIABLE id: skin_module_id
+	Id of the module
+
+	The id of the module. This value is equal to the module's index in the module list obtainable via `[#skin_object_modules](skin_object)`
+	function. If the value of `id` is equal to `[#SKIN_INVALID_ID](constants)`, that means the module is not properly initialized.
+	See also `[#skin_module_id](skin_object)`.
+
+VARIABLE patch_id: skin_patch_id
+	Id of the patch this module belongs to
+
+	The id of the patch the module belongs to. See `[#id](skin_patch)` of `skin_patch`.
+
+VARIABLE sensors_begin: skin_sensor_id
+	Where the sensors belonging to this module start
+
+	The sensors of each module are stored consequently. They are located in the sensors list obtainable via `[#skin_object_sensors](skin_object)`
+	function, with indices in \[`sensors_begin`, `[#sensors_end]`). See also `[#skin_sensor_id](skin_object)`.
+
+VARIABLE sensors_end: skin_sensor_id
+	Where the sensors belonging to this module end
+
+	The sensors of each module are stored consequently. They are located in the sensors list obtainable via `[#skin_object_sensors](skin_object)`
+	function, with indices in \[`[#sensors_begin]`, `sensors_end`). See also `[#skin_sensor_id](skin_object)`.
+
+VARIABLE sensor_type_id: skin_sensor_type_id
+	Id of the type of the sensors of this module
+
+	The id of the type of the sensors of this module. See `[#id](skin_sensor_type)` of `skin_sensor_type`.
+
+FUNCTION skin_module_init: (module: skin_module *): void
+	Initialize module to invalid
+
+	Initializer of the struct. Sets the module variables so that the module would be invalid.
+
+	INPUT module
+		The object of operation
+
+FUNCTION skin_module_free: (module: skin_module *): void
+	Free module
+
+	Free any resources and invalidate the module.
+
+	INPUT module
+		The object of operation
+
+FUNCTION skin_module_sensors: (module: skin_module *, count: skin_sensor_size *): skin_sensor *
+	Gives an array of sensors belonging to this module
+
+	This function returns a reference to a part of the [sensors array](skin_object#skin_object_sensors) where the sensors of this module are located.
+	That is sensors from index `[#sensors_begin]`. The array will have **`count`** elements. Note that this is **not** a copy of the sensors
+	array, but a reference to the original. See also `[#skin_sensor_size](skin_object)`.
+
+	INPUT module
+		The object of operation
+	INPUT count
+		After `skin_module_sensors` finishes, this variable will hold the number of sensors in this module.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of sensors belonging to this module. If the module is not properly initialized, this function will
+		return `NULL` and the input **`count`** will be left untouched.
+
+FUNCTION skin_module_sensors_count: (module: skin_module *): skin_sensor_size
+	Gives the number of sensors belonging to this module
+
+	The output of this function is equal to the `count` argument of `[#skin_module_sensors]`.
+
+	INPUT module
+		The object of operation
+	OUTPUT
+		The number of sensors in this module.
+
+FUNCTION skin_module_patch: (module: skin_module *): skin_patch *
+	Gives the patch this module belongs to
+
+	This functions outputs a reference to the patch this module belongs to. This is the same as writing
+		```
+		\&[#skin_object_patches](skin_object)(\&skin, NULL)\[module->[#patch_id]\]
+		```
+	where `skin` is the skin object (of type `[skin_object]`) and `module` is the **`module`** parameter of this function.
+
+	INPUT module
+		The object of operation
+	OUTPUT
+		A reference to the patch this module belongs to.
+
+FUNCTION skin_module_sensor_type: (module: skin_module *): skin_sensor_type *
+	Gives the type of the sensors of this module
+
+	This function returns a reference to the type of sensors of this module. This is the same as writing
+		```
+		\&[#skin_object_sensor_types](skin_object)(\&skin, NULL)\[module->[#sensor_type_id]\]
+		```
+	where `skin` is the skin object (of type `[skin_object]`) and `module` is the **`module`** parameter of this function.
+
+	INPUT module
+		The object of operation
+	OUTPUT
+		A reference to the type of sensors of this module
+
+FUNCTION skin_module_for_each_sensor: (module: skin_module *, c: skin_callback_sensor, data: void *): void
+	Call a callback for all sensors of module
+
+	This function iterates over sensors of **`module`** calling [callback](skin_callbacks#skin_callback_sensor) **`c`** with additional data **`data`**.
+	This iteration stops when either all sensors have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT module
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+MEMBER_TYPE skin_sensor_iterator: opaque
+NOTICE C++
+	A sensor iterator
+
+	Returned by `[#sensors_iter_begin]` and `[#sensors_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_FUNCTION skin_module: ()
+NOTICE C++
+	Class constructor
+
+	Default constructor of the class. Calls `[#skin_module_init]`.
+
+MEMBER_FUNCTION ~skin_module: ()
+NOTICE C++
+	Class destructor
+
+	Destructor of the class. Calls `[#skin_module_free]`.
+
+MEMBER_FUNCTION sensors: (count: skin_sensor_size * = NULL): skin_sensor *
+NOTICE C++
+	Wrapper for `skin\_module\_sensors`
+
+	Calls `[#skin_module_sensors]`.
+
+	INPUT count
+		See `[#skin_module_sensors]`.
+	OUTPUT
+		See `[#skin_module_sensors]`.
+
+MEMBER_FUNCTION sensors_count: (): skin_sensor_size
+NOTICE C++
+	Wrapper for `skin\_module\_sensors\_count`
+
+	Calls `[#skin_module_sensors_count]`
+
+	OUTPUT
+		See `[#skin_module_sensors_count]`.
+
+MEMBER_FUNCTION patch: (): skin_patch *
+NOTICE C++
+	Wrapper for `skin\_module\_patch`
+
+	Calls `[#skin_module_patch]`.
+
+	OUTPUT
+		See `[#skin_module_patch]`.
+
+MEMBER_FUNCTION sensor_type: (): skin_sensor_type *
+NOTICE C++
+	Wrapper for `skin\_module\_sensor\_type`
+
+	Calls `[#skin_module_sensor_type]`.
+
+	OUTPUT
+		See `[#skin_module_sensor_type]`.
+
+MEMBER_FUNCTION sensors_iter_begin: (): skin_module::skin_sensor_iterator
+NOTICE C++
+	Gives an iterator to iterate over sensors of this module
+
+	This function returns a pointer of type `skin_module::[#skin_sensor_iterator]`, similar to C++'s STL `iterator` classes, which points to the first
+	of this module's sensors. This iterator can then be used to traverse all sensors of this module. Note that the sensors traversed are not a copy
+	and the iterators actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over sensors of this module, pointing to the first one.
+
+MEMBER_FUNCTION sensors_iter_end: (): const skin_module::skin_sensor_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the sensors
+
+	This function returns a pointer of type `skin_module::[#skin_sensor_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid
+	sensor. This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range.
+	This is similar to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over sensors of this module pointing to an invalid sensor (and therefore should not be dereferenced).

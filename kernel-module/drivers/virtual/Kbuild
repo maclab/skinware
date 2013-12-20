@@ -1,0 +1,9 @@
+obj-m += skin_virtual.o
+skin_virtual-y := main.o init.o
+
+VPATH := ../..
+
+SKINK_DEPENDENCIES := skink_config.h skink_common.h skink_version.h skink_rt.h skink_devices.h \
+		      skink_sensor_layer.h skink_sensor.h skink_module.h skink_patch.h skink.h
+
+%.o: %.c init.h $(SKINK_DEPENDENCIES)

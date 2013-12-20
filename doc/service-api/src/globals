@@ -1,0 +1,25 @@
+globals
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+
+DataTypes
+skink_data_structures
+Callbacks
+Service Functions
+Service Manager
+skink_service
+skink_sensor_layer
+skink_sensor
+skink_region
+skink_sub_region
+skink_module
+skink_patch
+skin_rt

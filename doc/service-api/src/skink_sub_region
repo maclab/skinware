@@ -1,0 +1,55 @@
+struct skink_sub_region
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+prev struct skink_sensor
+next struct skink_region
+
+A sub-region is a set of sensors in the skin, logically grouped together. The sub-regions are partitions of regions that do not overlap. They are created for
+efficiency reasons. When regions in the skin are defined, they are divided into sub-regions, that are biggest partitions that do not overlap, and regions are
+given indices to these sub-regions. The reverse relation is also implemented, where it is known which regions contain a sub-region. [Relationship between regions and
+sub-regions](svg files/sub-regions.svg) shows the relationship between regions and sub-regions.
+
+VARIABLE id: skink_sub_region_id
+	The id of this sub-region
+
+	This is the id of the sub-region, which shows its index in `[#sub_regions](skink_data_structures)` of `skink_data_structures`.
+
+VARIABLE region_indices_begin: skink_region_index_id
+	Start index of indices to regions containing this sub-region
+
+	This is an index to `[#region_indices](skink_data_structures)` of `skink_data_structures` which contains indices to regions of this sub-region. The indices
+	to regions containing this sub-region are located in indices `\[region_indices_begin, region_indices_begin + [#region_indices_count])`. For example,
+	if `region_indices` contains `{2, 0, 1, 3, 5, 2, 4, 1, 0, ...}` and the sub-region has `region_indices_begin = 3` and
+	`region_indices_count = 4`, then the sub-region is contained by regions `{3, 5, 2, 4}` which are themselves indices to `[#regions]
+	(skink_data_structures)` of `skink_data_structures`.
+
+VARIABLE region_indices_count: skink_region_index_size
+	Number of regions containing this sub-region
+
+	See `[#region_indices_begin]`.
+
+VARIABLE layers: struct skink_sr_layer *
+	Layers of the sub-region
+
+	Each sub-region can span over multiple, possibly all layers. This array has the following information for all the
+	`[#sensor_layers_count](skink_data_structures)` of `skink_data_structures` layers.
+
+	```
+	struct skink_sr_layer
+	{
+		skink_sensor_id    sensors_begin;
+		skink_sensor_size  sensors_count;
+	};
+	```
+
+	- **`sensors_begin`** and **`sensors_count`**: For each layer, the sensors in the sub-region are located in indices
+	  `\[sensors_begin, sensors_begin + sensors_count)` of `[#sensors](skink_sensor_layer)`.

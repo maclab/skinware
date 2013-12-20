@@ -1,0 +1,68 @@
+WHITE_SPACE = (space|tab)+;
+NEW_LINE = new_line;
+NEW_PARAGRAPH = (space|tab)* new_line (space|tab|new_line)* new_line;
+UNORDERED_LIST = (asterisk|minus|plus)(space|tab)+;				# unordered lists start with *, - or + followed by at least 1 character of white space
+NUMBER = digit+;
+CONTINUE_LIST_ITEM = dot 3 (space|tab)+;					# ...<white space> means a new paragraph which is still under the previous item
+CODE = backtick backtick?;							# ` or `` show code. `` is specifically used inside a code block to show a more important code
+CODE_BLOCK = (space|tab)* backtick 3;						# the space behind ``` is kept and the contents of code block are unindented by that much.
+										# this is useful to keep code block contents aligned with the surrounding text
+EMPHASIZE = underscore;
+STRONG = asterisk 2;
+WORD = backslash|asterisk|minus|plus|colon 2|non_special|and|semicolon		# these are the stuff that couldn't be matched in other meaningful tokens, for example a lone backslash or a minus not followed by white space
+	|(letter|minus|plus							# these are the letters that can appear at the beginning of the WORD
+		|backslash(
+			digit|comma|equal|non_special|letter|colon
+			|space|tab|new_line|paren_left
+			|paren_right|backslash|backtick
+			|asterisk|underscore|bracket_left
+			|bracket_right|hash|minus|plus|dot
+			|and|angle_left|angle_right
+		)
+	)
+	(lambda									# if there is anything more in WORD ...
+		|(digit|letter|asterisk|minus|plus|underscore			# these are the letters that can appear in the middle of the WORD
+			|backslash(
+				digit|comma|equal|non_special|colon
+				|space|tab|new_line|paren_left
+				|paren_right|backslash|backtick
+				|asterisk|underscore|bracket_left
+				|bracket_right|hash|minus|plus|dot
+				|and|angle_left|angle_right
+			)
+		)*
+		(digit|letter|minus|plus					# and finally, these are the letters that can appear at the end of the WORD
+			|backslash(
+				digit|comma|equal|non_special|colon
+				|space|tab|new_line|paren_left
+				|paren_right|backslash|backtick
+				|asterisk|underscore|bracket_left
+				|bracket_right|hash|minus|plus|dot
+				|and|angle_left|angle_right
+			)
+		)
+	)
+	|and (letter+|hash digit+) semicolon;					# these are HTML escape sequences
+HEADING = hash+;
+COLON = colon;
+COMMA = comma;
+DOT = dot;
+EQUAL = equal;
+HR = minus(space|tab)* minus(space|tab)* minus(minus|space|tab)*			# --- or
+	| asterisk(space|tab)* asterisk(space|tab)* asterisk(asterisk|space|tab)*	# *** or
+	| plus(space|tab)* plus(space|tab)* plus(plus|space|tab)*;			# +++
+ANGLE_LEFT = angle_left;
+ANGLE_RIGHT = angle_right;
+PAREN_LEFT = new_line? (space|tab)* paren_left;			# space before is matched here to simplify grammar in case there was a new line between [text] and (link)
+PAREN_RIGHT = paren_right;
+HTML_TAG = angle_left						# HTML tag starts with <
+	(angle_left|paren_left|paren_right|backtick
+		|asterisk|underscore|bracket_left
+		|bracket_right|hash|minus|plus|dot
+		|comma|and|non_special|colon|equal
+		|digit|space|tab|new_line|letter|
+		backslash(lambda|angle_right)			# only > needs to be escaped!
+	)*
+	angle_right;						# HTML tag ends with >
+LINK_LEFT = bracket_left;
+LINK_RIGHT = bracket_right;

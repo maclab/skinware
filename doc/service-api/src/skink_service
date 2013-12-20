@@ -1,0 +1,96 @@
+struct skink_service
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+prev api Service Manager
+
+This struct contains information about the service and is filled upon [connection to the service](Service Manager#skink_connect_to_service). Most importantly,
+it has a pointer to the shared memory of the service. Attached to this memory is a header. A set of macros have been defined that retrieve the header information
+given the service output memory address.
+
+MACRO SKINK_SERVICE_PERIOD: (mem)
+	The period of service (if periodic)
+
+	This macro, when used on `[#memory]` gives the period of a periodic service in nanoseconds as a `[#skin_rt_time](skin_rt)`.
+
+	INPUT mem
+		The memory address of the service output.
+	OUTPUT
+		The period of the service, if it is periodic.
+
+MACRO SKINK_SERVICE_TIMESTAMP: (mem)
+	Get the timestamp of service
+
+	This macro, when used on `[#memory]` will give the timestamp of the last service write as a `[#skin_rt_time](skin_rt)`.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+
+MACRO SKINK_SERVICE_RESULT_COUNT: (mem)
+	Get the number of elements in the service results array
+
+	When the service is initialized, it is assumed, though not enforced, that the memory is viewed as an array of unknown objects. The service provides these
+	objects to its users. The service requests an array of a certain structure, which it should provide to the users.
+
+	This macro, when used on `[#memory]` evaluates to the size of this array in terms of number of such objects.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+
+MACRO SKINK_SERVICE_MEM_SIZE: (mem)
+	Get the memory size of service result
+
+	This macro, when used on `[#memory]` gives the raw size of the service result, regardless of its formatting. See also `[#SKINK_SERVICE_RESULT_COUNT]`.
+
+	INPUT mem
+		The memory address of the service output.
+	OUTPUT
+		Memory size of service result
+
+MACRO SKINK_SERVICE_IS_PERIODIC: (mem)
+	Tells whether service is periodic
+
+	This macro, when used on `[#memory]` will evaluate to true if the service is periodic and false otherwise.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+
+MACRO SKINK_SERVICE_IS_SPORADIC: (mem)
+	Tells whether service is sporadic
+
+	This macro, when used on `[#memory]` will evaluate to true if the service is sporadic and false otherwise.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+
+MACRO SKINK_SERVICE_IS_ALIVE: (mem)
+	Tells whether service is alive and functional
+
+	This macro, when used on `[#memory]` will evaluate to true if the service is usable. Note that between the time this value
+	is evaluated and the actual use if the service, there is no guarantee for the service to stay alive. Therefore, it is best if
+	it is externally ensured all users of the service stop using it, before the service is stopped.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+
+MACRO SKINK_SERVICE_IS_DEAD: (mem)
+	Tells whether service is alive and functional
+
+	This macro, when used on `[#memory]` will evaluate to true if the service is not available anymore.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+
+VARIABLE memory: void *
+	The shared memory with the service
+
+	After [connecting](Service Manager#skink_connect_to_service) to a service, this pointer will point to the shared memory
+	initialized by that service and can be used to retrieve its results.

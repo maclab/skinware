@@ -1,0 +1,46 @@
+#! /bin/bash
+
+cur_path=$(pwd)
+needs_path=true
+
+if [ $# -ge 1 ]; then
+	ros_path=$1
+	needs_path=false
+fi
+
+if $needs_path; then
+	if [ -n "$ROS_DISTRO" -a -f "/opt/ros/$ROS_DISTRO/setup.sh" ]; then
+		ros_path="/opt/ros/$ROS_DISTRO"
+		needs_path=false
+	elif [ -n "$ROS_ROOT" ]; then
+		ros_path=$(dirname $(dirname $ROS_ROOT))
+		needs_path=false
+	elif [ -n "$ROS_ETC_DIR" ]; then
+		ros_path=$(dirname $(dirname $ROS_ETC_DIR))
+		needs_path=false
+	fi
+fi
+
+if [ ! -f "$ros_path/setup.sh" ]; then
+	needs_path=true
+fi
+
+if $needs_path; then
+	if [ $# -ge 1 ]; then
+		printf -- "Provided path %s is not a directory\n" "$1"
+	else
+		printf -- "Could not determine ROS home.  Try ./bootstrap /path/to/ros\n"
+	fi
+	exit 1
+fi
+
+if ! rosws init $cur_path $ros_path; then
+	printf -- "Error using rosws (is it installed?)\n"
+	exit 1
+fi
+
+if ! rosws set rosskin -y; then
+	printf -- "rosws did not accept to add rosskin to workspace"
+fi
+
+source ./setup.bash

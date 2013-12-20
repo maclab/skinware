@@ -1,0 +1,22 @@
+backslash 1 \
+backtick 1 `
+asterisk 1 *
+underscore 1 _
+bracket_left 1 [
+bracket_right 1 ]
+paren_left 1 (
+paren_right 1 )
+hash 1 #
+minus 1 -
+plus 1 +
+dot 1 .
+comma 1 ,
+and 1 &
+angle_left 1 <
+angle_right 1 >
+colon 1 :
+equal 1 =
+semicolon 1 ;
+letter 52 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ
+non_special 13 $%^?/@|~{}!"'
+digit 10 0123456789

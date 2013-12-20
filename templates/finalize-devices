@@ -1,0 +1,8 @@
+#! /bin/bash
+
+if [ ! -e /proc/skink_command ]; then
+	printf -- "/proc/skink_command is not present.  Make sure the skin kernel is loaded\n"
+	exit 1
+fi
+
+printf -- "devs" > /proc/skink_command

@@ -1,0 +1,67 @@
+struct skink_registration_data
+# Skinware - Driver API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+seealso `[skink_device]` functions
+prev functions skink_device
+next api Callbacks
+
+Upon registration, each device driver needs to provide the skin kernel with minimal information about the underlying network. These values are used
+by Skinware for memory allocation. Along with these data, three [Callbacks] also need to be provided. The device driver itself is identified by a name
+which can be used when the device is being revived.
+
+VARIABLE device_name: const char *
+	Unique name of the device driver
+
+	Each device driver is identified by a name. Once [registration](skink_device#skink_device_register) is done, the device is given an id and that
+	id must be used. Only the first [#SKINK_MAX_NAME_LENGTH](constants) characters of the name will be used. The name is also copied in the skin kernel
+	and may be altered/freed afterwards.
+
+VARIABLE sensor_layers_count: skink_sensor_layer_size
+	Number of sensor layers handled by the device driver
+
+	This is the number of [sensor layers](skink_sensor_layer) handled by this device driver. This variable is [big enough](Data Types#skink_sensor_layer_size)
+	to hold such a number.
+
+VARIABLE sensors_count: skink_sensor_size
+	Number of sensors handled by the device driver
+
+	This is the total number of [sensors](skink_sensor) handled by this device driver in all the layers. This variable is [big enough]
+	(Data Types#skink_sensor_size) to hold such a number.
+
+VARIABLE modules_count: skink_module_size
+	Number of modules handled by the device driver
+
+	This is the total number of [modules](skink_module) handled by this device driver in all the layers. This variable is [big enough]
+	(Data Types#skink_module_size) to hold such a number.
+
+VARIABLE patches_count: skink_patch_size
+	Number of patches handled by the device driver
+
+	This is the total number of [patches](skink_patch) handled by this device driver in all the layers. This variable is [big enough]
+	(Data Types#skink_patch_size) to hold such a number.
+
+VARIABLE details_callback: skink_device_details
+	Skin structure details callback
+
+	Upon initial registration of the device driver, this [callback](Callbacks#skink_device_details) will be called by the skin kernel for each
+	sensor layer registered with this driver.
+
+VARIABLE busy_callback: skink_device_busy
+	Driver busy callback
+
+	At each instance, the driver may or may not be in use by the skin kernel. If in use, the driver must not unload from the Linux kernel.
+	The skin kernel lets the device driver know this by calls to this [callback](Callbacks#skink_device_busy)
+
+VARIABLE acquire_callback: skink_device_acquire
+	Data acquisition callback
+
+	For each layer handled by this driver, the skin kernel periodically calls this [callback](Callbacks#skink_device_acquire).

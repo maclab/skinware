@@ -1,0 +1,23 @@
+_skin_config()
+{
+	local cur opts
+	skin_has_rosskin="@SKIN_HAS_ROSSKIN@"
+	skin_rosskin_only="@SKIN_ROSSKIN_ONLY@"
+	COMPREPLY=()
+	cur="${COMP_WORDS[COMP_CWORD]}"
+	opts="--help --version --cc --cxx --prefix --bin-dir --lib-dir --driver-initializer"
+	[ "$skin_has_rosskin" == "y" ] && opts="$opts --rosskin-include-dir --rosskin-cxxflags --rosskin-ldflags"
+	[ "&skin_rosskin_only" == "y" ] && opts="$opts --rosskin-server" ||
+		opts="$opts --modules-dir --module-include-dir --lib-include-dir --settings-dir --module-cflags --module-symbols
+			--lib-cflags --lib-cxxflags --lib-ldflags --calibrator --regionalizer --visualizer --device-finalizer"
+	if [ ! $cur ] ; then
+		COMPREPLY=($(compgen -W "$opts" -- --))
+		return 0
+	fi
+	if [[ $cur == -* ]] ; then
+		COMPREPLY=($(compgen -W "$opts" -- $cur))
+		return 0
+	fi
+	return 0
+}
+complete -F _skin_config skin-config > /dev/null 2>&1

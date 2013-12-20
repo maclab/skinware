@@ -1,0 +1,116 @@
+api Data Types
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous functions skin_rt
+next struct skink_sensor_layer
+
+The skin kernel defines custom types for the ids and sizes of different structures. These types can have various sizes based on the configuration.
+It is recommended that these types be used instead of C's own primitive types.
+
+The types are in pairs of `\*_id` and `\*_size` which are guaranteed to be compatible. So for example a for loop such as the following is immune to
+overflows:
+
+	```
+	skink_sensor_id    i;
+	skink_sensor_size  count = /* get sensor count */;
+	for (i = 0; i < count; ++i)
+		/* perform operation */
+	```
+
+TYPE skink_sensor_id: uint16_t or uint32_t
+	Type of sensor id
+
+	The type of sensor ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skink_sensor_size: skink_sensor_id
+	Type of number of sensors
+
+	This type will be large enough to hold the number of sensors in the skin.
+
+TYPE skink_sensor_response: uint16_t
+	Type of sensor response
+
+	The responses of the sensors will have this type. See also `[#SKINK_SENSOR_RESPONSE_MAX](constants)`.
+
+TYPE skink_sensor_layer_id: uint16_t or uint32_t
+	Type of sensor layer id
+
+	The type of sensor layer ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skink_sensor_layer_size: skink_sensor_layer_id
+	Type of number of sensor layers
+
+	This type will be large enough to hold the number of sensor layers in the skin.
+
+TYPE skink_module_id: uint16_t or uint32_t
+	Type of module id
+
+	The type of module ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skink_module_size: skink_module_id
+	Type of number of modules
+
+	This type will be large enough to hold the number of modules in the skin.
+
+TYPE skink_patch_id: uint16_t or uint32_t
+	Type of patch id
+
+	The type of patch ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skink_patch_size: skink_patch_id
+	Type of number of patches
+
+	This type will be large enough to hold the number of patches in the skin.
+
+TYPE skink_sub_region_id: uint16_t or uint32_t
+	Type of sub-region id
+
+	The type of sub-region ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skink_sub_region_size: skink_sub_region_id
+	Type of number of sub-regions
+
+	This type will be large enough to hold the number of sub-regions in the skin.
+
+TYPE skink_region_id: uint16_t or uint32_t
+	Type of region id
+
+	The type of region ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skink_region_size: skink_region_id
+	Type of number of regions
+
+	This type will be large enough to hold the number of regions in the skin.
+
+TYPE skink_region_index_id: uint32_t or uint64_t
+	Type of region index id
+
+	The type of region index ids. If Skinware is configured to support large skins, this type would be `uint64_t`.
+	Region indices are indices to an array of region ids held by sub-regions, indicating which regions they belong to.
+
+TYPE skink_region_index_size: skink_region_index_id
+	Type of number of region indices
+
+	This type will be large enough to hold the number of region indices in the skin. Region indices are indices to an array of
+	region ids held by sub-regions, indicating which regions they belong to.
+
+TYPE skink_sub_region_index_id: uint32_t or uint64_t
+	Type of sub-region index id
+
+	The type of sub-region index ids. If Skinware is configured to support large skins, this type would be `uint64_t`.
+	Sub-region indices are indices to an array of sub-region ids held by regions, indicating which sub-regions they consist of.
+
+TYPE skink_sub_region_index_size: skink_sub_region_index_id
+	Type of number of sub-region indices
+
+	This type will be large enough to hold the number of sub-region indices in the skin. Sub-region indices are indices to an array of
+	sub-region ids held by regions, indicating which sub-regions they consist of.

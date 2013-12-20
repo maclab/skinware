@@ -1,0 +1,47 @@
+uint64 period
+---
+uint32 sensor_types_count
+uint32 sensors_count
+uint32 modules_count
+uint32 patches_count
+uint32 sub_regions_count
+uint32 regions_count
+uint64 sub_region_indices_count
+uint64 region_indices_count
+uint32 sensor_neighbors_count
+# packed helper arrays
+uint32[] sub_region_sensors_begins
+uint32[] sub_region_sensors_ends
+uint64[] region_sub_region_indices
+uint64[] sub_region_region_indices
+uint32[] sensor_neighbors
+# for each sensor type
+string[] sensor_type_names
+uint32[] sensor_type_sensors_begins
+uint32[] sensor_type_sensors_ends
+uint32[] sensor_type_modules_begins
+uint32[] sensor_type_modules_ends
+uint32[] sensor_type_patches_begins
+uint32[] sensor_type_patches_ends
+# for each patch
+uint32[] patch_modules_begins
+uint32[] patch_modules_ends
+# for each module
+uint32[] module_sensors_begins
+uint32[] module_sensors_ends
+# for each region
+uint64[] region_sub_region_indices_begins
+uint64[] region_sub_region_indices_ends
+# for each sub-region
+uint64[] sub_region_region_indices_begins
+uint64[] sub_region_region_indices_ends
+# for each sensor
+float32[] sensor_relative_positions
+float32[] sensor_relative_orientations
+float32[] sensor_flattened_positions
+uint32[] sensor_neighbors_begins
+uint32[] sensor_neighbors_counts
+float32[] sensor_radii
+uint32[] sensor_robot_links
+# the following is used only with sporadic services
+uint32 id

@@ -1,0 +1,82 @@
+# include Makefile.config or define IGNORE_BUILD_OPTIONS before including this Makefile
+
+SHELL := /bin/bash
+
+KERNEL_VERSION_MAJOR := 1
+KERNEL_VERSION_MINOR := 0
+KERNEL_VERSION_REVISION := 0
+KERNEL_VERSION := $(KERNEL_VERSION_MAJOR).$(KERNEL_VERSION_MINOR).$(KERNEL_VERSION_REVISION)
+
+USER_VERSION_MAJOR := 1
+USER_VERSION_MINOR := 0
+USER_VERSION_REVISION := 0
+USER_VERSION := $(USER_VERSION_MAJOR).$(USER_VERSION_MINOR).$(USER_VERSION_REVISION)
+
+# If IGNORE_BUILD_OPTIONS is defined, ignore this section.  This is useful for having the other part of the file defined, while skipping this part
+ifndef IGNORE_BUILD_OPTIONS
+  # If CONFIG_SKIN_RTAI_CONFIG_TOOL is not defined, then Makefile.config is not included
+  ifdef CONFIG_SKIN_RTAI_CONFIG_TOOL
+    ifneq ($(CONFIG_SKIN_ROSSKIN_LIB_ONLY), y)
+      RTAI_HOME := $(shell $(CONFIG_SKIN_RTAI_CONFIG_TOOL) --prefix)
+      KERNEL_EXTRA_CFLAGS += $(shell $(CONFIG_SKIN_RTAI_CONFIG_TOOL) --module-cflags)
+      RTAI_MODULE_SYMBOLS := $(RTAI_HOME)/modules/Module.symvers
+      USER_EXTRA_CFLAGS += $(shell $(CONFIG_SKIN_RTAI_CONFIG_TOOL) --lxrt-cflags)
+      USER_EXTRA_CXXFLAGS += $(subst -Wstrict-prototypes,,$(shell $(CONFIG_SKIN_RTAI_CONFIG_TOOL) --lxrt-cflags))
+      USER_EXTRA_LDFLAGS += $(shell $(CONFIG_SKIN_RTAI_CONFIG_TOOL) --lxrt-ldflags)
+    endif
+  endif
+  ifeq ($(CONFIG_SKIN_DEBUG), y)
+    KERNEL_EXTRA_CFLAGS += -O0 -g
+    USER_EXTRA_CFLAGS += -O0 -g
+    USER_EXTRA_CXXFLAGS += -O0 -g
+  else
+    KERNEL_EXTRA_CFLAGS += -O2 -DNDEBUG
+    USER_EXTRA_CFLAGS += -O2 -DNDEBUG
+    USER_EXTRA_CXXFLAGS += -O2 -DNDEBUG
+  endif
+  KERNEL_EXTRA_CFLAGS += -Wall
+  USER_EXTRA_CFLAGS += -Wall
+  USER_EXTRA_CXXFLAGS += -Wall
+  LIB_SHARED_CFLAGS := -fPIC
+  LIB_SHARED_CXXFLAGS := -fPIC
+  LIB_SHARED_LDFLAGS := -shared -fPIC
+endif
+
+# Disable colors if called from vim
+ifneq ($(VIMRUNTIME),)
+  CONFIG_SKIN_COLOR_BUILD =
+endif
+
+PRINTF := printf --
+ifeq ($(CONFIG_SKIN_COLOR_BUILD), y)
+# colors when used with sed
+  STATUS_COLOR_ := \x1b[1;33m
+  SUB_STATUS_COLOR_ := \x1b[1;36m
+  DEFAULT_COLOR_ := \x1b[m
+  ERROR_COLOR_ := \x1b[1;31m
+  WARNING_COLOR_ := \x1b[1;35m
+# colors when used with printf
+  STATUS_COLOR := \$(STATUS_COLOR_)
+  SUB_STATUS_COLOR := \$(SUB_STATUS_COLOR_)
+  DEFAULT_COLOR := \$(DEFAULT_COLOR_)
+  ERROR_COLOR := \$(ERROR_COLOR_)
+  WARNING_COLOR := \$(WARNING_COLOR_)
+  HIGHLIGHT := 2>&1 | sed -e '/\<error\>/Is%.*%$(ERROR_COLOR_)&$(DEFAULT_COLOR_)%g' -e '/\<warning\>/Is%.*%$(WARNING_COLOR_)&$(DEFAULT_COLOR_)%g' ; exit $${PIPESTATUS[0]}
+else
+  STATUS_COLOR :=
+  SUB_STATUS_COLOR :=
+  DEFAULT_COLOR :=
+  ERROR_COLOR :=
+  WARNING_COLOR :=
+  HIGHLIGHT :=
+endif
+
+RM := rm -f
+MKDIR := mkdir
+CC := gcc
+CXX := g++
+LD := g++
+# for static lib:
+AR := ar rcs
+# for shared lib:
+SHARED_LD := gcc

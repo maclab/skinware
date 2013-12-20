@@ -1,0 +1,370 @@
+struct skin_sensor_type
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_sensor
+next struct skin_region
+seealso `[skin_sensor]`
+seealso `[skin_sensor_iterator]`
+seealso `[#skin_object_sensor_types](skin_object)`
+
+The `skin_sensor_type` struct holds data of one sensor type in the skin.
+
+VARIABLE name: char *
+	Name of the sensor type
+
+	Each sensor type, or layer, of the skin has sensors that share this name. An example could be the name "Capacitance" which is shared
+	by sensors: "Capacitance 1", "Capacitance 2", ...
+
+	The main use for this name is to be able to identify the id of the layer of interest through a search in the [sensor types]
+	(skin_object#skin_object_sensor_types) for a specific name and to avoid hard-coding this id.
+
+VARIABLE id: skin_sensor_type_id
+	Id of the sensor type
+
+	The id of the sensor type. This is used with functions such as `[#skin_reader_start](skin_reader)` or arrays such as
+	`[#tasks_statistics](skin_reader)` of `skin_reader` to refer to a specific layer of the skin. See also `[#skin_sensor_type_id](skin_object)`.
+
+VARIABLE sensors_begin: skin_sensor_id
+	Where the sensors belonging to this sensor type start
+
+	The sensors of each sensor type are stored consequently. They are located in the sensors list obtainable via `[#skin_object_sensors](skin_object)`
+	function, with indices in \[`sensors_begin`, `[#sensors_end]`). See also `[#skin_sensor_id](skin_object)`.
+
+VARIABLE sensors_end: skin_sensor_id
+	Where the sensors belonging to this sensor type end
+
+	The sensors of each sensor type are stored consequently. They are located in the sensors list obtainable via `[#skin_object_sensors](skin_object)`
+	function, with indices in \[`[#sensors_begin]`, `sensors_end`). See also `[#skin_sensor_id](skin_object)`.
+
+VARIABLE modules_begin: skin_module_id
+	Where the modules belonging to this sensor type start
+
+	The modules of each sensor type are stored consequently. They are located in the modules list obtainable via `[#skin_object_modules](skin_object)`
+	function, with indices in \[`modules_begin`, `[#modules_end]`). See also `[#skin_module_id](skin_object)`.
+
+VARIABLE modules_end: skin_module_id
+	Where the modules belonging to this module type end
+
+	The modules of each module type are stored consequently. They are located in the modules list obtainable via `[#skin_object_modules](skin_object)`
+	function, with indices in \[`[#modules_begin]`, `modules_end`). See also `[#skin_module_id](skin_object)`.
+
+VARIABLE patches_begin: skin_patch_id
+	Where the patches belonging to this sensor type start
+
+	The patches of each sensor type are stored consequently. They are located in the patches list obtainable via `[#skin_object_patches](skin_object)`
+	function, with indices in \[`patches_begin`, `[#patches_end]`). See also `[#skin_patch_id](skin_object)`.
+
+VARIABLE patches_end: skin_patch_id
+	Where the patches belonging to this patch type end
+
+	The patches of each patch type are stored consequently. They are located in the patches list obtainable via `[#skin_object_patches](skin_object)`
+	function, with indices in \[`[#patches_begin]`, `patches_end`). See also `[#skin_patch_id](skin_object)`.
+
+VARIABLE is_active: bool
+	Whether the sensor type is active or not
+
+	This variable will be true if the acquisition from this sensor type is functional. If the driver that handles this sensor type is paused or removed,
+	or if the corresponding writer is erroneous, this value will be false.
+
+	If this value is false, no new data from this layer would be available.
+
+FUNCTION skin_sensor_type_init: (sensor_type: skin_sensor_type *): void
+	Initialize sensor type to invalid
+
+	Initializer of the struct. Sets the sensor type variables so that the sensor type would be invalid.
+
+	INPUT sensor_type
+		The object of operation
+
+FUNCTION skin_sensor_type_free: (sensor_type: skin_sensor_type *): void
+	Free sensor type
+
+	Free any resources and invalidate the sensor type.
+
+	INPUT sensor_type
+		The object of operation
+
+FUNCTION skin_sensor_type_sensors: (sensor_type: skin_sensor_type *, count: skin_sensor_size *): skin_sensor *
+	Gives an array of sensors of this type
+
+	This function returns a reference to a part of the [sensors array](skin_object#skin_object_sensors) where the sensors of this type are located.
+	That is sensors from index `[#sensors_begin]`. The array will have **`count`** elements. Note that this is **not** a copy of the sensors
+	array, but a reference to the original.
+
+	INPUT sensor_type
+		The object of operation
+	INPUT count
+		After `skin_sensor_type_sensors` finishes, this variable will hold the number of sensors of this type.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of sensors of this type. If the module is not properly initialized, this function will
+		return `NULL` and the input **`count`** will be left untouched.
+
+FUNCTION skin_sensor_type_modules: (sensor_type: skin_sensor_type *, count: skin_module_size *): skin_module *
+	Gives an array of modules having sensors of this type
+
+	This function returns a reference to a part of the [modules array](skin_object#skin_object_modules) where the modules having sensors of this type are located.
+	That is modules from index `[#modules_begin]`. The array will have **`count`** elements. Note that this is **not** a copy of the modules
+	array, but a reference to the original.
+
+	INPUT sensor_type
+		The object of operation
+	INPUT count
+		After `skin_sensor_type_modules` finishes, this variable will hold the number of modules having sensors of this type.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of modules having sensors of this type. If the module is not properly initialized, this function will
+		return `NULL` and the input **`count`** will be left untouched.
+
+FUNCTION skin_sensor_type_patches: (sensor_type: skin_sensor_type *, count: skin_patch_size *): skin_patch *
+	Gives an array of patches having sensors of this type
+
+	This function returns a reference to a part of the [patches array](skin_object#skin_object_patches) where the patches having sensors of this type are located.
+	That is patches from index `[#patches_begin]`. The array will have **`count`** elements. Note that this is **not** a copy of the patches
+	array, but a reference to the original.
+
+	INPUT sensor_type
+		The object of operation
+	INPUT count
+		After `skin_sensor_type_patches` finishes, this variable will hold the number of patches having sensors of this type.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of patches having sensors of this type. If the patch is not properly initialized, this function will
+		return `NULL` and the input **`count`** will be left untouched.
+
+FUNCTION skin_sensor_type_sensors_count: (sensor_type: skin_sensor_type *): skin_sensor_size
+	Gives the number of sensors of this type
+
+	The output of this function is equal to the `count` argument of `[#skin_sensor_type_sensors]`.
+
+	INPUT sensor_type
+		The object of operation
+	OUTPUT
+		The number of sensors of this type.
+
+FUNCTION skin_sensor_type_modules_count: (sensor_type: skin_sensor_type *): skin_module_size
+	Gives the number of modules having sensors of this type
+
+	The output of this function is equal to the `count` argument of `[#skin_sensor_type_modules]`.
+
+	INPUT sensor_type
+		The object of operation
+	OUTPUT
+		The number of modules having sensors of this type.
+
+FUNCTION skin_sensor_type_patches_count: (sensor_type: skin_sensor_type *): skin_patch_size
+	Gives the number of patches having sensors of this type
+
+	The output of this function is equal to the `count` argument of `[#skin_sensor_type_patches]`.
+
+	INPUT sensor_type
+		The object of operation
+	OUTPUT
+		The number of patches having sensors of this type.
+
+FUNCTION skin_sensor_type_for_each_sensor: (sensor_type: skin_sensor_type *, c: skin_callback_sensor, data: void *): void
+	Call a callback for all sensors of sensor type
+
+	This function iterates over sensors of **`sensor_type`** calling [callback](skin_callbacks#skin_callback_sensor) **`c`** with additional data **`data`**.
+	This iteration stops when either all sensors have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT sensor_type
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+FUNCTION skin_sensor_type_for_each_module: (sensor_type: skin_sensor_type *, c: skin_callback_module, data: void *): void
+	Call a callback for all modules of sensor type
+
+	This function iterates over modules of **`sensor_type`** calling [callback](skin_callbacks#skin_callback_module) **`c`** with additional data **`data`**.
+	This iteration stops when either all modules have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT sensor_type
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+FUNCTION skin_sensor_type_for_each_patch: (sensor_type: skin_sensor_type *, c: skin_callback_patch, data: void *): void
+	Call a callback for all patches of sensor type
+
+	This function iterates over patches of **`sensor_type`** calling [callback](skin_callbacks#skin_callback_patch) **`c`** with additional data **`data`**.
+	This iteration stops when either all patches have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT sensor_type
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+MEMBER_TYPE skin_sensor_iterator: opaque
+NOTICE C++
+	A sensor iterator
+
+	Returned by `[#sensors_iter_begin]` and `[#sensors_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_TYPE skin_module_iterator: opaque
+NOTICE C++
+	A module iterator
+
+	Returned by `[#modules_iter_begin]` and `[#modules_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_TYPE skin_patch_iterator: opaque
+NOTICE C++
+	A patch iterator
+
+	Returned by `[#patches_iter_begin]` and `[#patches_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_FUNCTION skin_sensor_type: ()
+NOTICE C++
+	Class constructor
+
+	Default constructor of the class. Calls `[#skin_sensor_type_init]`.
+
+MEMBER_FUNCTION ~skin_sensor_type: ()
+NOTICE C++
+	Class destructor
+
+	Destructor of the class. Calls `[#skin_sensor_type_free]`.
+
+MEMBER_FUNCTION sensors: (count: skin_sensor_size * = NULL): skin_sensor *
+NOTICE C++
+	Wrapper for `skin_sensor_type_sensors`
+
+	Calls `[#skin_sensor_type_sensors]`.
+
+	INPUT count
+		See `[#skin_sensor_type_sensors]`.
+	OUTPUT
+		See `[#skin_sensor_type_sensors]`.
+
+MEMBER_FUNCTION modules: (count: skin_module_size * = NULL): skin_module *
+NOTICE C++
+	Wrapper for `skin_sensor_type_modules`
+
+	Calls `[#skin_sensor_type_modules]`.
+
+	INPUT count
+		See `[#skin_sensor_type_modules]`.
+	OUTPUT
+		See `[#skin_sensor_type_modules]`.
+
+MEMBER_FUNCTION patches: (count: skin_patch_size * = NULL): skin_patch *
+NOTICE C++
+	Wrapper for `skin_sensor_type_patches`
+
+	Calls `[#skin_sensor_type_patches]`.
+
+	INPUT count
+		See `[#skin_sensor_type_patches]`.
+	OUTPUT
+		See `[#skin_sensor_type_patches]`.
+
+MEMBER_FUNCTION sensors_count: (): skin_sensor_size
+NOTICE C++
+	Wrapper for `skin_sensor_type_sensors_count`
+
+	Calls `[#skin_sensor_type_sensors_count]`.
+
+	OUTPUT
+		See `[#skin_sensor_type_sensors_count]`.
+
+MEMBER_FUNCTION modules_count: (): skin_module_size
+NOTICE C++
+	Wrapper for `skin_sensor_type_modules_count`
+
+	Calls `[#skin_sensor_type_modules_count]`.
+
+	OUTPUT
+		See `[#skin_sensor_type_modules_count]`.
+
+MEMBER_FUNCTION patches_count: (): skin_patch_size
+NOTICE C++
+	Wrapper for `skin_sensor_type_patches_count`
+
+	Calls `[#skin_sensor_type_patches_count]`.
+
+	OUTPUT
+		See `[#skin_sensor_type_patches_count]`.
+
+MEMBER_FUNCTION sensors_iter_begin: (): skin_sensor_type::skin_sensor_iterator
+NOTICE C++
+	Gives an iterator to iterate over sensors of this type
+
+	This function returns a pointer of type `skin_sensor_type::[#skin_sensor_iterator]`, similar to C++'s STL `iterator` classes, which points to the first
+	of sensors of this type. This iterator can then be used to traverse all sensors of this type. Note that the sensors traversed are not a copy
+	and the iterators actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over sensors of this type, pointing to the first one.
+
+MEMBER_FUNCTION sensors_iter_end: (): const skin_sensor_type::skin_sensor_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the sensors
+
+	This function returns a pointer of type `skin_sensor_type::[#skin_sensor_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid
+	sensor. This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range.
+	This is similar to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over sensors of this type pointing to an invalid sensor (and therefore should not be dereferenced).
+
+MEMBER_FUNCTION modules_iter_begin: (): skin_sensor_type::skin_module_iterator
+NOTICE C++
+	Gives an iterator to iterate over modules of this sensor type
+
+	This function returns a pointer of type `skin_sensor_type::[#skin_module_iterator]`, similar to C++'s STL `iterator` classes, which points to the first
+	of this sensor type's modules. This iterator can then be used to traverse all modules of this sensor type. Note that the modules traversed are not a copy
+	and the iterators actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over modules of this sensor type, pointing to the first one.
+
+MEMBER_FUNCTION modules_iter_end: (): const skin_sensor_type::skin_module_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the modules
+
+	This function returns a pointer of type `skin_sensor_type::[#skin_module_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid
+	module. This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range.
+	This is similar to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over modules of this sensor type pointing to an invalid module (and therefore should not be dereferenced).
+
+MEMBER_FUNCTION patches_iter_begin: (): skin_sensor_type::skin_patch_iterator
+NOTICE C++
+	Gives an iterator to iterate over patches of this sensor type
+
+	This function returns a pointer of type `skin_sensor_type::[#skin_patch_iterator]`, similar to C++'s STL `iterator` classes, which points to the first
+	of this sensor type's patches. This iterator can then be used to traverse all patches of this sensor type. Note that the patches traversed are not a copy
+	and the iterators actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over patches of this sensor type, pointing to the first one.
+
+MEMBER_FUNCTION patches_iter_end: (): const skin_sensor_type::skin_patch_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the patches
+
+	This function returns a pointer of type `skin_sensor_type::[#skin_patch_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid
+	patch. This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range.
+	This is similar to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over patches of this sensor type pointing to an invalid patch (and therefore should not be dereferenced).

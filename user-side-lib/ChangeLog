@@ -1,0 +1,5 @@
+Changes with - are not reflected in the documentation while the ones with * are.
+The ones with + are internal and are not reflected in the documentation.
+Version 1.0.0.894:
+  - Historical Feature: Added python bindings (To be removed once documented)
+  * Start of ChangeLog: Historical changes irrelevant.

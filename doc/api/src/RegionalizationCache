@@ -1,0 +1,112 @@
+iofile Regionalization Cache
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous iofile Calibration Cache
+next struct skin_object
+seealso `[skin_object]`
+seealso `[skin_sensor_type]`
+seealso `[skin_sensor]`
+seealso `[skin_region]`
+seealso `[skin_sub_region]`
+
+The regionalization cache contains information necessary for regionalizing the skin. The format of this file is as follows. The texts in parentheses are commentary
+and should not be included in the cache.
+
+```
+sensors-count  sensor-types-count
+(sensor-types-count&times;)
+    sensors-of-type-count
+    (sensors-of-type-count&times;)
+        sensor-id (relative to the sensor type)
+sub-regions-count
+(sub-regions-count&times;)
+    (sensor-types-count&times;)
+        sensors-begin
+        sensors-end
+regions-count  total-sub-region-indices-count
+(region-count&times;)
+    sub-regions-of-region-count
+    (sub-regions-of-region-count&times;)
+        sub-region
+```
+
+In this format:
+  - `sensors-count` shows the number of sensors in the skin.
+  - `sensor-types-count` shows the number of sensor types in the skin.
+  - `sensor-id` is a mapping of sensors before regionalization and after it. Using this map, the regionalizer will rearrange the sensors of the skin.
+  - `sub-regions-count` is the number of sub-regions to be created on the skin.
+  - `sensors-begin` and `sensors-end` show the range of sensors of each sensor type in each sub-region. This range refers to the sensors after they have been
+  rearranged.
+  - `regions-count` is the number of regions to be created on the skin.
+  - `total-sub-region-indices-count` is the sum of `sub-regions-of-region-count` that follow. This value is used to preallocate memory.
+  - `sub-regions-of-region-count` is the number of sub-regions contained in this region.
+  - `sub-region` is the id of sub-regions contained in this region.
+
+**Note:** as of current version of Skinware, the sensors of [modules](skin_module) are required to be contiguous. Therefore, sub-regions and regions
+cannot cut through a module, i.e. they must either completely contain the module or don't include it at all. It is strongly recommended to avoid manual
+creation of this file and use the regionalizer program. Please see the user manual of Skinware.
+
+As an example, the corresponding cache file to [A hypothetical two-layered skin. Modules are ordered from left-to-right,
+top-to bottom](svg files/regionalization.svg) which shows a two-layered skin, could be:
+
+```
+240 2
+  192
+        0   1   2   3   4   5   6   7   8   9  10  11
+       36  37  38  39  40  41  42  43  44  45  46  47
+       72  73  74  75  76  77  78  79  80  81  82  83
+       12  13  14  15  16  17  18  19  20  21  22  23
+       24  25  26  27  28  29  30  31  32  33  34  35
+       48  49  50  51  52  53  54  55  56  57  58  59
+       60  61  62  63  64  65  66  67  68  69  70  71
+       84  85  86  87  88  89  90  91  92  93  94  95
+       96  97  98  99 100 101 102 103 104 105 106 107
+      120 121 122 123 124 125 126 127 128 129 130 131
+      132 133 134 135 136 137 138 139 140 141 142 143
+      156 157 158 159 160 161 162 163 164 165 166 167
+      168 169 170 171 172 173 174 175 176 177 178 179
+      108 109 110 111 112 113 114 115 116 117 118 119
+      144 145 146 147 148 149 150 151 152 153 154 155
+      180 181 182 183 184 185 186 187 188 189 190 191
+  48
+       0  1  2
+       9 10 11
+      18 19 20
+       3  4  5
+       6  7  8
+      12 13 14
+      15 16 17
+      21 22 23
+      24 25 26
+      30 31 32
+      33 34 35
+      39 40 41
+      42 43 44
+      27 28 29
+      36 37 38
+      45 46 47
+
+7
+      0  36      0  9
+     36  72      9 18
+     72  96     18 24
+     96 120     24 30
+    120 156     30 39
+    156 168     39 42
+    168 192     42 48
+
+4 10
+  3    1 2 5
+  2    0 1
+  2    3 4
+  3    4 5 6
+```

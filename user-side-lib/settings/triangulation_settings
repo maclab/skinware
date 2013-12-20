@@ -1,0 +1,4 @@
+extension = 0
+#extension = 0.3
+min_max_diff = 1.9
+nearest_max_diff = 1.9

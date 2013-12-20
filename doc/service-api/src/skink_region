@@ -1,0 +1,36 @@
+struct skink_region
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+prev struct skink_sub_region
+next struct skink_sensor
+
+A region is a set of sensors in the skin, logically grouped together. The regions may overlap. For efficiency reasons, the concept of [sub-regions](skink_sub_region)
+are introduced. Therefore, regions do not have direct indices to sensors, but rather to sub-regions.
+
+VARIABLE id: skink_region_id
+	The id of this region
+
+	This is the id of the region, which shows its index in `[#regions](skink_data_structures)` of `skink_data_structures`.
+
+VARIABLE sub_region_indices_begin: skink_sub_region_index_id
+	Start index of indices to sub-regions in this region
+
+	This is an index to `[#sub_region_indices](skink_data_structures)` of `skink_data_structures` which contains indices to sub-regions of this region.
+	The indices to sub-regions of this region are located in indices `\[sub_region_indices_begin, sub_region_indices_begin + [#sub_region_indices_count])`.
+	For example, if `sub_region_indices` contains `{0, 1, 4, 2, 4, 7, 3, 2, 5, ...}` and the region has `sub_region_indices_begin = 3` and
+	`sub_region_indices_count = 4`, then the region consists of sub-regions `{2, 4, 7, 3}` which are themselves indices to `[#sub_regions]
+	(skink_data_structures)` of `skink_data_structures`.
+
+VARIABLE sub_region_indices_count: skink_sub_region_index_size
+	Number of sub-regions in this region
+
+	See `[#sub_region_indices_begin]`.

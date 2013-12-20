@@ -1,0 +1,18 @@
+obj-m += skin_kernel.o
+skin_kernel-y := skink_main.o skink_devices.o skink_writer.o skink_sysfs.o skink_services.o
+
+# headers that are included everywhere, except in sysfs:
+COMMON_HEADERS := skink_sensor_layer.h skink_sensor.h skink_module.h skink_patch.h
+
+# headers that are included everywhere, except in sysfs and devices:
+REGION_HEADERS := skink_sub_region.h skink_region.h
+
+# headers that are included everywhere:
+%.o: %.c skink_config.h skink_internal.h skink_common.h skink_version.h skink_shared_memory_ids.h skink_rt.h
+
+skink_main.o: skink_writer_internal.h skink_devices_internal.h skink_devices.h \
+	skink_services_internal.h skink_services.h skink_sysfs.h $(COMMON_HEADERS) $(REGION_HEADERS)
+skink_writer.o: skink_writer_internal.h skink_devices_internal.h skink_devices.h $(COMMON_HEADERS) $(REGION_HEADERS)
+skink_devices.o: skink_devices_internal.h skink_devices.h skink_writer_internal.h $(COMMON_HEADERS)
+skink_services.o: skink_services_internal.h skink_services.h $(COMMON_HEADERS) $(REGION_HEADERS)
+skink_sysfs.o: skink_sysfs.h skink_rt.h

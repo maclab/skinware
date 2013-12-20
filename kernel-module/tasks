@@ -1,0 +1,14 @@
+- Make the kernel module check for swaps, if too many consecutive swap skips, then perhaps a user has died and couldn't unlock the buffer, so the kernel
+  would force unlock it
+- Do a report on how much memory was allocated, so I would have a good estimate of the ultimate memory needs (same for user lib)
+- Each writer currently has an offset that makes them spread around in their periods.  This makes them not wake up at the same time which
+  balances the load on the system while at the same time drifts data timestamps apart.  Investigate whether this has been a good idea!
+- Make priorities changeable when loading module.  For services, this can be done by a call (changing priority only for initialized service).
+  In user space, keep the priorities in skin_object so they can be changed via a function call also.  Either way, when not provided, they take
+  the value of the configuration.
+- Add a function like const char *skink_error_string(int error); that takes an error value and returns an error string.  This is useful for
+  users that don't want to handle different error types, but would at least like a descriptive error in their logs
+- Add skink_device_is_paused/resumed that tells whether the device is paused or resumed
+- Implement a way to blacklist some sensors.  These are the sensors that are cut.  The modules still detect them!
+- Make drivers use the service mechanism under the hood.  This means that drivers become a type of service whose memory layout is decided
+  by Skinware and its data propagated also by Skinware.

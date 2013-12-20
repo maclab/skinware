@@ -1,0 +1,284 @@
+include Makefile.config
+IGNORE_BUILD_OPTIONS := y
+include Makefile.common
+
+CP := cp
+RM := rm -f
+LN := ln -s
+MKDIR := mkdir -p
+RMDIR := rmdir --ignore-fail-on-non-empty
+
+########################################
+# Note: Update version before release  #
+########################################
+SKIN_VERSION := $(KERNEL_VERSION).$(KERNEL_VERSION_BUILD) (kernel) and $(USER_VERSION).$(USER_VERSION_BUILD) (library)
+
+########################################
+# Install locations                    #
+########################################
+INSTALL_PREFIX			:= $(subst ",,$(CONFIG_SKIN_INSTALL_DIR))
+INSTALL_BIN			:= $(INSTALL_PREFIX)/bin
+INSTALL_INCLUDE			:= $(INSTALL_PREFIX)/include
+INSTALL_KERNEL_INCLUDE		:= $(INSTALL_INCLUDE)/kernel
+INSTALL_USER_INCLUDE		:= $(INSTALL_INCLUDE)/user
+INSTALL_ROSSKIN_INCLUDE		:= $(INSTALL_INCLUDE)/rosskin
+INSTALL_MODULES			:= $(INSTALL_PREFIX)/modules
+INSTALL_LIB			:= $(INSTALL_PREFIX)/lib
+INSTALL_DOC			:= $(INSTALL_PREFIX)/doc
+INSTALL_GUI_DATA		:= $(INSTALL_PREFIX)/gui
+INSTALL_SETTINGS		:= $(INSTALL_PREFIX)/settings
+
+########################################
+# The following are the files that     #
+# need to be installed.  They contain  #
+# various files from headers to        #
+# documentation files.                 #
+########################################
+KERNEL_HEADERS := skink.h          skink_common.h    skink_config.h  skink_version.h     skink_devices.h       skink_services.h  skink_sensor.h\
+                  skink_module.h   skink_patch.h     skink_region.h  skink_sub_region.h  skink_sensor_layer.h  skink_rt.h        skink_shared_memory_ids.h
+
+LIB_HEADERS :=    skin.h           skin_common.h     skin_config.h   skin_version.h      skin_object.h         skin_services.h   skin_sensor.h\
+                  skin_module.h    skin_patch.h      skin_region.h   skin_sub_region.h   skin_sensor_type.h    skin_rt.h         skin_kernel.h\
+                  skin_reader.h    skin_compiler.h  skin_callbacks.h
+
+GUI_FILES :=      room_down.bmp    room_up.bmp       room_west.bmp   room_east.bmp       room_north.bmp        room_south.bmp    font.shf
+
+HTML_EXTRA_FILES := style.css
+TEX_EXTRA_FILES :=  documentation.tex Makefile Makefile.cln Makefile.obj Makefile.cvt
+ifeq ($(CONFIG_SKIN_DOC_PDF), y)
+  TEX_EXTRA_FILES += documentation.pdf
+endif
+
+API_DOC_NAMES :=  CalibrationCache      RegionalizationCache  MeanPressureonSkin  NamingConvention  index             constants  globals\
+                  skin_callbacks        skin_reader           skin_object         skin_service      skin_sensor\
+                  skin_module           skin_patch            skin_region         skin_sub_region   skin_sensor_type  skin_rt\
+                  skin_service_manager  skin_X_iterator       skin_task_statistics
+
+API_DOC_DATA :=   calibration.svg   regionalization.svg
+API_DOC_HTML := $(addsuffix .html, $(API_DOC_NAMES)) $(HTML_EXTRA_FILES)
+API_DOC_TEX := $(addsuffix .tex, $(API_DOC_NAMES)) $(TEX_EXTRA_FILES)
+API_DOC_MD := $(API_DOC_NAMES)
+
+DRIVER_DOC_NAMES := Callbacks      DataTypes    constants     index               skin_rt                  skink_device\
+                    skink_module   skink_patch  skink_sensor  skink_sensor_layer  skink_registration_data  globals
+DRIVER_DOC_DATA :=
+DRIVER_DOC_HTML := $(addsuffix .html, $(DRIVER_DOC_NAMES)) $(HTML_EXTRA_FILES)
+DRIVER_DOC_TEX := $(addsuffix .tex, $(DRIVER_DOC_NAMES)) $(TEX_EXTRA_FILES)
+DRIVER_DOC_MD := $(DRIVER_DOC_NAMES)
+
+SERVICE_DOC_NAMES := Callbacks     DataTypes         constants       index               skin_rt       skink_data_structures\
+                     skink_module  skink_patch       skink_sensor    skink_sensor_layer  skink_region  skink_sub_region\
+                     globals       ServiceFunctions  ServiceManager  skink_service
+SERVICE_DOC_DATA :=  sub-regions.svg
+SERVICE_DOC_HTML := $(addsuffix .html, $(SERVICE_DOC_NAMES)) $(HTML_EXTRA_FILES)
+SERVICE_DOC_TEX := $(addsuffix .tex, $(SERVICE_DOC_NAMES)) $(TEX_EXTRA_FILES)
+SERVICE_DOC_MD := $(SERVICE_DOC_NAMES)
+
+GENERAL_DOC_NAMES := index
+GENERAL_DOC_DATA :=  architecture.svg  sensor-module-patch-type.svg  sensor-module-patch-region.svg  sensor-region.svg  swap-skip.svg\
+                     ERD.svg           swap-skip-avoidance.svg
+GENERAL_DOC_HTML := $(addsuffix .html, $(GENERAL_DOC_NAMES)) $(HTML_EXTRA_FILES)
+GENERAL_DOC_TEX := $(addsuffix .tex, $(GENERAL_DOC_NAMES)) $(TEX_EXTRA_FILES)
+GENERAL_DOC_MD := $(GENERAL_DOC_NAMES)
+
+ifeq ($(CONFIG_SKIN_PYTHON), y)
+  # The module could be in build/lib/ or build/lib.plat/
+  PYTHON_MODULE := $(wildcard user-side-lib/pyskin/build/lib*/pyskin.so)
+endif
+
+ROSSKIN_HEADERS := rosskin.h
+
+.PHONY: install uninstall
+install:
+	@$(PRINTF) "$(STATUS_COLOR)Installing Skinware...$(DEFAULT_COLOR)\n"
+	@$(PRINTF) "$(SUB_STATUS_COLOR)- Creating directories$(DEFAULT_COLOR)\n"
+	-@$(MKDIR) "$(INSTALL_PREFIX)"                      > /dev/null 2>&1 || exit 0
+	-@$(MKDIR) "$(INSTALL_INCLUDE)"                     > /dev/null 2>&1 || exit 0
+	-@$(MKDIR) "$(INSTALL_KERNEL_INCLUDE)"              > /dev/null 2>&1 || exit 0
+	-@$(MKDIR) "$(INSTALL_USER_INCLUDE)"                > /dev/null 2>&1 || exit 0
+ifeq ($(CONFIG_SKIN_ROSSKIN), y)
+	-@$(MKDIR) "$(INSTALL_ROSSKIN_INCLUDE)"             > /dev/null 2>&1 || exit 0
+endif
+	-@$(MKDIR) "$(INSTALL_LIB)"                         > /dev/null 2>&1 || exit 0
+	-@$(MKDIR) "$(INSTALL_BIN)"                         > /dev/null 2>&1 || exit 0
+ifneq ($(CONFIG_SKIN_ROSSKIN_LIB_ONLY), y)
+	-@$(MKDIR) "$(INSTALL_MODULES)"                     > /dev/null 2>&1 || exit 0
+	-@$(MKDIR) "$(INSTALL_GUI_DATA)"                    > /dev/null 2>&1 || exit 0
+	-@$(MKDIR) "$(INSTALL_SETTINGS)"                    > /dev/null 2>&1 || exit 0
+endif
+	-@$(MKDIR) "$(INSTALL_DOC)"                         > /dev/null 2>&1 || exit 0
+	-@for dir in api driver-api service-api general; do\
+		$(MKDIR) "$(INSTALL_DOC)"/$$dir             > /dev/null 2>&1;\
+		$(MKDIR) "$(INSTALL_DOC)"/$$dir/markdown    > /dev/null 2>&1;\
+	done || exit 0
+ifeq ($(CONFIG_SKIN_DOC), y)												# Copy documentation only if they are built
+	-@for dir in api driver-api service-api general; do\
+		$(MKDIR) "$(INSTALL_DOC)"/$$dir/html        > /dev/null 2>&1;\
+		$(MKDIR) "$(INSTALL_DOC)"/$$dir/html/files  > /dev/null 2>&1;\
+		$(MKDIR) "$(INSTALL_DOC)"/$$dir/tex         > /dev/null 2>&1;\
+		$(MKDIR) "$(INSTALL_DOC)"/$$dir/tex/files   > /dev/null 2>&1;\
+	done || exit 0
+endif
+	@$(PRINTF) "$(SUB_STATUS_COLOR)- Copying files$(DEFAULT_COLOR)\n"
+	@$(CP) kernel-module/ChangeLog "$(INSTALL_PREFIX)"/ChangeLog-kernel
+	@$(CP) user-side-lib/ChangeLog "$(INSTALL_PREFIX)"/ChangeLog-lib
+	@$(CP) $(addprefix kernel-module/, $(KERNEL_HEADERS)) "$(INSTALL_KERNEL_INCLUDE)"				# Kernel headers
+	@$(CP) $(addprefix user-side-lib/, $(LIB_HEADERS)) "$(INSTALL_USER_INCLUDE)"					# Library headers
+ifneq ($(CONFIG_SKIN_ROSSKIN_LIB_ONLY), y)
+	@$(CP) $(addprefix user-side-lib/gui/, $(GUI_FILES)) "$(INSTALL_GUI_DATA)"					# GUI files
+	@$(CP) kernel-module/skin_kernel.ko kernel-module/Module.symvers "$(INSTALL_MODULES)"				# Skin kernel
+  ifeq ($(CONFIG_SKIN_DRIVER_VIRTUAL), y)
+	@$(CP) kernel-module/drivers/virtual/skin_virtual.ko "$(INSTALL_MODULES)"
+	@$(CP) kernel-module/drivers/virtual/initializer/initialize "$(INSTALL_BIN)"/init-skin_virtual		# Driver
+  endif
+	@$(CP) user-side-lib/libskin.a "$(INSTALL_LIB)"									# Library
+	@$(CP) user-side-lib/libskin-$(USER_VERSION).so "$(INSTALL_LIB)"
+	-@$(RM) "$(INSTALL_LIB)"/libskin.so
+	@$(LN) "$(INSTALL_LIB)"/libskin-$(USER_VERSION).so $(INSTALL_LIB)/libskin.so
+	@$(CP) user-side-lib/calibrator/calibrate "$(INSTALL_BIN)"							# Calibration program
+	@$(CP) user-side-lib/regionalizer/regionalize "$(INSTALL_BIN)"							# Regionalization program
+	@$(CP) user-side-lib/view/visualize "$(INSTALL_BIN)"								# Visualization program
+	@$(CP) user-side-lib/settings/triangulation_settings user-side-lib/settings/Ngin3d_settings\
+	       user-side-lib/settings/regionalizer_settings  "$(INSTALL_SETTINGS)"					# Settings
+endif
+ifeq ($(CONFIG_SKIN_DOC), y)												# Documentation
+	@$(CP) $(addprefix doc/api/generated/html/, $(API_DOC_HTML)) "$(INSTALL_DOC)"/api/html
+	@$(CP) $(addprefix doc/api/generated/tex/,  $(API_DOC_TEX))  "$(INSTALL_DOC)"/api/tex
+  ifneq ($(API_DOC_DATA),)			# If no data, don't execute the copy command because it wouldn't have any arguments!
+	@$(CP) $(addprefix doc/api/generated/html/files/, $(API_DOC_DATA)) "$(INSTALL_DOC)"/api/html/files
+	@$(CP) $(addprefix doc/api/generated/tex/files/,  $(API_DOC_DATA)) "$(INSTALL_DOC)"/api/tex/files
+  endif
+	@$(CP) $(addprefix doc/driver-api/generated/html/, $(DRIVER_DOC_HTML)) "$(INSTALL_DOC)"/driver-api/html
+	@$(CP) $(addprefix doc/driver-api/generated/tex/,  $(DRIVER_DOC_TEX))  "$(INSTALL_DOC)"/driver-api/tex
+  ifneq ($(DRIVER_DOC_DATA),)			# If no data, don't execute the copy command because it wouldn't have any arguments!
+	@$(CP) $(addprefix doc/driver-api/generated/html/files/, $(DRIVER_DOC_DATA)) "$(INSTALL_DOC)"/driver-api/html/files
+	@$(CP) $(addprefix doc/driver-api/generated/tex/files/,  $(DRIVER_DOC_DATA)) "$(INSTALL_DOC)"/driver-api/tex/files
+  endif
+	@$(CP) $(addprefix doc/service-api/generated/html/, $(SERVICE_DOC_HTML)) "$(INSTALL_DOC)"/service-api/html
+	@$(CP) $(addprefix doc/service-api/generated/tex/,  $(SERVICE_DOC_TEX))  "$(INSTALL_DOC)"/service-api/tex
+  ifneq ($(SERVICE_DOC_DATA),)			# If no data, don't execute the copy command because it wouldn't have any arguments!
+	@$(CP) $(addprefix doc/service-api/generated/html/files/, $(SERVICE_DOC_DATA)) "$(INSTALL_DOC)"/service-api/html/files
+	@$(CP) $(addprefix doc/service-api/generated/tex/files/,  $(SERVICE_DOC_DATA)) "$(INSTALL_DOC)"/service-api/tex/files
+  endif
+	@$(CP) $(addprefix doc/general/generated/html/, $(GENERAL_DOC_HTML)) "$(INSTALL_DOC)"/general/html
+	@$(CP) $(addprefix doc/general/generated/tex/,  $(GENERAL_DOC_TEX))  "$(INSTALL_DOC)"/general/tex
+  ifneq ($(GENERAL_DOC_DATA),)			# If no data, don't execute the copy command because it wouldn't have any arguments!
+	@$(CP) $(addprefix doc/general/generated/html/files/, $(GENERAL_DOC_DATA)) "$(INSTALL_DOC)"/general/html/files
+	@$(CP) $(addprefix doc/general/generated/tex/files/,  $(GENERAL_DOC_DATA)) "$(INSTALL_DOC)"/general/tex/files
+  endif
+endif
+	@$(CP) $(addprefix doc/api/src/,         $(API_DOC_MD)     $(API_DOC_DATA))     "$(INSTALL_DOC)"/api/markdown
+	@$(CP) $(addprefix doc/driver-api/src/,  $(DRIVER_DOC_MD)  $(DRIVER_DOC_DATA))  "$(INSTALL_DOC)"/driver-api/markdown
+	@$(CP) $(addprefix doc/service-api/src/, $(SERVICE_DOC_MD) $(SERVICE_DOC_DATA)) "$(INSTALL_DOC)"/service-api/markdown
+	@$(CP) $(addprefix doc/general/src/,     $(GENERAL_DOC_MD) $(GENERAL_DOC_DATA)) "$(INSTALL_DOC)"/general/markdown
+ifeq ($(CONFIG_SKIN_PYTHON), y)
+	@$(CP) $(PYTHON_MODULE) "$(INSTALL_LIB)"									# Python bindings
+endif
+ifeq ($(CONFIG_SKIN_ROSSKIN), y)
+	@$(CP) $(addprefix user-side-lib/rosskin/rosskin/include/, $(ROSSKIN_HEADERS)) "$(INSTALL_ROSSKIN_INCLUDE)"	# rosskin headers
+	@$(CP) user-side-lib/rosskin/rosskin/lib/librosskin.so "$(INSTALL_LIB)"						# rosskin library
+  ifneq ($(CONFIG_SKIN_ROSSKIN_LIB_ONLY), y)
+	@$(CP) user-side-lib/rosskin/rosskin/bin/rosskin-server "$(INSTALL_BIN)"					# rosskin server
+  endif
+endif
+	@$(PRINTF) "$(SUB_STATUS_COLOR)- Generating scripts$(DEFAULT_COLOR)\n"
+
+	@sed -e 's;@RTAI_CONFIG@;$(CONFIG_SKIN_RTAI_CONFIG_TOOL);g' \
+	     -e 's;@SKIN_VERSION@;$(SKIN_VERSION);g' \
+	     -e 's;@INSTALL_PREFIX@;$(INSTALL_PREFIX);g' \
+	     -e 's;@SKIN_HAS_ROSSKIN@;$(CONFIG_SKIN_ROSSKIN);g' \
+	     -e 's;@SKIN_ROSSKIN_ONLY@;$(CONFIG_SKIN_ROSSKIN_LIB_ONLY);g' \
+	     < templates/skin-config > "$(INSTALL_BIN)"/skin-config							# skin-config
+	@chmod +x "$(INSTALL_BIN)"/skin-config
+	-@$(RM) /usr/bin/skin-config
+	-@$(LN) "$(INSTALL_BIN)"/skin-config /usr/bin/skin-config
+	-@sed -e 's;@SKIN_HAS_ROSSKIN@;$(CONFIG_SKIN_ROSSKIN);g' \
+	      -e 's;@SKIN_ROSSKIN_ONLY@;$(CONFIG_SKIN_ROSSKIN_LIB_ONLY);g' \
+	      < templates/skin-config_bash_completion > /etc/bash_completion.d/skin-config				# skin-config bash auto-completion
+ifneq ($(CONFIG_SKIN_ROSSKIN_LIB_ONLY), y)
+	@$(CP) templates/init-driver "$(INSTALL_BIN)"/init-driver							# init-driver
+	@chmod +x "$(INSTALL_BIN)"/init-driver
+	@$(CP) templates/finalize-devices "$(INSTALL_BIN)"/finalize-devices						# finalize-devices
+	@chmod +x "$(INSTALL_BIN)"/finalize-devices
+endif
+	-@if ! $(PRINTF) "$(INSTALL_LIB)\n" > /etc/ld.so.conf.d/skin.conf; then\
+		$(PRINTF) "\nNote: To have linux find the shared objects in:\n";\
+		$(PRINTF) "      $(INSTALL_LIB)\n";\
+		$(PRINTF) "      Make sure to add this path to /etc/ld.so.conf\n";\
+		$(PRINTF) "      and run ldconfig afterwards\n\n";\
+	else\
+		ldconfig;\
+	fi
+ifeq ($(CONFIG_SKIN_PYTHON), y)
+	@$(PRINTF) "\nNote: To have python find the shared object:\n"
+	@$(PRINTF) "      $(INSTALL_LIB)/pyskin.so\n"
+	@$(PRINTF) '      Make sure to add its path to $$PYTHONPATH\n\n'
+endif
+	@$(PRINTF) "$(STATUS_COLOR)Installing Skinware... done$(DEFAULT_COLOR)\n" \
+
+uninstall:
+	@$(PRINTF) "$(STATUS_COLOR)Uninstalling Skinware...$(DEFAULT_COLOR)\n"
+# Note: only remove the files that were installed.  If there were user files, keep them.
+	@$(PRINTF) "$(SUB_STATUS_COLOR)- Removing files$(DEFAULT_COLOR)\n"
+	-@$(RM) "$(INSTALL_PREFIX)"/ChangeLog-kernel                    "$(INSTALL_PREFIX)"/ChangeLog-lib
+	-@$(RM) $(addprefix "$(INSTALL_KERNEL_INCLUDE)"/, $(KERNEL_HEADERS))						# Kernel headers
+	-@$(RM) $(addprefix "$(INSTALL_USER_INCLUDE)"/, $(LIB_HEADERS))							# Library headers
+	-@$(RM) $(addprefix "$(INSTALL_ROSSKIN_INCLUDE)"/, $(ROSSKIN_HEADERS))						# rosskin headers
+	-@$(RM) $(addprefix "$(INSTALL_GUI_DATA)"/, $(GUI_FILES))							# GUI files
+	-@$(RM) "$(INSTALL_MODULES)"/skin_kernel.ko                     "$(INSTALL_MODULES)"/skin_virtual.ko\
+		"$(INSTALL_MODULES)"/Module.symvers									# Skin kernel and drivers
+	-@$(RM) "$(INSTALL_LIB)"/libskin.a										# Library
+	-@$(RM) "$(INSTALL_LIB)"/libskin.so                             "$(INSTALL_LIB)"/libskin-$(USER_VERSION).so
+	-@$(RM) "$(INSTALL_LIB)"/pyskin.so										# Python bindings
+	-@$(RM) "$(INSTALL_BIN)"/rosskin-server                         "$(INSTALL_LIB)"/librosskin.so			# rosskin server and library
+	-@$(RM) "$(INSTALL_BIN)"/calibrate                              "$(INSTALL_BIN)"/regionalize\
+		"$(INSTALL_BIN)"/visualize                              "$(INSTALL_BIN)"/init-driver\
+		"$(INSTALL_BIN)"/init-skin_virtual                      "$(INSTALL_BIN)"/finalize-devices\
+		"$(INSTALL_BIN)"/skin-config										# Binaries and scripts
+	-@$(RM) "$(INSTALL_SETTINGS)"/triangulation_settings            "$(INSTALL_SETTINGS)"/Ngin3d_settings\
+		"$(INSTALL_SETTINGS)"/regionalizer_settings								# Settings
+	-@$(RM) /usr/bin/skin-config
+	-@$(RM) /etc/bash_completion.d/skin-config
+	-@$(RM) $(addprefix "$(INSTALL_DOC)"/api/html/,                 $(API_DOC_HTML))\
+		$(addprefix "$(INSTALL_DOC)"/api/tex/,                  $(API_DOC_TEX))\
+		$(addprefix "$(INSTALL_DOC)"/api/markdown/,             $(API_DOC_MD) $(API_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/api/html/files/,           $(API_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/api/tex/files/,            $(API_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/driver-api/html/,          $(DRIVER_DOC_HTML))\
+		$(addprefix "$(INSTALL_DOC)"/driver-api/tex/,           $(DRIVER_DOC_TEX))\
+		$(addprefix "$(INSTALL_DOC)"/driver-api/markdown/,      $(DRIVER_DOC_MD) $(DRIVER_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/driver-api/html/files/,    $(DRIVER_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/driver-api/tex/files/,     $(DRIVER_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/service-api/html/,         $(SERVICE_DOC_HTML))\
+		$(addprefix "$(INSTALL_DOC)"/service-api/tex/,          $(SERVICE_DOC_TEX))\
+		$(addprefix "$(INSTALL_DOC)"/service-api/markdown/,     $(SERVICE_DOC_MD) $(SERVICE_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/service-api/html/files/,   $(SERVICE_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/service-api/tex/files/,    $(SERVICE_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/general/html/,             $(GENERAL_DOC_HTML))\
+		$(addprefix "$(INSTALL_DOC)"/general/tex/,              $(GENERAL_DOC_TEX))\
+		$(addprefix "$(INSTALL_DOC)"/general/markdown/,         $(GENERAL_DOC_MD) $(GENERAL_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/general/html/files/,       $(GENERAL_DOC_DATA))\
+		$(addprefix "$(INSTALL_DOC)"/general/tex/files/,        $(GENERAL_DOC_DATA))				# Documentation
+	@$(PRINTF) "$(SUB_STATUS_COLOR)- Removing directories (user files will remain)$(DEFAULT_COLOR)\n"
+	-@$(RMDIR) "$(INSTALL_KERNEL_INCLUDE)"              > /dev/null 2>&1 || exit 0
+	-@$(RMDIR) "$(INSTALL_USER_INCLUDE)"                > /dev/null 2>&1 || exit 0
+	-@$(RMDIR) "$(INSTALL_ROSSKIN_INCLUDE)"             > /dev/null 2>&1 || exit 0
+	-@$(RMDIR) "$(INSTALL_INCLUDE)"                     > /dev/null 2>&1 || exit 0
+	-@$(RMDIR) "$(INSTALL_BIN)"                         > /dev/null 2>&1 || exit 0
+	-@$(RMDIR) "$(INSTALL_MODULES)"                     > /dev/null 2>&1 || exit 0
+	-@$(RMDIR) "$(INSTALL_LIB)"                         > /dev/null 2>&1 || exit 0
+	-@$(RMDIR) "$(INSTALL_GUI_DATA)"                    > /dev/null 2>&1 || exit 0
+	-@$(RMDIR) "$(INSTALL_SETTINGS)"                    > /dev/null 2>&1 || exit 0
+	-@for dir in api driver-api service-api general; do\
+		$(RMDIR) "$(INSTALL_DOC)"/$$dir/html/files  > /dev/null 2>&1;\
+		$(RMDIR) "$(INSTALL_DOC)"/$$dir/html        > /dev/null 2>&1;\
+		$(RMDIR) "$(INSTALL_DOC)"/$$dir/tex/files   > /dev/null 2>&1;\
+		$(RMDIR) "$(INSTALL_DOC)"/$$dir/tex         > /dev/null 2>&1;\
+		$(RMDIR) "$(INSTALL_DOC)"/$$dir/markdown    > /dev/null 2>&1;\
+		$(RMDIR) "$(INSTALL_DOC)"/$$dir             > /dev/null 2>&1;\
+	done || exit 0
+	-@$(RMDIR) "$(INSTALL_DOC)"                         > /dev/null 2>&1 || exit 0
+	-@$(RMDIR) "$(INSTALL_PREFIX)"                      > /dev/null 2>&1 || exit 0
+	-@$(RM) /etc/ld.so.conf.d/skin.conf
+	-@ldconfig
+	@$(PRINTF) "$(STATUS_COLOR)Uninstalling Skinware... done$(DEFAULT_COLOR)\n"

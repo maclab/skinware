@@ -1,0 +1,188 @@
+example Template
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+prev api Service Functions
+next api Callbacks
+
+This example serves as a demo to show how a service can be made using Skinware. It can also be used as a template.
+
+`template_service.h`:
+```
+#ifndef TEMPLATE_SERVICE_H
+#define TEMPLATE_SERVICE_H
+
+#ifdef __KERNEL__
+#include <skink.h>
+#else
+#include <skin.h>
+#endif
+
+typedef struct service_result
+{
+	int64_t value;
+} service_result;
+
+#define		TEMPLATE_SERVICE_SHMEM				"TSRVM"
+#define		TEMPLATE_SERVICE_RWLOCK				"TSRVL"
+
+#endif
+```
+
+`template_service.c`
+```
+#include \<linux/module.h>
+#include \<linux/kernel.h>
+#include \<linux/kthread.h>
+
+#define	SKINK_MODULE_NAME "template_service"
+#include "template_service.h"
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Shahbaz Youssefi");
+
+static skink_data_structures  _skin_data_structures;
+static service_result         _results\[SKINK_MAX_SENSOR_LAYERS];
+static skin_rt_mutex           _mutex;
+
+static struct task_struct     *_initialization_task;
+static bool                   _initialization_task_exited  = false;
+static bool                   _must_exit                   = false;
+
+static int                    _service_id                  = -1;
+
+static `void acquire(skink_sensor_layer *layer, uint8_t buffer)`
+{
+	skink_sensor_id    i;
+	skink_sensor_size  sensors_count;
+	skink_sensor       *sensors = layer->sensors;
+	_results\[layer->id] = 0;
+	for (i = 0, sensors_count = layer->sensors_count; i < sensors_count; ++i)
+		_results\[layer->id] += sensors\[i].response\[buffer];
+}
+
+static `void service(void *mem)`
+{
+	service_result           *res = mem;
+	skink_sensor_layer_id    i;
+	skink_sensor_layer_size  layers_count;
+	for (i = 0, layers_count = _skin_data_structures.sensor_layers_count; i < layers_count; ++i)
+		res\[i] = _results\[i];
+}
+
+#define CHECK_EXIT \\
+	do {\\
+		if (_must_exit)\\
+		{\\
+			_initialization_task_exited = true;\\
+			do_exit(0);\\
+		}\\
+	} while (0)
+
+static int init_thread(void *arg)
+{
+	int ret;
+	skink_sensor_layer_id i;
+	skink_sensor_size sensors_count;
+	``while ((ret = skink_get_data_structures_nonblocking(&_skin_data_structures)) == SKINK_TOO_EARLY && !_must_exit)``
+	{
+		``set_current_state(TASK_INTERRUPTIBLE);``
+		``msleep(1);``
+	}
+	if (!_must_exit && ret != SKINK_SUCCESS)
+	{
+		SKINK_LOG("Template service module rejected by the skin kernel!");
+		_must_exit = true;
+	}
+	CHECK_EXIT;
+	sensors_count = 0;
+	for (i = 0; i < _skin_data_structures.sensor_layers_count; ++i)
+		sensors_count += _skin_data_structures.sensor_layers\[i].sensors_count;
+	CHECK_EXIT;
+	``ret = skink_initialize_periodic_service(TEMPLATE_SERVICE_SHMEM, sizeof(service_result), _skin_data_structures.sensor_layers_count,``
+						``TEMPLATE_SERVICE_RWLOCK, 200000000);``	/* 5Hz */
+	if (ret < 0)
+	{
+		SKINK_LOG("Template service could not be initialized (initialize_periodic_service returned: %d)", ret);
+		_must_exit = true;
+	}
+	else
+		_service_id = ret;
+	CHECK_EXIT;
+	`for (i = 0; i < _skin_data_structures.sensor_layers_count; ++i)`
+		if ((``ret = skink_acquire_layer(_service_id, i, acquire, SKINK_ACQUISITION_PERIODIC, 200000000)``) != SKINK_SUCCESS)
+			SKINK_LOG("Could not register acquire callback: error %d", ret);
+	``ret = skink_start_service(_service_id, service);``
+	if (ret < 0)
+	{
+		SKINK_LOG("Could not start service: error %d", ret);
+		_must_exit = true;
+	}
+	else if (ret == SKINK_PARTIAL)
+		SKINK_LOG("The service is only partially working");
+	else
+		SKINK_LOG("Service has successfully started");
+	_initialization_task_exited = true;
+	do_exit(0);
+	return 0;		// should never reach
+}
+
+int init_module(void)
+{
+	SKINK_LOG("Template service module initializing...");
+	SKINK_LOG("Using skin kernel version %s", SKINK_VERSION);
+	_initialization_task_exited = false;
+	_must_exit = false;
+	if ((_initialization_task = kthread_run(init_thread, NULL, "template_service_init_thread")) == ERR_PTR(-ENOMEM))
+	{
+		_initialization_task = NULL;
+		SKINK_LOG("Error creating the initial thread!");
+		SKINK_LOG("Stopping functionality!");
+		_initialization_task_exited = true;
+		return -ENOMEM;
+	}
+	SKINK_LOG("Template service module initializing...done!");
+	return 0;
+}
+
+void cleanup_module(void)
+{
+	int ret;
+	SKINK_LOG("Template service module exiting...");
+	_must_exit = true;
+	/* Make sure init thread is finished, so skink_start_service and skink_stop_service wouldn't be called simultaneously */
+	``while (!_initialization_task_exited)``
+	{
+		``set_current_state(TASK_INTERRUPTIBLE);``
+		``msleep(1);``
+	}
+	`if (_service_id >= 0)`
+		while ((``ret = skink_stop_service(_service_id)``) != SKINK_SUCCESS)
+		{
+			SKINK_LOG("Service could not be stopped! error %d", ret);
+			if (ret == SKINK_BAD_ID) /* Should not happen if there are no bugs */
+			{
+				SKINK_LOG("Something must be terribly wrong.  I am going to put cleanup in infinite loop so this message could be seen");
+				while (true)
+				{
+					set_current_state(TASK_INTERRUPTIBLE);
+					msleep(1000);
+				}
+			}
+			else	/* sleep and retry */
+			{
+				set_current_state(TASK_INTERRUPTIBLE);
+				msleep(10);
+			}
+		}
+	SKINK_LOG("Template service module exiting...done!");
+}
+```

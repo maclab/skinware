@@ -1,0 +1,287 @@
+whole_file -> (NEW_PARAGRAPH|NEW_LINE)?			# ignore extra spaces in the beginning of file
+	      document
+	      @documentBottom				# document header is written after header is read, bottom is written after file is finished
+	      @writeDocument
+	      (NEW_PARAGRAPH|NEW_LINE)?;		# ignore extra spaces in the end of file
+document -> index                    @docType                                             next_line_or_paragraph header body_plain	# index:      no name, no api elements
+	  | constants                @docType                                             next_line_or_paragraph header body_constants	# constants:  no name, defined constants
+	  | globals                  @docType                                             next_line_or_paragraph header body_globals	# globals:    no name, other document names
+	  | explanation_type_keyword @docType @concatKeepsSpace docname_words @setDocName next_line_or_paragraph header body_plain	# io/example: named,   no api elements
+	  | api_type_keyword         @docType @concatKeepsSpace docname_words @setDocName next_line_or_paragraph header body;		# api:        named,   with api elements
+
+# some random non-terminals used around
+next_line_or_paragraph -> NEW_PARAGRAPH | NEW_LINE;
+maybe_indent -> ANGLE_RIGHT @pushIndent |;
+
+# grouping keywords into similar groups (parser-wise!)
+
+## file type keywords: api, explanation, special (unnamed)
+api_type_keyword         -> class | struct | functions | variables | api;
+explanation_type_keyword -> iofile | example | other;
+unnamed_type_keyword     -> index | constants | globals;
+named_type_keyword       -> api_type_keyword | explanation_type_keyword;
+
+## header keywords: some fields take typed values and some take any
+typed_header_keyword     -> next | previous | prev;
+untyped_header_keyword   -> version | author | shortcut | keyword;
+header_keyword           -> typed_header_keyword | untyped_header_keyword;
+
+## link keywords: link type (if not inter-document link), inline
+link_keyword             -> custom | image | pdf | ps | eps | svg | object;
+inline_keyword           -> inline;
+
+## api keywords
+constant_group_keyword  -> CONSTGROUP | CONSTANTGROUP | CONSTGRP | CONST-GROUP | CONSTANT-GROUP | CONST-GRP | CONST_GROUP | CONSTANT_GROUP | CONST_GRP;
+constant_keyword        -> CONSTANT | CONST;
+macro_keyword           -> MACRO;
+variable_keyword        -> VARIABLE | VAR | MEMBERVARIABLE | MEMVARIABLE | MEMVAR | MEMBER-VARIABLE | MEM-VARIABLE | MEM-VAR | MEMBER_VARIABLE | MEM_VARIABLE | MEM_VAR
+			 | GLOBALVARIABLE | GLOBAL-VARIABLE | GLOBAL_VARIABLE | GLOBALVAR | GLOBAL-VAR | GLOBAL_VAR;
+type_keyword            -> TYPE | MEMBERTYPE | MEMTYPE | MEMBER-TYPE | MEM-TYPE | MEMBER_TYPE | MEM_TYPE | GLOBALTYPE | GLOBAL-TYPE | GLOBAL_TYPE;
+function_keyword        -> FUNCTION | FUNC | MEMBERFUNCTION | MEMFUNCTION | MEMFUNC | MEMBER-FUNCTION | MEM-FUNCTION | MEM-FUNC | MEMBER_FUNCTION | MEM_FUNCTION | MEM_FUNC
+			 | GLOBALFUNCTION | GLOBAL-FUNCTION | GLOBAL_FUNCTION | GLOBALFUNC | GLOBAL-FUNC | GLOBAL_FUNC;
+function_input_keyword  -> ARGUMENT | ARG | INPUT;
+function_output_keyword -> OUTPUT | RESULT | RETURN | RETURNS;
+notice_keyword		-> NOTICE | NOTE;
+api_keyword             -> constant_group_keyword | constant_keyword | macro_keyword | variable_keyword | type_keyword
+			 | function_keyword | function_input_keyword | function_output_keyword;
+
+## all keywords
+keyword_not_api         -> header_keyword | unnamed_type_keyword | named_type_keyword | link_keyword | inline_keyword | seealso | notice_keyword;
+keyword_all             -> keyword_not_api | api_keyword;
+
+
+
+
+# possible tokens in different parts of the source file
+
+## special meaning tokens:
+format                    -> EMPHASIZE @pushEmphasize | STRONG @pushStrong | CODE @pushCode;
+format_relaxed            -> EMPHASIZE @pushEmphasize | STRONG @pushStrong | CODE @pushCode | CODE_BLOCK @pushCode;	# in some places, ``` cannot appear, but I'd just treat it as `
+
+## possible tokens in header fields:
+field_word                -> WORD         @push | ANGLE_LEFT @push | ANGLE_RIGHT @push | COLON           @push | COMMA       @push | HR         @pushMightHaveSpace
+			   | EMPHASIZE    @push | STRONG     @push | DOT         @push | NUMBER          @push | PAREN_RIGHT @push | PAREN_LEFT @pushMightHaveSpace
+			   | LINK_LEFT    @push | LINK_RIGHT @push | EQUAL       @push | keyword_all     @push | CODE        @push | CODE_BLOCK @pushMightHaveSpace
+			   |                      UNORDERED_LIST @pushMightHaveSpace | CONTINUE_LIST_ITEM @pushMightHaveSpace;
+field_words               -> field_word possibly_field_words;
+possibly_field_words      -> field_word @concat possibly_field_words |;
+
+## name of the documentation follow the same rule as field_words:
+docname_words             -> field_words;
+
+## tokens that can appear in a seealso field in the header which is formatted text:
+seealso_word              -> WORD         @push | ANGLE_LEFT @push | ANGLE_RIGHT @push | COLON           @push | COMMA       @push | HR         @pushMightHaveSpace
+			   | format_relaxed     |                    DOT         @push | NUMBER          @push | PAREN_RIGHT @push | PAREN_LEFT @pushMightHaveSpace
+			   | link               | LINK_RIGHT @push | EQUAL       @push | keyword_all     @push
+			   |                     UNORDERED_LIST @pushMightHaveSpace | CONTINUE_LIST_ITEM @pushMightHaveSpace
+			   | HTML_TAG     @pushHTML;
+seealso_words             -> seealso_word possibly_seealso_words;
+possibly_seealso_words    -> seealso_word @concat possibly_seealso_words |;
+
+## tokens that can appear in a link, that is anything from struct something to http://www.github.com:
+link_word                 -> WORD         @push | ANGLE_LEFT @push | ANGLE_RIGHT @push | COLON           @push | COMMA       @push | HR         @pushMightHaveSpace
+			   | EMPHASIZE    @push | STRONG     @push | DOT         @push | NUMBER          @push
+			   | LINK_LEFT    @push | LINK_RIGHT @push | EQUAL       @push | keyword_all     @push | CODE        @push | CODE_BLOCK @pushMightHaveSpace
+			   |                      UNORDERED_LIST @pushMightHaveSpace | CONTINUE_LIST_ITEM @pushMightHaveSpace
+			   | HTML_TAG     @push | NEW_LINE   @pushEmpty;
+link_words                -> link_word possibly_link_words;
+possibly_link_words       -> link_word @concat possibly_link_words |;
+
+## tokens that can appear as link text which is formatted text:
+link_text_word            -> WORD         @push | ANGLE_LEFT @push | ANGLE_RIGHT @push | COLON           @push | COMMA       @push | HR         @pushMightHaveSpace
+			   | format_relaxed     |                    DOT         @push | NUMBER          @push | PAREN_RIGHT @push | PAREN_LEFT @pushMightHaveSpace
+			   |                                         EQUAL       @push | keyword_all     @push
+			   |                      UNORDERED_LIST @pushMightHaveSpace | CONTINUE_LIST_ITEM @pushMightHaveSpace
+			   | HTML_TAG     @pushHTML | NEW_LINE @push;
+link_text_words           -> link_text_word possibly_link_text_words;
+possibly_link_text_words  -> link_text_word @concat possibly_link_text_words |;
+
+## tokens that can appear at the beginning of a line and just show continuation of an element from previous line:
+line_first_word           -> WORD         @push | ANGLE_LEFT @push |                     COLON           @push | COMMA       @push
+			   | format             |                    DOT         @push |                         PAREN_RIGHT @push | PAREN_LEFT @pushMightHaveSpace
+			   | link               | LINK_RIGHT @push | EQUAL       @push | keyword_not_api @push
+			   | HTML_TAG     @pushHTML;
+
+## paragraph first words is the same as any normal line first word.  It is only identified as paragraph by NEW_PARAGRAPH before it:
+paragraph_first_word      -> line_first_word;
+
+## tokens that can appear anywhere after the first token of the line:
+line_word                 -> WORD         @push | ANGLE_LEFT @push | ANGLE_RIGHT @push | COLON           @push | COMMA       @push | HR         @pushMightHaveSpace
+			   | format_relaxed     |                    DOT         @push | NUMBER          @push | PAREN_RIGHT @push | PAREN_LEFT @pushMightHaveSpace
+			   | link               | LINK_RIGHT @push | EQUAL       @push | keyword_all     @push
+			   | HEADING      @push | UNORDERED_LIST @pushMightHaveSpace | CONTINUE_LIST_ITEM @pushMightHaveSpace
+			   | HTML_TAG     @pushHTML;
+
+## items are either unordered, ordered or continuation of previous item.  The first and last are immediately identified, but the second consists of two parts:
+item_type                 -> UNORDERED_LIST @push | CONTINUE_LIST_ITEM @push maybe_indent;
+ordered_item_mark         -> DOT @push | COMMA @push | PAREN_RIGHT @push;
+
+## headings can contain almost anything
+heading_word              -> WORD         @push | ANGLE_LEFT @push | ANGLE_RIGHT @push | COLON           @push | COMMA       @push | HR         @pushMightHaveSpace
+			   | format_relaxed     |                    DOT         @push | NUMBER          @push | PAREN_RIGHT @push | PAREN_LEFT @pushMightHaveSpace
+			   | link               | LINK_RIGHT @push | EQUAL       @push | keyword_all     @push
+			   |                      UNORDERED_LIST @pushMightHaveSpace | CONTINUE_LIST_ITEM @pushMightHaveSpace
+			   | HTML_TAG     @pushHTML;
+heading_words             -> heading_word possibly_heading_words;
+possibly_heading_words    -> heading_word @concat possibly_heading_words |;
+
+## defining an identifier consists of at most three parts: identifier itself, its definition which can be any code or a type.  A type itself can contain both code and types again (such as functions)
+## the action routine pushCodeWord is similar to normal push except it doesn't escape &.  Colon is illegal in code as it represents a function type (note that :: is acceptable)
+### in an identifier, every special character loses its meaning (and therefore shouldn't be escaped).  Identifiers show identifiers being defined in the API
+identifier_word           -> WORD @pushCodeWord | ANGLE_LEFT @push | ANGLE_RIGHT @push |                         COMMA       @push | HR         @pushMightHaveSpace
+			   | EMPHASIZE    @push | STRONG     @push | DOT         @push | NUMBER          @push
+			   |                                         EQUAL       @push | keyword_all     @push | CODE        @push | CODE_BLOCK @pushMightHaveSpace
+			   | PAREN_LEFT   @pushMightHaveSpace @pushEmpty possibly_identifier_words @concat PAREN_RIGHT @push @concat
+			   | LINK_LEFT    @push               @pushEmpty possibly_identifier_words @concat LINK_RIGHT  @push @concat
+			   | HEADING      @push
+			   | HTML_TAG     @pushMightHaveSpace;
+identifier_words          -> identifier_word possibly_identifier_words;
+possibly_identifier_words -> identifier_word @concat possibly_identifier_words |;
+
+### argument words are similar to identifiers except that they don't accept comma
+argument_word             -> WORD @pushCodeWord | ANGLE_LEFT @push | ANGLE_RIGHT @push |                                             HR         @pushMightHaveSpace
+			   | EMPHASIZE    @push | STRONG     @push | DOT         @push | NUMBER          @push
+			   |                                         EQUAL       @push | keyword_all     @push | CODE        @push | CODE_BLOCK @pushMightHaveSpace
+			   | PAREN_LEFT   @pushMightHaveSpace @pushEmpty possibly_identifier_words @concat PAREN_RIGHT @push @concat
+			   | LINK_LEFT    @push               @pushEmpty possibly_identifier_words @concat LINK_RIGHT  @push @concat
+			   | HEADING      @push
+			   | HTML_TAG     @pushMightHaveSpace;
+argument_words            -> argument_word possibly_argument_words;
+possibly_argument_words   -> argument_word @concat possibly_argument_words |;
+
+### expression words can conatain anything in the identifiers as well as some operators that were left out there (commas are excluded)
+expression_word           -> WORD @pushCodeWord | ANGLE_LEFT @push | ANGLE_RIGHT @push |                                             HR         @pushMightHaveSpace
+			   | EMPHASIZE    @push | STRONG     @push | DOT         @push | NUMBER          @push
+			   |                                         EQUAL       @push | keyword_all     @push | CODE        @push | CODE_BLOCK @pushMightHaveSpace
+			   | PAREN_LEFT   @pushMightHaveSpace @pushEmpty possibly_expression_words @concat PAREN_RIGHT @push @concat
+			   | LINK_LEFT    @push               @pushEmpty possibly_expression_words @concat LINK_RIGHT  @push @concat
+			   | HEADING      @push | UNORDERED_LIST @pushMightHaveSpace | CONTINUE_LIST_ITEM @pushMightHaveSpace
+			   | HTML_TAG     @pushMightHaveSpace;
+expression_words          -> expression_word possibly_expression_words;
+possibly_expression_words -> expression_word @concat possibly_expression_words |;
+
+### type words is more general than identifiers and presents a type.  This type can even be a function with arguments, types and return value.  Comma is illegal in types
+type_word                 -> WORD @pushCodeWord | ANGLE_LEFT @push | ANGLE_RIGHT @push |                                             HR         @pushMightHaveSpace
+			   | EMPHASIZE    @push | STRONG     @push | DOT         @push | NUMBER          @push
+			   |                                                             keyword_all     @push
+			   | LINK_LEFT    @push               @pushEmpty possibly_expression_words @concat LINK_RIGHT  @push @concat
+			   | HEADING      @push | UNORDERED_LIST @pushMightHaveSpace | CONTINUE_LIST_ITEM @pushMightHaveSpace
+			   | HTML_TAG     @pushMightHaveSpace;
+type_words                -> type_word possibly_type_words
+			   | @concatIgnoresSpace PAREN_LEFT @pushMightHaveSpace @concatKeepsSpace type_args @concatIgnoresSpace @concat PAREN_RIGHT @push @concat possibly_type_return_type;
+possibly_type_words       -> type_word @concat possibly_type_words
+			   | PAREN_LEFT @pushMightHaveSpace @concat expression_words @concat PAREN_RIGHT @push @concat possibly_type_words |;
+  #### type_args are arguments to functions.  Not the function being defined in API, but a function that is part of a type of return value or another argument
+  type_args               -> type_words possibly_default_value @concatDefaultValue more_type_args | @pushEmpty;
+  more_type_args          -> COMMA @push @concat type_words @concat possibly_default_value @concatDefaultValue more_type_args |;
+  #### function return type is optional
+  possibly_type_return_type -> COLON @push @concat @concatKeepsSpace type_words @concat |;
+
+### default values for function arguments can be used both in type_words and an API function definition
+possibly_default_value    -> EQUAL expression_words @pushDefaultValue |;
+
+link -> @concatStoreState LINK_LEFT @pushEmpty @inLink rest_of_link @makeLink @concat @concatRestoreState;
+	rest_of_link -> @concatKeepsSpace link_text_words @notInLink LINK_RIGHT rest_of_link_possibly_with_anchor |
+		HEADING @pushAnchor @concatKeepsSpace link_text_words @notInLink LINK_RIGHT rest_of_link_without_anchor;
+	rest_of_link_without_anchor -> @pushYesLink PAREN_LEFT rest_of_link_without_anchor2 PAREN_RIGHT | @pushNoLink;
+	rest_of_link_possibly_with_anchor -> @pushYesLink PAREN_LEFT rest_of_link_possibly_with_anchor2 PAREN_RIGHT | @pushNoLink;
+	rest_of_link_without_anchor2 -> link_keyword @pushLinkKeyword possibly_inline @concatIgnoresSpace link_words | @concatIgnoresSpace link_words;
+	rest_of_link_possibly_with_anchor2 -> link_keyword @pushLinkKeyword possibly_inline @concatIgnoresSpace link_words rest_of_link_possibly_anchor_in_second |
+		@concatIgnoresSpace link_words rest_of_link_possibly_anchor_in_second | rest_of_link_anchor_in_second;
+	rest_of_link_anchor_in_second -> HEADING @pushAnchor @concatIgnoresSpace link_words;
+	rest_of_link_possibly_anchor_in_second -> rest_of_link_anchor_in_second |;
+		possibly_inline -> inline_keyword @pushInline |;
+heading -> HEADING @headingBegin @concatKeepsSpace heading_words heading_end @headingEnd;
+	heading_end -> possibly_closing_heading next_line_or_paragraph;
+	possibly_closing_heading -> HEADING |;
+only_paragraph -> only_paragraph_first_word @concatKeepsSpace rest_of_only_paragraph_line only_paragraph_line_end @paragraphEnd;
+	only_paragraph_first_word -> paragraph_first_word | NUMBER @push | ANGLE_RIGHT @push;
+	rest_of_only_paragraph_line -> line_word @concat rest_of_only_paragraph_line |;
+	only_paragraph_line_end -> NEW_LINE rest_of_only_paragraph | NEW_PARAGRAPH;
+	rest_of_only_paragraph -> @pushNewLine @concat only_paragraph_line only_paragraph_line_end |;
+	only_paragraph_line -> only_line_first_word @concat rest_of_only_paragraph_line;
+	only_line_first_word -> line_first_word | NUMBER @push | ANGLE_RIGHT @push;
+paragraph_or_items -> maybe_indent paragraph_first_word paragraph | item_type item | NUMBER @push @readWhiteSpace paragraph_or_items2;
+	paragraph_or_items2 -> @pop ordered_item_mark @ignoreWhiteSpace item | WHITE_SPACE? @ignoreWhiteSpace paragraph;
+paragraph -> @concatKeepsSpace rest_of_paragraph_line paragraph_line_end;
+	rest_of_paragraph_line -> line_word @concat rest_of_paragraph_line |;
+	paragraph_line_end -> NEW_LINE rest_of_paragraph | NEW_PARAGRAPH @paragraphEnd;
+		rest_of_paragraph -> @pushNewLine @concat paragraph_line | @paragraphEnd;
+		paragraph_line -> line_first_word @concat rest_of_paragraph_line paragraph_line_end |
+			@paragraphEnd item_type item | NUMBER @push @readWhiteSpace paragraph_line2;
+		paragraph_line2 -> @ignoreWhiteSpace @pop @paragraphEnd ordered_item_mark item |
+			@concat WHITE_SPACE? @ignoreWhiteSpace rest_of_paragraph_line paragraph_line_end;
+item -> possibly_selective_item_continue @itemBegin @concatKeepsSpace rest_of_item_line item_line_end;
+	possibly_selective_item_continue -> @closeItemsUntil @pop CONTINUE_LIST_ITEM @push maybe_indent |;
+	rest_of_item_line -> line_word @concat rest_of_item_line |;
+	item_line_end -> NEW_LINE rest_of_item | NEW_PARAGRAPH @itemEnd;
+		rest_of_item -> @pushNewLine @concat item_line | @itemEnd;
+		item_line -> line_first_word @concat rest_of_item_line item_line_end |
+			@itemEnd item_type item | NUMBER @push @readWhiteSpace item_line2;
+		item_line2 -> @ignoreWhiteSpace @pop @itemEnd ordered_item_mark item |
+			@concat WHITE_SPACE? @ignoreWhiteSpace rest_of_item_line item_line_end;
+code_block -> CODE_BLOCK @codeBlockBegin @readWhiteSpace @concatIgnoresSpace @pushEmpty code_block_text CODE_BLOCK @codeBlockEnd @ignoreWhiteSpace next_line_or_paragraph;
+	code_block_text -> anything @concat code_block_text |;
+	anything -> almost_anything | NEW_PARAGRAPH @push | NEW_LINE @push | CODE @pushImportance @pushEmpty possibly_almost_anythings CODE @importantCodeEnd;
+	almost_anything ->  WORD @push | ANGLE_LEFT @push | ANGLE_RIGHT @push | EQUAL @push | COLON @push | COMMA @push | DOT @push | NUMBER @push |
+		PAREN_LEFT @push | PAREN_RIGHT @push | keyword_all @push | EMPHASIZE @push | STRONG @push | HTML_TAG @pushHTML | WHITE_SPACE @push |
+		UNORDERED_LIST @push | @ignoreWhiteSpace link @readWhiteSpace | HEADING @push | LINK_RIGHT @push | HR @push;
+	almost_anythings -> almost_anything possibly_almost_anythings;
+	possibly_almost_anythings -> almost_anything @concat possibly_almost_anythings |;
+horizontal_rule -> HR next_line_or_paragraph @hrEnd;
+
+constant_group_declaration -> constant_group_keyword @concatKeepsSpace identifier_words next_line_or_paragraph;
+constant_declaration -> constant_keyword @concatIgnoresSpace identifier_words possibly_constant_value next_line_or_paragraph;
+	possibly_constant_value -> COLON @concatKeepsSpace expression_words @pushHasValue |;
+macro_declaration -> macro_keyword @concatKeepsSpace identifier_words COLON PAREN_LEFT macro_arg_list PAREN_RIGHT
+		possibly_macro_return_value next_line_or_paragraph;
+	macro_arg_list -> @concatIgnoresSpace argument_words @pushArg more_macro_args |;
+	more_macro_args -> COMMA @concatIgnoresSpace argument_words @pushArg more_macro_args |;
+	possibly_macro_return_value -> COLON @concatKeepsSpace expression_words @pushHasValue |;
+variable_declaration -> variable_keyword @memberOrGlobal @concatKeepsSpace identifier_words COLON @concatKeepsSpace type_words next_line_or_paragraph;
+type_declaration -> type_keyword @memberOrGlobal @concatKeepsSpace identifier_words COLON @concatKeepsSpace type_words next_line_or_paragraph;
+function_declaration -> function_keyword @memberOrGlobal @concatKeepsSpace identifier_words COLON PAREN_LEFT function_arg_list PAREN_RIGHT
+		possibly_function_return_type next_line_or_paragraph;
+	function_arg_list -> function_arg more_function_args |;
+	more_function_args -> COMMA function_arg more_function_args |;
+	function_arg -> @concatIgnoresSpace argument_words COLON @concatKeepsSpace type_words possibly_default_value @pushArg;
+	possibly_function_return_type -> COLON @concatKeepsSpace type_words @pushHasValue |;
+input_declaration -> function_input_keyword @concatKeepsSpace argument_words next_line_or_paragraph;
+output_declaration -> function_output_keyword next_line_or_paragraph;
+notice_declaration -> notice_keyword WORD @setNotice next_line_or_paragraph |;
+
+header -> heading meta_data NEW_PARAGRAPH @documentHeader;
+	meta_data -> field more_meta_data |;
+		more_meta_data -> NEW_LINE field more_meta_data |;
+		field -> typed_header_keyword @fieldType rest_of_typed_field |
+			untyped_header_keyword @fieldType @concatKeepsSpace field_words @fieldValue |
+			seealso @fieldType @concatKeepsSpace seealso_words @seealsoValue;
+			rest_of_typed_field -> unnamed_type_keyword @setNextPrevType @fieldValue |
+				named_type_keyword @setNextPrevType @concatKeepsSpace field_words @fieldValue;
+body -> overview definitions;
+	overview -> explanation @setOverview;
+	explanation -> explanation_part possibly_explanation;
+	possibly_explanation -> explanation_part @concatIgnoresSpace @concat possibly_explanation |;
+	explanation_part -> heading | @pushParagraphAndItems paragraph_or_items @concatParagraphAndItems | code_block | horizontal_rule;
+	definitions -> @definitionBegin definition @definitionEnd definitions |;
+	definition -> without_arg_declaration notice_declaration short_explanation @increaseIndent4 explanation @decreaseIndent4 @setElementExplanation @pop |
+		with_arg_declaration notice_declaration short_explanation @increaseIndent4 explanation @decreaseIndent4 @setElementExplanation
+				input_output_explanations @checkCompleteness @pop;
+		without_arg_declaration -> variable_declaration @pushVariableDeclaration | type_declaration @pushTypeDeclaration;
+		with_arg_declaration -> macro_declaration @pushMacroDeclaration | function_declaration @pushFunctionDeclaration;
+		input_output_explanations -> input_declaration @pushInputDeclaration @increaseIndent5 explanation @decreaseIndent5 @setElementExplanation
+				input_output_explanations |
+			output_declaration @pushOutputDeclaration @increaseIndent4 explanation @decreaseIndent4 @setElementExplanation
+				input_output_explanations |;
+	short_explanation -> only_paragraph @setShortExplanation;
+body_plain -> overview;
+body_constants -> overview definitions_constants_blocks;
+	definitions_constants_blocks -> constant_group_declaration @pushConstGroupDeclaration short_explanation
+			@increaseIndent1 explanation @decreaseIndent1 @setElementExplanation definitions_constants definitions_constants_blocks |;
+	definitions_constants -> definitions_constant definitions_constants |;
+	definitions_constant -> constant_declaration @pushConstDeclaration short_explanation
+			@increaseIndent3 explanation @decreaseIndent3 @setElementExplanation @pop;
+body_globals -> files;
+	files -> @concatKeepsSpace filename_words next_line_or_paragraph @addToGlobalList possibly_files;
+	possibly_files -> @concatKeepsSpace filename_words next_line_or_paragraph @addToGlobalList possibly_files |;
+	filename_words -> @concatIgnoresSpace docname_words;

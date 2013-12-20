@@ -1,0 +1,1073 @@
+struct skin_object
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous other Naming Convention
+next struct skin_reader
+seealso `[skin_sensor]`
+seealso `[skin_sensor_type]`
+seealso `[skin_sub_region]`
+seealso `[skin_region]`
+seealso `[skin_module]`
+seealso `[skin_patch]`
+seealso `[skin_X_iterator]`
+
+The `skin_object` is a struct from which only one instance is normally acquired. The object of this struct is the main object with which
+the user programs need to interact with; whether it is to initialize the library, read the sensor values or other actions.
+
+TYPE skin_sensor_id: uint16_t or uint32_t
+	Type of sensor id
+
+	The type of sensor ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skin_sensor_size: skin_sensor_id
+	Type of number of sensors
+
+	This type will be large enough to hold the number of sensors in the skin.
+
+TYPE skin_sensor_response: uint16_t
+	Type of sensor response
+
+	The responses of the sensors will have this type. See also `[#SKIN_SENSOR_RESPONSE_MAX](constants)`.
+
+TYPE skin_sensor_type_id: uint16_t or uint32_t
+	Type of sensor type id
+
+	The type of sensor type ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skin_sensor_type_size: skin_sensor_type_id
+	Type of number of sensor types
+
+	This type will be large enough to hold the number of sensor types in the skin.
+
+TYPE skin_module_id: uint16_t or uint32_t
+	Type of module id
+
+	The type of module ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skin_module_size: skin_module_id
+	Type of number of modules
+
+	This type will be large enough to hold the number of modules in the skin.
+
+TYPE skin_patch_id: uint16_t or uint32_t
+	Type of patch id
+
+	The type of patch ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skin_patch_size: skin_patch_id
+	Type of number of patches
+
+	This type will be large enough to hold the number of patches in the skin.
+
+TYPE skin_sub_region_id: uint16_t or uint32_t
+	Type of sub-region id
+
+	The type of sub-region ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skin_sub_region_size: skin_sub_region_id
+	Type of number of sub-regions
+
+	This type will be large enough to hold the number of sub-regions in the skin.
+
+TYPE skin_region_id: uint16_t or uint32_t
+	Type of region id
+
+	The type of region ids. If Skinware is configured to support large skins, this type would be `uint32_t`.
+
+TYPE skin_region_size: skin_region_id
+	Type of number of regions
+
+	This type will be large enough to hold the number of regions in the skin.
+
+TYPE skin_region_index_id: uint32_t or uint64_t
+	Type of region index id
+
+	The type of region index ids. If Skinware is configured to support large skins, this type would be `uint64_t`.
+	Region indices are indices to an array of region ids held by sub-regions, indicating which regions they belong to.
+
+TYPE skin_region_index_size: skin_region_index_id
+	Type of number of region indices
+
+	This type will be large enough to hold the number of region indices in the skin. Region indices are indices to an array of
+	region ids held by sub-regions, indicating which regions they belong to.
+
+TYPE skin_sub_region_index_id: uint32_t or uint64_t
+	Type of sub-region index id
+
+	The type of sub-region index ids. If Skinware is configured to support large skins, this type would be `uint64_t`.
+	Sub-region indices are indices to an array of sub-region ids held by regions, indicating which sub-regions they consist of.
+
+TYPE skin_sub_region_index_size: skin_sub_region_index_id
+	Type of number of sub-region indices
+
+	This type will be large enough to hold the number of sub-region indices in the skin. Sub-region indices are indices to an array of
+	sub-region ids held by regions, indicating which sub-regions they consist of.
+
+FUNCTION skin_object_init: (object: skin_object *): void
+	Initialize object to invalid
+
+	Initializer of the struct. Sets the object variables so that the object would be invalid. This function must be called before any other
+	function could be called. The `\*_init` and `\*_free` functions of all other structures are managed by `skin_object` and therefore the user
+	would probably never need to use them.
+
+	INPUT object
+		The object of operation
+
+FUNCTION skin_object_free: (object: skin_object *): void
+	Free object
+
+	Free any resources and invalidate the object. This function must be called before exiting the program for proper cleanup.
+	The `\*_init` and `\*_free` functions of all other structures are managed by `skin_object` and therefore the user would probably never need to use them.
+
+	INPUT object
+		The object of operation
+
+FUNCTION skin_object_load: (object: skin_object *): int
+	Load the skin data from the skin kernel
+
+	This function loads all necessary data from the [skin kernel](index#Overview) and initializes the skin.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_FAIL](constants)` if operation failed.
+			- `[#SKIN_NO_MEM](constants)` if there was an error in memory allocation.
+
+FUNCTION skin_object_sensors: (object: skin_object *, count: skin_sensor_size *): skin_sensor *
+	Gives an array of sensors in the skin
+
+	This function returns a reference to the list of sensors in the skin. The array will have **`count`** elements.
+	Note that this is **not** a copy of the sensors array, but a reference to the original.
+
+	INPUT object
+		The object of operation
+	INPUT count
+		After `skin_object_sensors` finishes, this variable will hold the number of sensors in the skin.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of [sensors](skin_sensor) containing all the sensors in the skin.
+
+FUNCTION skin_object_sensor_types: (object: skin_object *, count: skin_sensor_type_size *): skin_sensor_type *
+	Gives an array of sensor types in the skin
+
+	This function returns a reference to the list of sensor types in the skin, otherwise known as sensor layers or just layers.
+	The array will have **`count`** elements. Note that this is **not** a copy of the sensor types array, but a reference to the original.
+
+	INPUT object
+		The object of operation
+	INPUT count
+		After `skin_object_sensor_types` finishes, this variable will hold the number of sensor types in the skin.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of [sensor types](skin_sensor_type) containing all the sensor layers in the skin.
+
+FUNCTION skin_object_modules: (object: skin_object *, count: skin_module_size *): skin_module *
+	Gives an array of modules in the skin
+
+	This function returns a reference to the list of modules in the skin. The array will have **`count`** elements.
+	Note that this is **not** a copy of the modules array, but a reference to the original.
+
+	INPUT object
+		The object of operation
+	INPUT count
+		After `skin_object_modules` finishes, this variable will hold the number of modules in the skin.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of [modules](skin_module) containing all the modules in the skin.
+
+FUNCTION skin_object_patches: (object: skin_object *, count: skin_patch_size *): skin_patch *
+	Gives an array of patches in the skin
+
+	This function returns a reference to the list of patches in the skin. The array will have **`count`** elements.
+	Note that this is **not** a copy of the patches array, but a reference to the original.
+
+	INPUT object
+		The object of operation
+	INPUT count
+		After `skin_object_patches` finishes, this variable will hold the number of patches in the skin.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of [patches](skin_patch) containing all the patches in the skin.
+
+FUNCTION skin_object_sub_regions: (object: skin_object *, count: skin_sub_region_size *): skin_sub_region *
+	Gives an array of sub-regions in the skin
+
+	This function returns a reference to the list of sub-regions in the skin. The array will have **`count`** elements.
+	Note that this is **not** a copy of the sub-regions array, but a reference to the original.
+
+	INPUT object
+		The object of operation
+	INPUT count
+		After `skin_object_sub_regions` finishes, this variable will hold the number of sub-regions in the skin.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of [sub-regions](skin_sub_region) containing all the sub-regions in the skin.
+
+FUNCTION skin_object_regions: (object: skin_object *, count: skin_region_size *): skin_region *
+	Gives an array of regions in the skin
+
+	This function returns a reference to the list of regions in the skin. The array will have **`count`** elements.
+	Note that this is **not** a copy of the modules array, but a reference to the original.
+
+	INPUT object
+		The object of operation
+	INPUT count
+		After `skin_object_regions` finishes, this variable will hold the number of regions in the skin.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of [regions](skin_region) containing all the regions in the skin.
+
+FUNCTION skin_object_sub_region_indices: (object: skin_object *, count: skin_sub_region_index_size *): skin_sub_region_index_id *
+	Gives an array of indices to sub-regions, indexed by variables of `skin_region`
+
+	This function returns a reference to the list of sub-region ids in the skin. The array will have **`count`** elements.
+	Note that this is **not** a copy of the sub-region-indices array, but a reference to the original. Use of this array is through
+	`[#sub_region_indices_begin](skin_region)` and `[#sub_region_indices_end](skin_region)` of `skin_region`.
+
+	INPUT object
+		The object of operation
+	INPUT count
+		After `skin_object_sub_region_indices` finishes, this variable will hold the size of the sub-region-indices array, that is equal to the sum of number of
+		sub-regions in all the regions of the skin. Note that this number could be bigger than the number of all sub-regions in the skin, as some
+		sub-region may be part of more than one region.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of sub-region ids containing all the indices to sub-regions in the skin sorted according to
+		which region they belong to. That is the sub-region indices of each region are grouped together. The ordering however is not
+		necessarily that of the regions array.
+
+FUNCTION skin_object_region_indices: (object: skin_object *, count: skin_region_index_size *): skin_region_index_id *
+	Gives an array of indices to regions, indexed by variables of `skin_sub_region`
+
+	This function returns a reference to the list of region ids in the skin. The array will have **`count`** elements.
+	Note that this is **not** a copy of the region-indices array, but a reference to the original. Use of this array is through
+	`[#region_indices_begin](skin_sub_region)` and `[#region_indices_end](skin_sub_region)` of `skin_sub_region`.
+
+	INPUT object
+		The object of operation
+	INPUT count
+		After `skin_object_region_indices` finishes, this variable will hold the size of the region-indices array, that is equal to the sum of number of regions
+		including all the sub-regions of the skin. Note that this number could be bigger than the number of all regions in the skin, as some regions may
+		include more than one sub-region. This number however should be equal to the size of [sub-region-indices array](#skin_object_sub_region_indices).
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of region ids containing all the indices to regions in the skin sorted according to
+		which sub-regions they include. That is the region indices of each sub-region are grouped together. The ordering however is not
+		necessarily that of the sub-regions array.
+
+FUNCTION skin_object_sensors_count: (object: skin_object *): skin_sensor_size
+	Gives the total number of sensors in the skin
+
+	The output of this function is equal to the `count` argument of `[#skin_object_sensors]`.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		The total number of sensors in the skin.
+
+FUNCTION skin_object_sensor_types_count: (object: skin_object *): skin_sensor_type_size
+	Gives the total number of sensor types in the skin
+
+	The output of this function is equal to the `count` argument of `[#skin_object_sensor_types]`.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		The total number of sensor types in the skin.
+
+FUNCTION skin_object_modules_count: (object: skin_object *): skin_module_size
+	Gives the total number of modules in the skin
+
+	The output of this function is equal to the `count` argument of `[#skin_object_modules]`.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		The total number of modules in the skin.
+
+FUNCTION skin_object_patches_count: (object: skin_object *): skin_patch_size
+	Gives the total number of patches in the skin
+
+	The output of this function is equal to the `count` argument of `[#skin_object_patches]`.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		The total number of patches in the skin.
+
+FUNCTION skin_object_sub_regions_count: (object: skin_object *): skin_sub_region_size
+	Gives the total number of sub-regions in the skin
+
+	The output of this function is equal to the `count` argument of `[#skin_object_sub_regions]`.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		The total number of sub-regions in the skin.
+
+FUNCTION skin_object_regions_count: (object: skin_object *): skin_region_size
+	Gives the total number of regions in the skin
+
+	The output of this function is equal to the `count` argument of `[#skin_object_regions]`.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		The total number of regions in the skin.
+
+FUNCTION skin_object_sub_region_indices_count: (object: skin_object *): skin_sub_region_index_size
+	Gives the size of sub-region-indices array
+
+	The output of this function is equal to the `count` argument of `[#skin_object_sub_region_indices]`.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		The size of sub-region-indices array, that is equal to the sum of number of sub-regions in all the regions of the skin.
+		Note that this number could be bigger than the number of all sub-regions in the skin, as some sub-region may be part of more than one region.
+
+FUNCTION skin_object_region_indices_count: (object: skin_object *): skin_region_index_size
+	Gives the size of region-indices array
+
+	The output of this function is equal to the `count` argument of `[#skin_object_region_indices]`.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		The size of region-indices array, that is equal to the sum of number of regions including all the sub-regions of the skin.
+		Note that this number could be bigger than the number of all regions in the skin, as some regions may include more than one sub-region.
+
+FUNCTION skin_object_reader: (object: skin_object *): skin_reader *
+	Gives the reader object
+
+	This function returns a reference to the reader object that the `skin_object` has created. The reader, of type `[skin_reader]` can then be started
+	and stopped through functions `[#skin_reader_start](skin_reader)` and `[#skin_reader_stop](skin_reader)`. For detailed information
+	on the modes of acquisition, please refer to [`skin_reader`'s overview](skin_reader#Overview).
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		As output, this function returns reference to the reader object initialized within the `skin_object` object.
+
+FUNCTION skin_object_service_manager: (object: skin_object *): skin_service_manager *
+	Gives the service manager object
+
+	This function returns a reference to the service manager object that the `skin_object` has created. The service manager, of type `[skin_service_manager]` can then
+	be used to communicate with services written as other kernel modules in both periodic and sporadic modes. For more information, please refer to
+	[`skin_service_manager`'s overview](skin_service_manager#Overview).
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		As output, this function returns reference to the service manager object initialized within the `skin_object` object.
+
+FUNCTION skin_object_last_error: (object: skin_object *): const char *
+	Gives the last error message generated
+
+	Some functions, including all that may return `[#SKIN_FAIL](constants)` set an error message in this object if possible. Some functions,
+	such as `[#skin_object_calibration_end]` and `[#skin_object_regionalization_end]` may store a warning message and still return
+	`[#SKIN_SUCCESS](constants)`. This function returns a reference to the error message.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		An error message.
+
+FUNCTION skin_object_calibration_begin: (object: skin_object *): int
+	Prepare skin for calibration
+
+	This function loads necessary data from the [skin kernel](index#Overview) needed for calibration. If calibrating, `[#skin_object_load]`
+	should not be called.
+
+	**Note:** You only need this function if you are writing the calibrator program. In a normal user program, this function does not need to be called.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_FAIL](constants)` if operation failed.
+			- `[#SKIN_NO_MEM](constants)` if there was an error in memory allocation.
+
+FUNCTION skin_object_calibration_end: (object: skin_object *, cache: const char *): int
+	Calibrate the skin
+
+	This function first uses the calibration data to flatten the skin, obtaining `[#flattened_position](skin_sensor)`,
+	`[#neighbors](skin_sensor)` and `[#neighbors_count](skin_sensor)` for each sensor. It then caches the calibration data
+	and proceeds with transferring the calibration data to the skin kernel.
+	The calibration data that should be filled in by the calibrator program are:
+
+		- `[#relative_position](skin_sensor)`
+		- `[#relative_orientation](skin_sensor)`
+		- `[#robot_link](skin_sensor)`
+
+	**Note:** You only need this function if you are writing the calibrator program. In a normal user program, this function does not need to be called.
+
+	INPUT object
+		The object of operation
+	INPUT cache
+		A file name to cache the data ready to be fed to the skin kernel. This file can be used by `[#skin_object_calibration_reload]` to calibrate the skin.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_FAIL](constants)` if operation failed.
+			- `[#SKIN_NO_MEM](constants)` if there was an error in memory allocation.
+
+FUNCTION skin_object_calibration_reload: (object: skin_object *, cache: const char *): int
+	Calibrate the skin from cache
+
+	This function loads calibration data from the provided cache file. It then proceeds with transferring the calibration data to the skin kernel.
+	You can see the format of the cache file [here](Calibration Cache).
+
+	**Note:** You only need this function if you are writing the calibrator program. In a normal user program, this function does not need to be called.
+
+	INPUT object
+		The object of operation
+	INPUT cache
+		A file that contains calibration data.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_FAIL](constants)` if operation failed.
+			- `[#SKIN_NO_MEM](constants)` if there was an error in memory allocation.
+			- `[#SKIN_NO_FILE](constants)` if cache file could not be opened.
+			- `[#SKIN_FILE_INCOMPLETE](constants)` if end of file is reached while still more data was expected.
+			- `[#SKIN_FILE_PARSE_ERROR](constants)` if there was an error reading from the file.
+			- `[#SKIN_FILE_INVALID](constants)` if the file contained data inconsistent with the skin kernel.
+
+FUNCTION skin_object_regionalization_begin: (object: skin_object *): int
+	Prepare skin for regionalization
+
+	This function loads necessary data from the [skin kernel](index#Overview) needed for regionalization. If regionalizing, `[#skin_object_load]`
+	should not be called.
+
+	**Note:** You only need this function if you are writing the regionalizer program. In a normal user program, this function does not need to be called.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_FAIL](constants)` if operation failed.
+			- `[#SKIN_NO_MEM](constants)` if there was an error in memory allocation.
+
+FUNCTION skin_object_regionalization_end: (object: skin_object *, regions: skin_regionalization_data *, regions_count: skin_region_size, cache: const char *): int
+	Regionalize the skin
+
+	This function first creates sub-regions from regions. It then caches the regionalization data and proceeds with regionalization of the skin kernel.
+	During this process, the sensors of the skin may be rearranged. The user needs only provide an array of regions, with each region identified as a
+	set of [modules](skin_module). The regions may overlap. The `skin_regionalization_data` structure is defined as:
+
+	```
+	typedef struct skin_regionalization_data
+	{
+		skin_module_id *modules;
+		skin_module_size size;
+	} skin_regionalization_data;
+	```
+
+	**Note:** You only need this function if you are writing the regionalizer program. In a normal user program, this function does not need to be called.
+
+	INPUT object
+		The object of operation
+	INPUT regions
+		This is an array of sets of [modules](skin_module). Each set in this array represents one region consisting of the containing modules.
+	INPUT regions_count
+		The size of **`regions`** array, i.e. the number of regions.
+	INPUT cache
+		A file name to cache the data ready to be fed to the skin kernel. This file can be used by `[#skin_object_regionalization_reload]` to regionalize the skin.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_FAIL](constants)` if operation failed.
+			- `[#SKIN_NO_MEM](constants)` if there was an error in memory allocation.
+
+FUNCTION skin_object_regionalization_reload: (object: skin_object *, cache: const char *): int
+	Regionalize the skin from cache
+
+	This function loads regionalization data from the provided cache file. It then proceeds with regionalization of the skin kernel.
+	During this process, the sensors of the skin may be rearranged. You can see the format of the cache file [here](Regionalization Cache).
+
+	**Note:** You only need this function if you are writing the regionalizer program. In a normal user program, this function does not need to be called.
+
+	INPUT object
+		The object of operation
+	INPUT cache
+		A file that contains regionalization data.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_SUCCESS](constants)` if successful.
+			- `[#SKIN_FAIL](constants)` if operation failed.
+			- `[#SKIN_NO_MEM](constants)` if there was an error in memory allocation.
+			- `[#SKIN_NO_FILE](constants)` if cache file could not be opened.
+			- `[#SKIN_FILE_INCOMPLETE](constants)` if end of file is reached while still more data was expected.
+			- `[#SKIN_FILE_PARSE_ERROR](constants)` if there was an error reading from the file.
+			- `[#SKIN_FILE_INVALID](constants)` if the file contained data inconsistent with the skin kernel.
+
+FUNCTION skin_object_for_each_sensor: (object: skin_object *, c: skin_callback_sensor, data: void *): void
+	Call a callback for all sensors of skin
+
+	This function iterates over sensors of **`object`** calling [callback](skin_callbacks#skin_callback_sensor) **`c`** with additional data **`data`**.
+	This iteration stops when either all sensors have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT object
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+FUNCTION skin_object_for_each_sensor_type: (object: skin_object *, c: skin_callback_sensor_type, data: void *): void
+	Call a callback for all sensor types of skin
+
+	This function iterates over sensor types of **`object`** calling [callback](skin_callbacks#skin_callback_sensor_type) **`c`** with additional data **`data`**.
+	This iteration stops when either all sensor types have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT object
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+FUNCTION skin_object_for_each_module: (object: skin_object *, c: skin_callback_module, data: void *): void
+	Call a callback for all modules of skin
+
+	This function iterates over modules of **`object`** calling [callback](skin_callbacks#skin_callback_module) **`c`** with additional data **`data`**.
+	This iteration stops when either all modules have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT object
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+FUNCTION skin_object_for_each_patch: (object: skin_object *, c: skin_callback_patch, data: void *): void
+	Call a callback for all patches of skin
+
+	This function iterates over patches of **`object`** calling [callback](skin_callbacks#skin_callback_patch) **`c`** with additional data **`data`**.
+	This iteration stops when either all patches have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT object
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+FUNCTION skin_object_for_each_sub_region: (object: skin_object *, c: skin_callback_sub_region, data: void *): void
+	Call a callback for all sub_regions of skin
+
+	This function iterates over sub_regions of **`object`** calling [callback](skin_callbacks#skin_callback_sub_region) **`c`** with additional data **`data`**.
+	This iteration stops when either all sub_regions have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT object
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+FUNCTION skin_object_for_each_region: (object: skin_object *, c: skin_callback_region, data: void *): void
+	Call a callback for all regions of skin
+
+	This function iterates over regions of **`object`** calling [callback](skin_callbacks#skin_callback_region) **`c`** with additional data **`data`**.
+	This iteration stops when either all regions have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT object
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+FUNCTION skin_object_time_diff_with_kernel: (object: skin_object *): skin_rt_time
+	Calculate the time difference with kernel's `skin_rt_get_time`
+
+	This function calculates and caches the time difference between what `[#skin_rt_get_time](skin_rt)` reports in kernel and user spaces. You may need this
+	if you are implementing an algorithm that stores time in the kernel and reads them in user-space, comparing with the time in user-space, or the other way
+	around. In such a case, the time reported in the kernel should be _added_ by this value to get the equivalent in user-space.
+
+	**Note:** This function cannot be precise. The observed noise had been around a few microseconds. Don't count on this function for very precise operations.
+
+	INPUT object
+		The object of operation
+	OUTPUT
+		The time difference between user and kernel spaces, which should be added to kernel time to get user time.
+
+MEMBER_TYPE skin_sensor_iterator: opaque
+NOTICE C++
+	A sensor iterator
+
+	Returned by `[#sensors_iter_begin]` and `[#sensors_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_TYPE skin_sensor_type_iterator: opaque
+NOTICE C++
+	A sensor type iterator
+
+	Returned by `[#sensor_types_iter_begin]` and `[#sensor_types_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_TYPE skin_module_iterator: opaque
+NOTICE C++
+	A module iterator
+
+	Returned by `[#modules_iter_begin]` and `[#modules_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_TYPE skin_patch_iterator: opaque
+NOTICE C++
+	A patch iterator
+
+	Returned by `[#patches_iter_begin]` and `[#patches_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_TYPE skin_sub_region_iterator: opaque
+NOTICE C++
+	A sub-region iterator
+
+	Returned by `[#sub_regions_iter_begin]` and `[#sub_regions_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_TYPE skin_region_iterator: opaque
+NOTICE C++
+	A region iterator
+
+	Returned by `[#regions_iter_begin]` and `[#regions_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_FUNCTION skin_object: ()
+NOTICE C++
+	Class constructor
+
+	Default constructor of the class. Calls `[#skin_object_init]`.
+
+MEMBER_FUNCTION ~skin_object: ()
+NOTICE C++
+	Class destructor
+
+	Destructor of the class. Cakks `[#skin_object_free]`.
+
+MEMBER_FUNCTION load: (): int
+NOTICE C++
+	Wrapper for `skin_object_load`
+
+	Calls `[#skin_object_load]`.
+
+	OUTPUT
+		See `[#skin_object_load]`.
+
+MEMBER_FUNCTION unload: (): void
+NOTICE C++
+	Wrapper for `skin_object_free`
+
+	Calls `[#skin_object_free]`.
+
+MEMBER_FUNCTION sensors: (count: skin_sensor_size * = NULL): skin_sensor *
+NOTICE C++
+	Wrapper for `skin_object_sensors`
+
+	Calls `[#skin_object_sensors]`.
+
+	INPUT count
+		See `[#skin_object_sensors]`.
+	OUTPUT
+		See `[#skin_object_sensors]`.
+
+MEMBER_FUNCTION sensor_types: (count: skin_sensor_type_size * = NULL): skin_sensor_type *
+NOTICE C++
+	Wrapper for `skin_object_sensor_types`
+
+	Calls `[#skin_object_sensor_types]`.
+
+	INPUT count
+		See `[#skin_object_sensor_types]`.
+	OUTPUT
+		See `[#skin_object_sensor_types]`.
+
+MEMBER_FUNCTION modules: (count: skin_module_size * = NULL): skin_module *
+NOTICE C++
+	Wrapper for `skin_object_modules`
+
+	Calls `[#skin_object_modules]`.
+
+	INPUT count
+		See `[#skin_object_modules]`.
+	OUTPUT
+		See `[#skin_object_modules]`.
+
+MEMBER_FUNCTION patches: (count: skin_patch_size * = NULL): skin_patch *
+NOTICE C++
+	Wrapper for `skin_object_patches`
+
+	Calls `[#skin_object_patches]`.
+
+	INPUT count
+		See `[#skin_object_patches]`.
+	OUTPUT
+		See `[#skin_object_patches]`.
+
+MEMBER_FUNCTION sub_regions: (count: skin_sub_region_size * = NULL): skin_sub_region *
+NOTICE C++
+	Wrapper for `skin_object_sub_regions`
+
+	Calls `[#skin_object_sub_regions]`.
+
+	INPUT count
+		See `[#skin_object_sub_regions]`.
+	OUTPUT
+		See `[#skin_object_sub_regions]`.
+
+MEMBER_FUNCTION regions: (count: skin_region_size * = NULL): skin_region *
+NOTICE C++
+	Wrapper for `skin_object_regions`
+
+	Calls `[#skin_object_regions]`.
+
+	INPUT count
+		See `[#skin_object_regions]`.
+	OUTPUT
+		See `[#skin_object_regions]`.
+
+MEMBER_FUNCTION sub_region_indices: (count: skin_sub_region_index_size * = NULL): skin_sub_region_index_id *
+NOTICE C++
+	Wrapper for `skin_object_sub_region_indices`
+
+	Calls `[#skin_object_sub_region_indices]`.
+
+	INPUT count
+		See `[#skin_object_sub_region_indices]`.
+	OUTPUT
+		See `[#skin_object_sub_region_indices]`.
+
+MEMBER_FUNCTION region_indices: (count: skin_region_index_size * = NULL): skin_region_index_id *
+NOTICE C++
+	Wrapper for `skin_object_region_indices`
+
+	Calls `[#skin_object_region_indices]`.
+
+	INPUT count
+		See `[#skin_object_region_indices]`.
+	OUTPUT
+		See `[#skin_object_region_indices]`.
+
+MEMBER_FUNCTION sensors_count: (): skin_sensor_size
+NOTICE C++
+	Wrapper for `skin_object_sensors_count`
+
+	Calls `[#skin_object_sensors_count]`.
+
+	OUTPUT
+		See `[#skin_object_sensors_count]`.
+
+MEMBER_FUNCTION sensor_types_count: (): skin_sensor_type_size
+NOTICE C++
+	Wrapper for `skin_object_sensor_types_count`
+
+	Calls `[#skin_object_sensor_types_count]`.
+
+	OUTPUT
+		See `[#skin_object_sensor_types_count]`.
+
+MEMBER_FUNCTION modules_count: (): skin_module_size
+NOTICE C++
+	Wrapper for `skin_object_modules_count`
+
+	Calls `[#skin_object_modules_count]`.
+
+	OUTPUT
+		See `[#skin_object_modules_count]`.
+
+MEMBER_FUNCTION patches_count: (): skin_patch_size
+NOTICE C++
+	Wrapper for `skin_object_patches_count`
+
+	Calls `[#skin_object_patches_count]`.
+
+	OUTPUT
+		See `[#skin_object_patches_count]`.
+
+MEMBER_FUNCTION sub_regions_count: (): skin_sub_region_size
+NOTICE C++
+	Wrapper for `skin_object_sub_regions_count`
+
+	Calls `[#skin_object_sub_regions_count]`.
+
+	OUTPUT
+		See `[#skin_object_sub_regions_count]`.
+
+MEMBER_FUNCTION regions_count: (): skin_region_size
+NOTICE C++
+	Wrapper for `skin_object_regions_count`
+
+	Calls `[#skin_object_regions_count]`.
+
+	OUTPUT
+		See `[#skin_object_regions_count]`.
+
+MEMBER_FUNCTION sub_region_indices_count: (): skin_sub_region_index_size
+NOTICE C++
+	Wrapper for `skin_object_sub_region_indices_count`
+
+	Calls `[#skin_object_sub_region_indices_count]`.
+
+	OUTPUT
+		See `[#skin_object_sub_region_indices_count]`.
+
+MEMBER_FUNCTION region_indices_count: (): skin_region_index_size
+NOTICE C++
+	Wrapper for `skin_object_region_indices_count`
+
+	Calls `[#skin_object_region_indices_count]`.
+
+	OUTPUT
+		See `[#skin_object_region_indices_count]`.
+
+MEMBER_FUNCTION reader: (): skin_reader *
+NOTICE C++
+	Wrapper for `skin_object_reader`
+
+	Calls `[#skin_object_reader]`.
+
+	OUTPUT
+		See `[#skin_object_reader]`.
+
+MEMBER_FUNCTION service_manager: (): skin_service_manager *
+NOTICE C++
+	Wrapper for `skin_object_service_manager`
+
+	Calls `[#skin_object_service_manager]`.
+
+	OUTPUT
+		See `[#skin_object_service_manager]`.
+
+MEMBER_FUNCTION last_error: (): const char *
+NOTICE C++
+	Wrapper for `skin_object_last_error`
+
+	Calls `[#skin_object_last_error]`.
+
+	OUTPUT
+		See `[#skin_object_last_error]`.
+
+MEMBER_FUNCTION sensors_iter_begin: (): skin_object::skin_sensor_iterator
+NOTICE C++
+	Gives an iterator to iterate over sensors of the skin
+
+	This function returns a pointer of type `skin_object::[#skin_sensor_iterator]`, similar to C++'s STL `iterator` classes, which points to the first of the
+	skin's sensors. This iterator can then be used to traverse all sensors of the skin. Note that the sensors traversed are not a copy and the iterators
+	actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over sensors of the skin, pointing to the first one.
+
+MEMBER_FUNCTION sensors_iter_end: (): const skin_object::skin_sensor_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the sensors
+
+	This function returns a pointer of type `skin_object::[#skin_sensor_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid sensor.
+	This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range. This is similar
+	to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over sensors of the skin pointing to an invalid sensor (and therefore should not be dereferenced).
+
+MEMBER_FUNCTION sensor_types_iter_begin: (): skin_object::skin_sensor_type_iterator
+NOTICE C++
+	Gives an iterator to iterate over sensor types of the skin
+
+	This function returns a pointer of type `skin_object::[#skin_sensor_type_iterator]`, similar to C++'s STL `iterator` classes, which points to the first of the
+	skin's sensor types. This iterator can then be used to traverse all sensor types of the skin. Note that the sensor types traversed are not a copy and the iterators
+	actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over sensor types of the skin, pointing to the first one.
+
+MEMBER_FUNCTION sensor_types_iter_end: (): const skin_object::skin_sensor_type_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the sensor types
+
+	This function returns a pointer of type `skin_object::[#skin_sensor_type_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid sensor type.
+	This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range. This is similar
+	to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over sensor types of the skin pointing to an invalid sensor type (and therefore should not be dereferenced).
+
+MEMBER_FUNCTION regions_iter_begin: (): skin_object::skin_region_iterator
+NOTICE C++
+	Gives an iterator to iterate over regions of the skin
+
+	This function returns a pointer of type `skin_object::[#skin_region_iterator]`, similar to C++'s STL `iterator` classes, which points to the first of the
+	skin's regions. This iterator can then be used to traverse all regions of the skin. Note that the regions traversed are not a copy and the iterators
+	actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over regions of the skin, pointing to the first one.
+
+MEMBER_FUNCTION regions_iter_end: (): const skin_object::skin_region_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the regions
+
+	This function returns a pointer of type `skin_object::[#skin_region_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid region.
+	This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range. This is similar
+	to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over regions of the skin pointing to an invalid region (and therefore should not be dereferenced).
+
+MEMBER_FUNCTION sub_regions_iter_begin: (): skin_object::skin_sub_region_iterator
+NOTICE C++
+	Gives an iterator to iterate over sub-regions of the skin
+
+	This function returns a pointer of type `skin_object::[#skin_sub_region_iterator]`, similar to C++'s STL `iterator` classes, which points to the first of the
+	skin's sub-regions. This iterator can then be used to traverse all sub-regions of the skin. Note that the sub-regions traversed are not a copy and the
+	iterators actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over sub-regions of the skin, pointing to the first one.
+
+MEMBER_FUNCTION sub_regions_iter_end: (): const skin_object::skin_sub_region_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the sub-regions
+
+	This function returns a pointer of type `skin_object::[#skin_sub_region_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid
+	sub-region. This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range.
+	This is similar to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over sub-regions of the skin pointing to an invalid sub-region (and therefore should not be dereferenced).
+
+MEMBER_FUNCTION modules_iter_begin: (): skin_object::skin_module_iterator
+NOTICE C++
+	Gives an iterator to iterate over modules of the skin
+
+	This function returns a pointer of type `skin_object::[#skin_module_iterator]`, similar to C++'s STL `iterator` classes, which points to the first of the
+	skin's modules. This iterator can then be used to traverse all modules of the skin. Note that the modules traversed are not a copy and the iterators
+	actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over modules of the skin, pointing to the first one.
+
+MEMBER_FUNCTION modules_iter_end: (): const skin_object::skin_module_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the modules
+
+	This function returns a pointer of type `skin_object::[#skin_module_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid module.
+	This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range. This is similar
+	to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over modules of the skin pointing to an invalid module (and therefore should not be dereferenced).
+
+MEMBER_FUNCTION patches_iter_begin: (): skin_object::skin_patch_iterator
+NOTICE C++
+	Gives an iterator to iterate over patches of the skin
+
+	This function returns a pointer of type `skin_object::[#skin_patch_iterator]`, similar to C++'s STL `iterator` classes, which points to the first of the
+	skin's patches. This iterator can then be used to traverse all patches of the skin. Note that the patches traversed are not a copy and the iterators
+	actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over patches of the skin, pointing to the first one.
+
+MEMBER_FUNCTION patches_iter_end: (): const skin_object::skin_patch_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the patches
+
+	This function returns a pointer of type `skin_object::[#skin_patch_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid patch.
+	This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range. This is similar
+	to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over patches of the skin pointing to an invalid patch (and therefore should not be dereferenced).
+
+MEMBER_FUNCTION calibration_begin: (): int
+NOTICE C++
+	Wrapper for `skin_object_calibration_begin`
+
+	Calls `[#skin_object_calibration_begin]`.
+
+	OUTPUT
+		See `[#skin_object_calibration_begin]`.
+
+MEMBER_FUNCTION calibration_end: (cache: const char *): int
+NOTICE C++
+	Wrapper for `skin_object_calibration_end`
+
+	Calls `[#skin_object_calibration_end]`.
+
+	INPUT cache
+		See `[#skin_object_calibration_end]`.
+	OUTPUT
+		See `[#skin_object_calibration_end]`.
+
+MEMBER_FUNCTION calibration_reload: (cache: const char *): int
+NOTICE C++
+	Wrapper for `skin_object_calibration_reload`
+
+	Calls `[#skin_object_calibration_reload]`.
+
+	INPUT cache
+		See `[#skin_object_calibration_reload]`.
+	OUTPUT
+		See `[#skin_object_calibration_reload]`.
+
+MEMBER_FUNCTION regionalization_begin: (): int
+NOTICE C++
+	Wrapper for `skin_object_regionalization_begin`
+
+	Calls `[#skin_object_regionalization_begin]`.
+
+	OUTPUT
+		See `[#skin_object_regionalization_begin]`.
+
+MEMBER_FUNCTION regionalization_end: (regions: skin_regionalization_data *, regions_count: skin_region_size, cache: const char *): int
+NOTICE C++
+	Wrapper for `skin_object_regionalization_end`
+
+	Calls `[#skin_object_regionalization_end]`.
+
+	INPUT regions
+		See `[#skin_object_regionalization_end]`.
+	INPUT regions_count
+		See `[#skin_object_time_diff_with_kernel]`.
+	INPUT cache
+		See `[#skin_object_regionalization_end]`.
+	OUTPUT
+		See `[#skin_object_regionalization_end]`.
+
+MEMBER_FUNCTION regionalization_reload: (cache: const char *): int
+NOTICE C++
+	Wrapper for `skin_object_regionalization_reload`
+
+	Calls `[#skin_object_regionalization_reload]`.
+
+	INPUT cache
+		See `[#skin_object_regionalization_reload]`.
+	OUTPUT
+		See `[#skin_object_regionalization_reload]`.
+
+MEMBER_FUNCTION time_diff_with_kernel: (): skin_rt_time
+NOTICE C++
+	Wrapper for `skin_object_time_diff_with_kernel`
+
+	Calls `[#skin_object_time_diff_with_kernel]`.
+
+	OUTPUT
+		See `[#skin_object_time_diff_with_kernel]`.

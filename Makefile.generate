@@ -1,0 +1,80 @@
+include Makefile.config
+include Makefile.common
+
+.PHONY: all
+all: config_headers version_headers cmake_files
+
+SKIN_TOP := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+ifeq ($(CONFIG_SKIN_LARGE), y)
+  LARGE_SKIN = 1
+else
+  LARGE_SKIN = 0
+endif
+
+ifeq ($(CONFIG_SKIN_DEBUG), y)
+  DEBUG = 1
+else
+  DEBUG = 0
+endif
+
+.PHONY: config_headers
+config_headers:
+	@sed -e 's;@SKINK_TICK_PERIOD@;$(CONFIG_SKIN_KERNEL_TICK_PERIOD);g' \
+	     -e 's;@SKINK_ACQ_PRIORITY@;$(CONFIG_SKIN_KERNEL_ACQ_PRIORITY);g' \
+	     -e 's;@SKINK_SERVICE_ACQ_PRIORITY@;$(CONFIG_SKIN_SERVICE_ACQ_PRIORITY);g' \
+	     -e 's;@SKINK_SERVICE_KERNEL_PRIORITY@;$(CONFIG_SKIN_SERVICE_KERNEL_PRIORITY);g' \
+	     -e 's;@SKINK_DEVICE_MAX_DEVICES@;$(CONFIG_SKIN_DEVICE_MAX_DEVICES);g' \
+	     -e 's;@SKINK_SERVICE_MAX_SERVICES@;$(CONFIG_SKIN_SERVICE_MAX_SERVICES);g' \
+	     -e 's;@SKINK_TASK_STACK_SIZE@;$(CONFIG_SKIN_TASK_STACK_SIZE);g' \
+	     -e 's;@SKINK_THREAD_MAX_DELAY@;$(CONFIG_SKIN_THREAD_MAX_DELAY);g' \
+	     -e 's;@SKINK_MAX_BUFFERS@;$(CONFIG_SKIN_KERNEL_MAX_BUFFERS);g' \
+	     -e 's;@SKINK_MAX_LAYERS@;$(CONFIG_SKIN_KERNEL_MAX_LAYERS);g' \
+	     -e 's;@SKINK_MAX_NAME_LENGTH@;$(CONFIG_SKIN_KERNEL_MAX_NAME_LENGTH);g' \
+	     -e 's;@SKINK_LARGE_SKIN@;$(LARGE_SKIN);g' \
+	     -e 's;@SKINK_DEBUG@;$(DEBUG);g' \
+	     < templates/skink_config.h > kernel-module/skink_config.h
+	@sed -e 's;@SKIN_USER_ACQ_PRIORITY@;$(CONFIG_SKIN_USER_ACQ_PRIORITY);g' \
+	     -e 's;@SKIN_SERVICE_USER_PRIORITY@;$(CONFIG_SKIN_SERVICE_USER_PRIORITY);g' \
+	     -e 's;@SKIN_SERVICE_MAX_SERVICES@;$(CONFIG_SKIN_SERVICE_MAX_SERVICES);g' \
+	     -e 's;@SKIN_THREAD_MAX_DELAY@;$(CONFIG_SKIN_THREAD_MAX_DELAY);g' \
+	     -e 's;@SKIN_TASK_STACK_SIZE@;$(CONFIG_SKIN_TASK_STACK_SIZE);g' \
+	     -e 's;@SKIN_DEBUG@;$(DEBUG);g' \
+	     < templates/skin_config.h > user-side-lib/skin_config.h
+
+KERNEL_VERSION_BUILD := $(shell wc -l kernel-module/build.txt 2>&1 | cut -d " " -f 1)
+USER_VERSION_BUILD := $(shell wc -l user-side-lib/build.txt 2>&1 | cut -d " " -f 1)
+
+.PHONY: version_headers
+version_headers:
+	@sed -e 's;@SKINK_VERSION_MAJOR@;$(KERNEL_VERSION_MAJOR);g' \
+	     -e 's;@SKINK_VERSION_MINOR@;$(KERNEL_VERSION_MINOR);g' \
+	     -e 's;@SKINK_VERSION_REVISION@;$(KERNEL_VERSION_REVISION);g' \
+	     -e 's;@SKINK_VERSION_BUILD@;$(KERNEL_VERSION_BUILD);g' \
+	     < templates/skink_version.h > kernel-module/skink_version.h
+	@sed -e 's;@SKIN_VERSION_MAJOR@;$(USER_VERSION_MAJOR);g' \
+	     -e 's;@SKIN_VERSION_MINOR@;$(USER_VERSION_MINOR);g' \
+	     -e 's;@SKIN_VERSION_REVISION@;$(USER_VERSION_REVISION);g' \
+	     -e 's;@SKIN_VERSION_BUILD@;$(USER_VERSION_BUILD);g' \
+	     < templates/skin_version.h > user-side-lib/skin_version.h
+
+ifeq ($(CONFIG_SKIN_ROSSKIN_LIB_ONLY), y)
+  ROSSKIN_LIB_ONLY := true
+else
+  ROSSKIN_LIB_ONLY := false
+endif
+
+.PHONY: cmake_files
+cmake_files:
+ifeq ($(CONFIG_SKIN_ROSSKIN), y)
+	@sed -e 's;@ROSSKIN_LIB_ONLY@;$(ROSSKIN_LIB_ONLY);g' \
+	     -e 's;@SKIN_TOP@;$(SKIN_TOP);g' \
+	     < templates/rosskin_config.cmake > user-side-lib/rosskin/rosskin/config.cmake
+	@sed -e 's;@USER_EXTRA_CXXFLAGS@;$(USER_EXTRA_CXXFLAGS);g' \
+	     < templates/rosskin_extra.cmake > user-side-lib/rosskin/rosskin/extra.cmake
+endif
+
+.PHONY: clean
+	-$(RM) kernel-module/skink_config.h user-side-lib/skin_config.h
+	-$(RM) kernel-module/skink_version.h user-side-lib/skin_version.h
+	-$(RM) user-side-lib/rosskin/rosskin/config.cmake user-side-lib/rosskin/rosskin/extra.cmake

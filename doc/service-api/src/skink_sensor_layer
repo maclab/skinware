@@ -1,0 +1,63 @@
+struct skink_sensor_layer
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+prev struct skink_data_structures
+next struct skink_sensor
+
+Each sensor layer is handled by a network driver, acquiring data at different rates. If the service so chooses, it can provide an [acquire callback](Callbacks#
+skink_service_acquire) for each layer so that it would be called by the skin kernel asking the service to read the sensor values. The user-space "sensor type"
+refers to the same concept as sensor layer. The `skink_sensor_layer` structure is only partly described here as other parts are either internal to Skinware
+or are used elsewhere such as in drivers. It is important for the service to access only the fields described here.
+
+VARIABLE id: skink_sensor_layer_id
+	Id of the sensor layer
+
+	This value is the [id](Data Types#skink_sensor_layer_id) of the sensor layer. It is the layer's index in `[#sensor_layers](skink_data_structures)` of
+	`skink_data_structures`.
+
+VARIABLE name: char *
+	Name of the sensor layer
+
+	This is a string with maximum length [#SKINK_MAX_NAME_LENGTH](constants). It can be compared with a desired name to identify layers of interest.
+
+VARIABLE sensors: skink_sensor *
+	Sensors of this layer
+
+	This is the array of [sensors](skink_sensor) of this layer. This array can be accessed by the [acquire callback](Callbacks#skink_service_acquire) to
+	read sensor values.
+
+VARIABLE sensors_count: skink_sensor_size
+	Number of sensors in this layer
+
+	This value is the size of [#sensors] array.
+
+VARIABLE modules: skink_module *
+	Modules of this layer
+
+	This is the array of [modules](skink_module) of this layer. This value is hardware-specific and is present for use of those services that require knowledge
+	on the hardware, e.g. a service monitoring hardware for failure.
+
+VARIABLE modules_count: skink_module_size
+	Number of modules in this layer
+
+	This value is the size of [#modules] array.
+
+VARIABLE patches: skink_patch *
+	Patches of this layer
+
+	This is the array of [patches](skink_patch) of this layer. This value is hardware-specific and is present for use of those services that require knowledge
+	on the hardware, e.g. a service monitoring hardware for failure.
+
+VARIABLE patches_count: skink_patch_size
+	Number of patches in this layer
+
+	This value is the size of [#patches] array.

@@ -1,0 +1,47 @@
+api Callbacks
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+seealso Service Functions
+next api Service Functions
+
+The services consist of mainly two parts; readers and service function. The readers are analogous to those in user-space. They have the same acquisition methods
+and synchronization algorithms. The only difference between them is that, in user-space, the skin library automatically copies tactile data to user-space structures,
+while the service calls a callback. This allows fast services to work on the data while they are locked instead of taking a local copy, while allowing slower services
+to do the local copy themselves. A service is called _fast_ if the reader's work on sensor values takes less time than actually copying them for a local version.
+A rule of thumb is, copy the data if you need more than one pass over it to process it.
+
+**The readers are called having a buffer locked. Therefore they must be as fast as possible. If they are slow, they must make a copy of data and perform the operation
+later**. Abusing the callback results in higher chances of swap skips and degraded system performance.
+
+The service itself is run, either periodically or sporadically (per request), working on data stored by the readers (internal to the service) and providing output
+in the preallocated memory.
+
+TYPE skink_service_acquire: (skink_sensor_layer *, uint8_t): void
+	Read data of a layer from a given buffer
+
+	This callback is called for any layer it is registered with. It is given **`layer`** and **`buffer`** as arguments. The reader is strongly advised to be
+	brief during this callback. This means that if it requires more time inspecting data than just a single pass over sensor responses, it is preferred for it
+	to make a local copy and defer processing to either an internal thread or when the [service callback](#skink_service_function) is called.
+
+	The callback has access to all data available in `[skink_data_structures]` as well as the **`[layer](skink_sensor_layer)`** parameter, but the most
+	interesting data would be the following, as they dynamically change.
+
+		- `**layer**<>->[#sensors](skink_sensor_layer)\[*].[#response](skink_sensor)<>**\[buffer]**`
+
+TYPE skink_service_function: (void *, void *): void
+	Execute service process and store results
+
+	Once the service process is required to execute, this callback is called. It is given a **`memory`** argument that can be cast to service's own interpretation.
+	This memory is allocated when `[#skink_initialize_periodic_service](Service Functions)` or `[#skink_initialize_sporadic_service](Service Functions)` is called
+	by the service itself, therefore all information on the memory size and its structuring is known to the service beforehand.
+
+	Additionally, a user defined pointer as passed to `[#skink_start_service](ServiceFunctions)` is passed to the function.

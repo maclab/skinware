@@ -1,0 +1,25 @@
+struct skink_module
+# Skinware - Driver API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+seealso `[skink_device]` functions
+seealso `[skink_sensor layer]`
+prev struct skink_sensor
+next struct skink_patch
+
+The device driver needs to describe the structure of the hardware it is handling to the skin kernel. As far as modules are concerned, it needs to fill in the fields
+described here in the [details callback](Callbacks#skink_device_details).
+
+VARIABLE sensors_count: skink_sensor_size
+	Number of sensors in this module
+
+	This is the number of sensors in this module. The device driver needs to fill this value for every module in each layer once and if the [details callback]
+	(Callbacks#skink_device_details) is called.

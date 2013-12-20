@@ -1,0 +1,297 @@
+struct skin_service
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_service
+next functions skin_rt
+seealso `[skin_object]`
+seealso `[skin_rt]` Functions
+
+Objects of this struct are initialized by `[skin_service_manager]` and are attached to one service. They can be used to synchronize
+with the services and acquire their results.
+
+These results are not interpreted by Skinware. Therefore, it is the responsibility of the service programmer to provide the users
+with a header containing names of the service and the synchronization locks, as well as the structure of the service memory.
+The service memory will always be an array of that structure with `[#SKIN_SERVICE_RESULT_COUNT]\([#memory])` elements.
+
+Abbreviating `service->memory` to `mem`, the values of `SKIN_SERVICE_TIMESTAMP(mem)` and `SKIN_SERVICE_RESULT_COUNT(mem)` respectively show the timestamp of
+the last write on `mem` and the number of elements in the `mem` array. Using `SKIN_SERVICE_IS_PERIODIC(mem)` or `SKIN_SERVICE_IS_SPORADIC(mem)`,
+the user can make sure the service is periodic or sporadic and more importantly, with `SKIN_SERVICE_IS_ALIVE(mem)` and `SKIN_SERVICE_IS_DEAD(mem)` it can be 
+determined whether the service is still running or not.
+
+MACRO SKIN_SERVICE_PERIOD: (mem): skin_rt_time
+	The period of service (if periodic)
+
+	This macro, when used on `[#memory]` gives the period of a periodic service in nanoseconds as a `[#skin_rt_time](skin_rt)`.
+
+	INPUT mem
+		The memory address of the service output.
+	OUTPUT
+		The period of the service, if it is periodic.
+
+MACRO SKIN_SERVICE_TIMESTAMP: (mem): skin_rt_time
+	Get the timestamp of service
+
+	This macro, when used on `[#memory]` will give the timestamp of the last service write as a `[#skin_rt_time](skin_rt)`.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+	OUTPUT
+		The timestamp of last write on the service buffer.
+
+MACRO SKIN_SERVICE_RESULT_COUNT: (mem): uint64_t
+	Get the number of elements in the service results array
+
+	When the service is initialized, it is assumed, though not enforced, that the memory is viewed as an array of unknown objects. The service provides these
+	objects to its users. The service requests an array of a certain structure, which it should provide to the users.
+
+	This macro, when used on `[#memory]` evaluates to the size of this array in terms of number of such objects.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+	OUTPUT
+		The number of elements in the service memory's array.
+
+MACRO SKIN_SERVICE_MEM_SIZE: (mem): uint64_t
+	Get the memory size of service result
+
+	This macro, when used on `[#memory]` gives the raw size of the service result, regardless of its formatting. See also `[#SKIN_SERVICE_RESULT_COUNT]`.
+
+	INPUT mem
+		The memory address of the service output.
+	OUTPUT
+		Memory size of service result.
+
+MACRO SKIN_SERVICE_IS_PERIODIC: (mem): bool
+	Tells whether service is periodic
+
+	This macro, when used on `[#memory]` will evaluate to true if the service is periodic and false otherwise.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+	OUTPUT
+		Whether service is periodic.
+
+MACRO SKIN_SERVICE_IS_SPORADIC: (mem): bool
+	Tells whether service is sporadic
+
+	This macro, when used on `[#memory]` will evaluate to true if the service is sporadic and false otherwise.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+	OUTPUT
+		Whether service is sporadic.
+
+MACRO SKIN_SERVICE_IS_ALIVE: (mem): bool
+	Tells whether service is alive and functional
+
+	This macro, when used on `[#memory]` will evaluate to true if the service is usable. Note that between the time this value
+	is evaluated and the actual use if the service, there is no guarantee for the service to stay alive. Therefore, it is best if
+	it is externally ensured all users of the service stop using it, before the service is stopped.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+	OUTPUT
+		Whether service is alive.
+
+MACRO SKIN_SERVICE_IS_DEAD: (mem): bool
+	Tells whether service is alive and functional
+
+	This macro, when used on `[#memory]` will evaluate to true if the service is not available anymore.
+
+	INPUT mem
+		The shared memory stored in `[#memory]`.
+	OUTPUT
+		Whether service is dead.
+
+VARIABLE memory: void *
+	The shared memory with the service
+
+	After [connecting](skin_service_manager#skin_service_manager_connect_to_periodic_service) to a service, this pointer will point to the shared memory
+	initialized by that service and can be used to retrieve its results.
+
+FUNCTION skin_service_init: (service: skin_service *): void
+	Initialize service to invalid
+
+	Initializer of the struct. Sets the service variables so that the service would be invalid. `[#memory]` will be `NULL`.
+
+	INPUT service
+		The object of operation
+
+FUNCTION skin_service_free: (service: skin_service *): void
+	Free service
+
+	Free any resources and invalidate the service. Calls `[#skin_service_disconnect]`.
+
+	INPUT service
+		The object of operation
+
+FUNCTION skin_service_lock: (service: skin_service *, must_stop: bool *): int
+	Lock a periodic service
+
+	This function locks a service if it is periodic. The user needs to call `[#skin_service_unlock]` if this call is successful to allow the service to continue
+	execution.
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT service
+		The object of operation
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the request. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful and `[#SKIN_FAIL](constants)` if not. If the function is interrupted because **`must_stop`**
+		is set to `true`, `[#SKIN_LOCK_NOT_ACQUIRED](constants)` is returned.
+
+FUNCTION skin_service_unlock: (service: skin_service *): int
+	Unlock a previously locked periodic service
+
+	This function unlocks a previously [locked](#skin_service_lock) service if it is periodic.
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT service
+		The object of operation
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful and `[#SKIN_FAIL](constants)` if not.
+
+FUNCTION skin_service_request: (service: skin_service *, must_stop: bool *): int
+	Request and block until the service is run
+
+	A call to this function blocks execution and signals the sporadic service to execute once. Then, then user program is unblocked and
+	can continue execution. If multiple services are need to be requested simultaneously, `[#skin_service_request_nonblocking]` can be used in conjunction with
+	`[#skin_service_await_response]`.
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT service
+		The object of operation
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the request. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful and `[#SKIN_FAIL](constants)` if not. If the function is interrupted because **`must_stop`**
+		is set to `true`, `[#SKIN_LOCK_NOT_ACQUIRED](constants)` is returned.
+
+FUNCTION skin_service_request_nonblocking: (service: skin_service *): int
+	Request the service to be run but don't wait for its response
+
+	This function is similar to `[#skin_service_request]`, except it doesn't wait for the service to respond. The caller needs to call `[#skin_service_await_response]`
+	later to complete the request. The purpose of this function is to allow parallel requests to be sent to different services and then later await their responses.
+	For example, instead of three calls to `[#skin_service_request]`, which performs the reads sequentially, a code such as the following can be used which performs the
+	requests in parallel. Proper error handling needs to be done.
+
+		```
+		skin_service_request_nonblocking(\&service1);
+		skin_service_request_nonblocking(\&service2);
+		skin_service_request_nonblocking(\&service3);
+		skin_service_await_response(\&service1, NULL);
+		skin_service_await_response(\&service2, NULL);
+		skin_service_await_response(\&service3, NULL);
+		```
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT service
+		The object of operation
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful and `[#SKIN_FAIL](constants)` if not.
+
+FUNCTION skin_service_await_response: (service: skin_service *, must_stop: bool *): int
+	Await response from service to which a request has been sent
+
+	This function is the complement of `[#skin_service_request_nonblocking]`. It awaits the response from the sporadic service to which a request has been
+	previously sent. See that function for more information.
+
+	If called from a Linux thread, this functions makes the calling thread momentarily real-time.
+
+	INPUT service
+		The object of operation
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the wait. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns `[#SKIN_SUCCESS](constants)` if successful and `[#SKIN_FAIL](constants)` if not. If the function is interrupted because **`must_stop`**
+		is set to `true`, `[#SKIN_LOCK_NOT_ACQUIRED](constants)` is returned.
+
+FUNCTION skin_service_disconnect: (service: skin_service *): void
+	Disconnect from the service
+
+	This function disconnects from the service and makes the object invalid, i.e. `[#memory]` will be `NULL`.
+
+	INPUT service
+		The object of operation
+
+MEMBER_FUNCTION skin_service: ()
+NOTICE C++
+	Default construct
+
+	Default constructor of the class. Calls `[#skin_service_init]`.
+
+MEMBER_FUNCTION ~skin_service: ()
+NOTICE C++
+	Destructor
+
+	Destructor of the class. Calls `[#skin_service_free]`.
+
+MEMBER_FUNCTION lock: (must_stop: bool * = NULL): int
+NOTICE C++
+	Wrapper for `skin_service_lock`
+
+	Calls `[#skin_service_lock]`.
+
+	INPUT must_stop
+		See `[#skin_service_lock]`.
+	OUTPUT
+		See `[#skin_service_lock]`.
+
+MEMBER_FUNCTION unlock: (): int
+NOTICE C++
+	Wrapper for `skin_service_unlock`
+
+	Calls `[#skin_service_unlock]`.
+
+	OUTPUT
+		See `[#skin_service_unlock]`.
+
+MEMBER_FUNCTION request: (must_stop: bool * = NULL): int
+NOTICE C++
+	Wrapper for `skin_service_request`
+
+	Calls `[#skin_service_request]`.
+
+	INPUT must_stop
+		See `[#skin_service_request]`.
+	OUTPUT
+		See `[#skin_service_request]`.
+
+MEMBER_FUNCTION request_nonblocking: (): int
+NOTICE C++
+	Wrapper for `skin_service_request_nonblocking`
+
+	Calls `[#skin_service_request_nonblocking]`.
+
+	OUTPUT
+		See `[#skin_service_request_nonblocking]`.
+
+MEMBER_FUNCTION await_response: (must_stop: bool * = NULL): int
+NOTICE C++
+	Wrapper for `skin_service_await_response`
+
+	Calls `[#skin_service_await_response]`.
+
+	INPUT must_stop
+		See `[#skin_service_await_response]`.
+	OUTPUT
+		See `[#skin_service_await_response]`.
+
+MEMBER_FUNCTION disconnect: (): void
+NOTICE C++
+	Wrapper for `skin_service_disconnect`
+
+	Calls `[#skin_service_disconnect]`.

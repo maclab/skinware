@@ -1,0 +1,14 @@
+sensor_layers = 10
+sensors = 10000
+sensors_in_module = 12
+modules_in_patch_mean = 10
+modules_in_patch_var = 6
+sensors_o_x = 0
+sensors_o_y = 0
+sensors_d_x = 10
+sensors_d_y = 10
+sensors_in_row = 100
+sensors_layer_offset_mean = 500
+sensors_layer_offset_var = 500
+frequency_mean = 60
+frequency_var = 40

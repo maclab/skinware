@@ -1,0 +1,73 @@
+api skin_callbacks
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+next struct skin_object
+seealso `[skin_object]`
+
+The data structures of the skin, including `[skin_object]`, `[skin_sensor]`, `[skin_sensor_type]`, `[skin_region]` and others have associated functions that
+iterate over a related structure of them. For example, for a sensor, it is possible to iterate over the regions that contain it, or for a sensor type the
+patches that it contains.
+
+These functions have the following general form:
+
+```
+skin_X_for_each_Y(X *, callback_Y, data)
+```
+
+In this representation, `X` is the structure the action originates from and `Y` is what is being iterated. The callbacks are different depending on
+what is begin iterated (`Y`). A user provided `data` is also given. The structures that can be iterated are the following 6.
+
+- `skin_sensor`
+- `skin_sensor_type`
+- `skin_module`
+- `skin_patch`
+- `skin_region`
+- `skin_sub_region`
+
+With all of these callbacks, if it returns `[#SKIN_CALLBACK_STOP](constants)`, the iteration will stop. Otherwise,
+`[#SKIN_CALLBACK_CONTINUE](constants)` must be returned.
+
+TYPE skin_callback_sensor: (skin_sensor *, void *): int
+	A callback for iterating over sensors
+
+	This callback is called with `[skin_*_for_each_sensor](skin_object#skin_object_for_each_sensor)` functions, given the current sensor as well as
+	the data provided to that function.
+
+TYPE skin_callback_sensor_type: (skin_sensor_type *, void *): int
+	A callback for iterating over sensor types
+
+	This callback is called with `[skin_*_for_each_sensor_type](skin_object#skin_object_for_each_sensor_type)` functions, given the current sensor type
+	as well as the data provided to that function.
+
+TYPE skin_callback_module: (skin_module *, void *): int
+	A callback for iterating over modules
+
+	This callback is called with `[skin_*_for_each_module](skin_object#skin_object_for_each_module)` functions, given the current module as well as
+	the data provided to that function.
+
+TYPE skin_callback_patch: (skin_patch *, void *): int
+	A callback for iterating over patches
+
+	This callback is called with `[skin_*_for_each_patch](skin_object#skin_object_for_each_patch)` functions, given the current patch as well as
+	the data provided to that function.
+
+TYPE skin_callback_region: (skin_region *, void *): int
+	A callback for iterating over regions
+
+	This callback is called with `[skin_*_for_each_region](skin_object#skin_object_for_each_region)` functions, given the current region as well as
+	the data provided to that function.
+
+TYPE skin_callback_sub_region: (skin_sub_region *, void *): int
+	A callback for iterating over sub-regions
+
+	This callback is called with `[skin_*_for_each_sub_region](skin_object#skin_object_for_each_sub_region)` functions, given the current sub-region
+	as well as the data provided to that function.

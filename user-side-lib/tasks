@@ -1,0 +1,31 @@
+- Keep timestamp of sensor responses in sensor types
+- Add functions returning number of sensors of regions and patches (and preferably cache them so that multiple calls to the function doesn't waste
+  too much time)
+- Investigate whether in user-space a call to rt_task_hard_real_time() is necessary after rt_thread_init or not. Also investigate whether
+  rt_task_init should be used or rt_thread_init. Update: According to Paolo Montegazza (RTAI writer), it all boils down to rt_task_int_schmod so no
+  difference. rt_thread_init is prefered because it is "more compact and more complete"
+- In regionalizer, try Delaunay's triangulation method
+- In regionalizer, instead of connecting each uncovered taxel to its neighbor, try getting the connected components of the coverage so far, and connect
+  them one by one, each time connecting the two closest components
+- In regionalizer, check to see if region already exists.  If so, don't add the region and give a message to the user.
+- In regionalizer, change input to sensors instead of modules.  If clicking with mouse, there could be two modes of selection; whole modules or sensor by sensor.
+  (note that this is only possible in the no-sub-region branch)
+- Add a feature to regionalizer to expand or shrink current region
+- Put different priorities for ASAP, periodic and sporadic readers. ASAP has the highest priority while sporadic has lowest
+- Write a feature where a module can say it has updated the global positions and the library would copy the data to kernel.  The kernel then sets a flag so that
+  the readers would update this data.  To not lose the data, the reader, once read, can set a number for each layer to 0, while the kernel increments it on each
+  flag.
+- Change skin_sensor_type to skin_sensor_layer? Or vice versa? They are both meaningful, even though they represent the same thing.  Since they represent the
+  same thing, it is better for them to have the same name.  Come up with something.
+- In regionalizer, write undo!
+- In regionalizer, write a method that logs actions.  In case of crash, this log can be given so that regionalization would continue from that point, instead
+  of forcing the user to start over.
+- Take the fix_response implemented in visualizer and put it in a library that would be used in the regionalizer and the motion service.
+- In the calibrator, add a --generate flag that makes it generate fake positions if file couldn't be loaded.  It can open a window and using the same
+  `fix_response` as in the visualizer, allow the user to manually calibrate.  Moving the sensors one by one would be ok, but another idea would be to
+  define springs between sensors that are touched at the same time with equal length (or length based on ratio of response from highest response, being
+  the centeral point-of-touch of a spherical probe) and have the user touch all the skin with his finger.  The springs would then rearrange the sensors.
+  There must be a way to make them shape in 3d!
+- Change ASAP and sporadic in single buffer to sleep on timestamp change, instead of switching to periodic/reading anyway.
+- Make the "registered user" into a struct with better information and functionality
+- Add is_paused functions to kernel and user service managers

@@ -1,0 +1,25 @@
+globals
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+
+skin_object
+skin_reader
+skin_service_manager
+skin_service
+skin_sensor
+skin_sensor_type
+skin_region
+skin_sub_region
+skin_module
+skin_patch
+skin_task_statistics
+skin_X_iterator
+skin_rt

@@ -1,0 +1,11 @@
+# A command is the period of acquisition + a command code
+uint64 period
+uint8 cmd
+# Only in sporadic case:
+uint32 id
+# Giving random values for better debugging
+uint8 ROSSKIN_START=17
+uint8 ROSSKIN_STOP=29
+uint8 ROSSKIN_PAUSE=43
+uint8 ROSSKIN_RESUME=59		# note: RTAI has RESUME defined!
+---

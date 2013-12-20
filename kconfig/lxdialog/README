@@ -1,0 +1,5 @@
+This is NOT the official version of dialog. This version has been
+lifted from the RTAI build system, which in turn is a modification
+of the version that is included in the Linux kernel build system.
+
+Please do not bother Savio Lam with questions about this program.

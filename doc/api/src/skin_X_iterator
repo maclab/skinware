@@ -1,0 +1,115 @@
+class skin_X_iterator
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+next class skin_object
+seealso `[skin_sensor]`
+seealso `[skin_sensor_iterator]`
+seealso `[skin_module]`
+seealso `[skin_patch]`
+seealso `[skin_sub_region]`
+seealso `[skin_region]`
+seealso `[skin_object]`
+
+The `skin_X_iterator` classes are a set of classes with similar interfaces inside classes `[skin_module]`, `[skin_patch]`, `[skin_sub_region]`, `[skin_region]`,
+`[skin_sensor_type]` and `[skin_object]` which can be used to iterate through their sensors, sensor types, modules, patches, regions and sub-regions in a C++ STL fashion,
+hiding the complexities of the underlying structure. The `X` in this class can be `sensor`, `sensor_type`, `module`, `patch`, `region` or `sub_region` and throughout this
+documentation page `X` should be substituted with the entity of interest. The usage of this class is similar to C++'s STL:
+	```
+	skin_module *m = ...;
+	for (skin_module::skin_sensor_iterator i = m-\>sensors_iter_begin(); i != m-\>sensors_iter_end(); ++i)
+	    cout \<\< i-\>id \<\< " " \<\< i-\>get_response() \<\< endl;
+	```
+
+FUNCTION skin_X_iterator: ()
+	Default constructor
+
+	Constructs an invalid iterator.
+
+FUNCTION operator ++: (): skin_X_iterator \&
+	Prefix increment of the iterator
+
+	Moves the iterator ahead, which means it would now point to the next X. Note that this operation does not perform range checks, i.e. with this
+	operation, it is possible to go out of array.
+
+	OUTPUT
+		Returns a reference to the same `skin_X_iterator` object which has its pointer incremented.
+
+FUNCTION operator ++: (unused: int): skin_X_iterator
+	Postfix increment of the iterator
+
+	Moves the iterator ahead, which means it would now point to the next X. Note that this operation does not perform
+	range checks, i.e. with this operation, it is possible to go out of array. Note also that the postfix function takes a
+	copy of the object, increment the original one and return the copy, which might be unnecessary and the
+	[prefix increment](#operator ++) is advised if it is to be used in an standalone statement, such as in a `for` loop.
+
+	INPUT unused
+		For C++ to differentiate between the postfix and prefix increments, the postfix increment has an `int` in its input list which is disregarded.
+		Therefore, if called like `i.operator++(0)`, then this function would be called instead of the [prefix increment](#operator ++).
+	OUTPUT
+		Returns a copy of the same `skin_X_iterator` object before having incremented it.
+
+FUNCTION operator ==: (rhs: const skin_X_iterator \&): bool
+	Tests whether two iterators are equal
+
+	Checks whether this iterator and **`rhs`** point to the same X. Note that if both iterators are invalid, the result of this operation is
+	**not necessarily** `true`.
+
+	**Note:** `operator ++` can still be used on an invalid iterator, which means when the iterator reaches its end, it would be equal to what
+	`[Xes_iter_end()](skin_object#sensors_iter_end)` returns, but if incremented more, they wouldn't be equal. Therefore, it is important that as soon
+	as the iterator gets invalid, it is identified as invalid (checked against `Xes_iter_end()`) and not incremented any more.
+
+	INPUT rhs
+		The right hand side of the equality.
+	OUTPUT
+		The result of the operation is whether the two iterators point to the same X or not.
+
+FUNCTION operator !=: (rhs: const skin_X_iterator \&): bool
+	Tests whether two iterators are unequal
+
+	Checks whether this iterator and **`rhs`** point to different Xes. Note that if both iterators are invalid, the result of this operation is
+	**not necessarily** `false`.
+
+	**Note:** `operator ++` can still be used on an invalid iterator, which means when the iterator reaches its end, it would be equal to what
+	`[Xes_iter_end()](skin_object#sensors_iter_end)` returns, but if incremented more, they wouldn't be equal. Therefore, it is important that as soon
+	as the iterator gets invalid, it is identified as invalid and not incremented any more.
+
+	INPUT rhs
+		The right hand side of the inequality.
+	OUTPUT
+		The result of the operation is whether the two iterators point to different Xes or not.
+
+FUNCTION operator *: (): skin_X \&
+	Get contents of the iterator
+
+	Returns a reference to the original X this iterator is pointing to so it could be used. Unless for copying, the programmer would be more
+	interested in `[#operator -\>]`.
+
+	OUTPUT
+		Returns a reference to the X this iterator is pointing to.
+
+FUNCTION operator -\>: (): skin_X *
+	Get members of the object the iterator is pointing to
+
+	Returns a pointer to the original X this iterator is pointing to and then C++ uses that pointer to allow access to the `skin_X`'s
+	public variables and functions. Thus, as illustrated on the top of this page, working with the iterator is similar to working with pointers.
+
+	OUTPUT
+		Returns a pointer to the X this iterator is pointing to.
+
+FUNCTION operator skin_X *: (): skin_X *
+	Cast the iterator to the X object itself
+
+	Casts the iterator to a pointer to the corresponding `skin_X` object. This means that the iterator can be passed to functions taking
+	`skin_X *` as argument without a need for explicit cast.
+
+	OUTPUT
+		A pointer to the X object this iterator is pointing to.

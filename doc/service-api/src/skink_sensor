@@ -1,0 +1,116 @@
+struct skink_sensor
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+prev struct skink_sensor_layer
+next struct skink_sub_region
+
+Sensors are the basic element of the skin. They are primarily created for tactile sensors, but as far as Skinware is concerned, could provide any value, e.g.
+temperature. Sensors are considered to be points on the skin, facing a certain direction. These values, along with a flattened representation of the skin are provided
+at calibration stage. The sensors also have a neighborhood relation.
+
+Due to the nature of [sub-regions](skink_sub_region), each sensor is part of a single sub-region, through which could be part of multiple regions.
+
+VARIABLE id: skink_sensor_id
+	The id of this sensor
+
+	This is the id of the sensor, which shows its index in `[#sensors](skink_sensor_layer)` of `skink_sensor_layer` in the [sensor layer](#layer) it belongs to.
+
+VARIABLE response: skink_sensor_response *
+	The response of this sensor
+
+	This is an array of responses, allowing Skinware to use multiple buffers for communication. Each time the [acquire callback](Callbacks#skink_service_acquire)
+	is called, it is given a buffer parameter which must be used to read the sensor response from that location in this array. The sensor values are mapped to
+	`\[0, [#SKINK_SENSOR_RESPONSE_MAX](constants)]`.
+
+VARIABLE layer: skink_sensor_layer_id
+	Layer this sensor belongs to
+
+	This is an index to `[#sensor_layers](skink_data_structures)` of `skink_data_structures` which shows the [sensor layer](skink_sensor_layer) this sensor belongs to.
+
+VARIABLE sub_region: skink_sub_region_id
+	Sub-region this sensor belongs to
+
+	This is an index to `[#sub_regions](skink_data_structures)` of `skink_data_structures` which shows the [sub-region](skink_sub_region) this sensor belongs to.
+
+VARIABLE module: skink_module_id
+	Module this sensor belongs to
+
+	This is an index to `[#modules](skink_sensor_layer)` of `skink_sensor_layer` which shows the [module](skink_module) this sensor belongs to.
+
+VARIABLE neighbors_begin: skink_sensor id
+	Start index of neighbors of this sensor
+
+	This is an index to `[#sensor_neighbors](skink_data_structures)` of `skink_data_structures` which contains the neighboring sensors of this sensor. The neighbors of
+	this sensor are located in indices `\[neighbors_begin, neighbors_begin + [#neighbors_count])`. Note that unlike `[#id]` and
+	other hardware related ids that have their values relative to the layer, the neighbors are absolute indices to `[#sensors](skink_data_structures)` of
+	`skink_data_structures`.
+
+VARIABLE neighbors_count: skink_sensor_size
+	Number of neighbors of this sensor
+
+	See [#neighbors_begin].
+
+VARIABLE position_nm: int64_t[3]
+	Position of the sensor in nanometers
+
+	This is the 3D position of the sensor. To avoid using the FPU in kernel space, this value is written in nanometers. This value is in the coordinate system of
+	`[#robot_link]` and is computed during the calibration phase. In the future, it is possible for a service to improve these values as the robot works.
+
+	**Note:** To divide this 64 bit value by any number, you must take care of the fact that it is signed. In kernel, `do_div` which performs 64-bit division
+	in 32-bit systems assumes both numbers are unsigned. The following macro can be used to perform such a division, although it is not defined by the skin
+	kernel:
+		```
+		#if BITS_PER_LONG != 64
+		#define SIGNED_DIV(x, y) ({ int64_t _x = (x); int64_t _y = (y); char neg = 0;\\
+		                            if (_x < 0) { _x = -_x; neg = !neg; }\\
+		                            if (_y < 0) { _y = -_y; neg = !neg; }\\
+		                            do_div(_x, _y);\\
+		                            if (neg) _x = -_x;\\
+		                            _x; })
+		#else
+		#define SIGNED_DIV(x, y) ((x) / (y))
+		#endif
+		```
+
+VARIABLE orientation_nm: int64_t[3]
+	Orientation of the sensor in nanometers
+
+	This is the 3D orientation of the sensor. To avoid using the FPU in kernel space, this value is written in nanometers. Orientation of the sensor is the
+	normal to the surface on which the sensor is located. This value is in the coordinate system of `[#robot_link]` and is computed during the
+	calibration phase. In the future, it is possible for a service to improve these values as the robot works.
+
+	See the note on `[#position_nm]`.
+
+VARIABLE flattened_position_nm: int64_t[2]
+	Position of the sensor in the flattened image of the skin
+
+	This is the 2D position of the sensor in the flattened image of the skin. To avoid using the FPU in kernel space, this value is written in nanometers. The
+	flattened image of the skin has less information than the 3D position/orientation information, but allows the tactile data to be processed using the ubiquitous
+	image processing technics, albeit with modifications. This value is computed during the calibration phase.
+
+	See the note on `[#position_nm]`.
+
+VARIABLE radius_nm: uint64_t
+	Radius of the sensor
+
+	This is the radius of the sensor, assuming it's a circle (or a sphere) centered at `[#position_nm]`. To avoid using the FPU in kernel space,
+	this value is written in nanometers. This value is computed during the calibration phase.
+
+	**Note:** To divide this 64 bit value by any number, you must use `do_div` in the kernel.
+
+VARIABLE robot_link: uint32_t
+	Robot link the sensor is located on
+
+	The skin kernel itself is not aware of the kinematics of the robot. However, it keeps this value, filled during calibration, for use by those users that _do_
+	have this information. This value is an id for the robot link the sensor is located on. Using this value, a user may compute the transformation matrix of the
+	robot link and apply it to `[#position_nm]` and `[#orientation_nm]` to compute the current global position and orientation. An efficient solution
+	could be a service computing these global values periodically and making them available to users.

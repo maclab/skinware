@@ -1,0 +1,195 @@
+functions skink_device
+# Skinware - Driver API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+seealso [Callbacks]
+next struct skink_registration_data
+
+Functions of this API are prefixed with `skink_device\_`. Skinware takes care of most of complexities and it is strived to keep the drivers'
+complexities themselves to a minimum. The structure of the driver is basically the following.
+
+	1. Initialize network and build in internal data structures
+	2. Register the device
+	3. Resume
+	4. If not reviving, the [details callback](Callbacks#skink_device_details) will be called. In this callback, data needs to be passed on to the
+	   skin kernel
+	5. Periodically, the [acquire callback](Callbacks#skink_device_acquire) will be called in which the driver needs to fill in sensor responses
+
+The [busy callback](Callbacks#skink_device_busy) exists through which the skin kernel tells the driver whether it is under use or not. If under use, it
+must not be removed from the Linux kernel. This means that the driver needs to pause in its cleanup function and then wait for this callback.
+
+MACRO SKINK_LOG: (format, ...)
+	Kernel log (wrapper for `printk`)
+
+	This macro is a wrapper for `printk` that includes common prefixes. It prints `KERN_INFO`, followed by `SKINK_MODULE_NAME`. If configured in debug
+	mode, it includes file and line number also. New line is added in the end and is therefore unnecessary.
+
+	The macro `SKINK_MODULE_NAME` is defined only if not defined before including the skin header files, in which case it would be "Unnamed module".
+	Therefore, before including the headers, this macro must be defined to a proper name.
+
+	INPUT format
+		A `printk` style format string.
+	INPUT ...
+		Any number of parameters matching the format string.
+
+FUNCTION skink_device_register: (data: skink_registration_data *, revived: bool *): int
+	Register a driver with the skin kernel or revive oneself
+
+	This function registers the driver with the skin kernel. The skin kernel must be in the correct phase. The call to this function must provide
+	basic information. More detailed information can be enquired by the skin kernel if necessary.
+
+	It is possible for the driver to be removed and then inserted again during execution of Skinware. In such a case, this function will
+	return with the old device's id, setting **`revived`** (if provided). The only difference in this case is that the
+	[details callback](Callbacks#skink_device_details) providing more detailed information will not be called. Also note that, the driver in such
+	a case must remember the name it used when it first originally successfully registered. Otherwise, in rare cases when two device drivers handling
+	networks with the same name and the same number of types/sensors/modules/patches are both removed, one can be revived in place of the other. The
+	best way to make sure this doesn't happen is to hard-code the driver name instead of dynamically generating it.
+
+	Upon creation, the devices are paused. Therefore they need to be [resumed](#skink_device_resume) after registration is complete.
+
+	INPUT data
+		A pointer to an object of type `[skink_registration_data]` which provides basic information about the network this device driver is
+		responsible for.
+
+	INPUT revived
+		If not `NULL`, will contain true if the device driver is being revived and false otherwise.
+
+	OUTPUT
+		Returns the id of the device driver. This id must be used with other functions (e.g. `[#skink_device_resume]`) that require
+		the device id. This id is non-negative. In case of failure, one of the following negative values are returned:
+			- `[#SKINK_REVIVED](constants)` if the device is revived. This means that the device had previously registered, but had been paused.
+			- `[#SKINK_BAD_DATA](constants)` if provided **`data`** are invalid.
+			- `[#SKINK_TOO_LATE](constants)` if called after the skin kernel has passed registration phase. In this case, the device driver
+			  cannot register unless the skin kernel is restarted, and must give up.
+			- `[#SKINK_IN_USE](constants)` if the requested [name](skink_registration_data#device_name) was in use. In such a case, the
+			  device driver must try again with a different name. Dynamically finding a name is not recommended, though, as the driver would then
+			  need to remember that name for when it is being revived.
+			- `[#SKINK_FAIL](constants)` if any operation failed. It is possible, but not guaranteed, for the operation to be successful on retry.
+
+FUNCTION skink_device_register_nonblocking: (data: skink_registration_data *, revived: bool *): int
+	Register a driver with the skin kernel or revive oneself
+
+	This is the nonblocking version of `[#skink_device_register]`. The only difference is that if it is too early to register a device, `skink_device_register`
+	blocks until that is possible, while this function returns with the proper return value. Please see `[#skink_device_register]` for important notices.
+
+	Upon creation, the devices are paused. Therefore they need to be [resumed](#skink_device_resume) after registration is complete.
+
+	INPUT data
+		A pointer to an object of type `[skink_registration_data]` which provides basic information about the network this device driver is
+		responsible for.
+
+	INPUT revived
+		If not `NULL`, will contain true if the device driver is being revived and false otherwise.
+
+	OUTPUT
+		Returns the id of the device driver. This id must be used with other functions (e.g. `[#skink_device_resume]`) that require
+		the device id. This id is non-negative. In case of failure, one of the following negative values are returned:
+			- `[#SKINK_REVIVED](constants)` if the device is revived. This means that the device had previously registered, but had been paused.
+			- `[#SKINK_BAD_DATA](constants)` if provided **`data`** are invalid.
+			- `[#SKINK_TOO_EARLY](constants)` if called before the skin kernel has reached the proper state. In this case, the device driver
+			  must sleep and retry later.
+			- `[#SKINK_TOO_LATE](constants)` if called after the skin kernel has passed registration phase. In this case, the device driver
+			  cannot register unless the skin kernel is restarted, and must give up.
+			- `[#SKINK_IN_USE](constants)` if the requested [name](skink_registration_data#device_name) was in use. In such a case, the
+			  device driver must try again with a different name. Dynamically finding a name is not recommended, though, as the driver would then
+			  need to remember that name for when it is being revived.
+			- `[#SKINK_FAIL](constants)` if any operation failed. It is possible, but not guaranteed, for the operation to be successful on retry.
+
+FUNCTION skink_device_resume: (device_id: unsigned int): int
+	Resume a paused or new device
+
+	This function blocks until it is possible for the device driver to be resumed. It then resumes the acquisition threads and returns.
+
+	**Note:** This function can create a race condition with `[#skink_device_pause]` (and similarly `[#skink_device_pause_nonblocking]`). The driver
+	must therefore make sure `skink_device_pause` is not being called in parallel.
+
+	INPUT device_id
+		The id of the device returned when [registered](#skink_device_register).
+
+	OUTPUT
+		Returned one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_BAD_ID](constants)` if **`device_id`** is out of range.
+			- `[#SKINK_TOO_LATE](constants)` if the skin kernel has failed initialization or is exiting.
+			- `[#SKINK_FAIL](constants)` if any operation failed or device is in a bad state. It may also fail if the device is already resumed.
+
+FUNCTION skink_device_resume_nonblocking: (device_id: unsigned int): int
+	Resume a paused or new device if possible
+
+	This function tries to resume the device driver. The difference with `[#skink_device_resume]` is that if it is called too early, it fails with the
+	proper return value.
+
+	**Note:** This function can create a race condition with `[#skink_device_pause]` (and similarly `[#skink_device_pause_nonblocking]`). The driver
+	must therefore make sure `skink_device_pause` is not being called in parallel.
+
+	INPUT device_id
+		The id of the device returned when [registered](#skink_device_register).
+
+	OUTPUT
+		Returned one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_BAD_ID](constants)` if **`device_id`** is out of range.
+			- `[#SKINK_TOO_EARLY](constants)` if it was too early to resume the device. The driver must sleep and try again.
+			- `[#SKINK_TOO_LATE](constants)` if the skin kernel has failed initialization or is exiting.
+			- `[#SKINK_FAIL](constants)` if any operation failed or device is in a bad state. It may also fail if the device is already resumed.
+
+FUNCTION skink_device_pause: (device_id: unsigned int): int
+	Pause a running device
+
+	This function blocks until it can pause the device driver. This function must be called in the `cleanup_module` function of the driver Linux kernel
+	module. The driver must then wait for `[#skink_device_busy](Callbacks)` to be called with a zero value before completing cleanup.
+
+	**Note:** This function can create a race condition with `[#skink_device_resume]` (and similarly `[#skink_device_resume_nonblocking]`). The driver
+	must therefore make sure `skink_device_resume` is not being called in parallel. This can be fatal in module removal.
+
+	INPUT device_id
+		The id of the device returned when [registered](#skink_device_register).
+
+	OUTPUT
+		Returned one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_BAD_ID](constants)` if **`device_id`** is out of range.
+			- `[#SKINK_TOO_LATE](constants)` if the skin kernel has failed initialization or is exiting.
+			- `[#SKINK_FAIL](constants)` if any operation failed or device is in a bad state. It may also fail if the device is already paused.
+
+FUNCTION skink_device_pause_nonblocking: (device_id: unsigned int): int
+	Pause a running device if possible
+
+	This function tries to pause the device driver. This function must be called in the `cleanup_module` function of the driver Linux kernel
+	module. The driver must then wait for `[#skink_device_busy](Callbacks)` to be called with a zero value before completing cleanup. The difference with
+	`[#skink_device_pause]` is that if it is called too early, it fails with the proper return value.
+
+	**Note:** This function can create a race condition with `[#skink_device_resume]` (and similarly `[#skink_device_resume_nonblocking]`). The driver
+	must therefore make sure `skink_device_resume` is not being called in parallel. This can be fatal in module removal.
+
+	INPUT device_id
+		The id of the device returned when [registered](#skink_device_register).
+
+	OUTPUT
+		Returned one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_BAD_ID](constants)` if **`device_id`** is out of range.
+			- `[#SKINK_TOO_EARLY](constants)` if it was too early to pause the device. The driver must sleep and try again.
+			- `[#SKINK_TOO_LATE](constants)` if the skin kernel has failed initialization or is exiting.
+			- `[#SKINK_FAIL](constants)` if any operation failed or device is in a bad state. It may also fail if the device is already paused.
+
+FUNCTION skink_copy_from_previous_buffer: (layer: skink_sensor_layer *): void
+	Copy data of previous buffer to current
+
+	This function copies data that the [aquire function](Callbacks#skink_device_acquire) had provided in the previous buffer to the current one. This
+	is useful for drivers that may not always have new data. In such a case, if this function is not used, or the previous data is not copied in the
+	new buffer in any other way, there could be flickering in end-user data as they see alternating data from different buffers.
+
+	If a driver may only partially update the sensor results, it can call this function first and then overwrite its new data, even though storing and
+	writing the gaps from the stored values handled by the driver itself _may_ be more efficient.
+
+	INPUT layer
+		The layer for which data copy is requested

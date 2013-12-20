@@ -1,0 +1,163 @@
+api Service Manager
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+next struct skink_service
+prev api Service Functions
+
+The service manager is a set of functions that allows other services or modules to attach to a service and use its results or request a sporadic service.
+As of the current version, the service manager is still in development. In the near future, functions similar to those in `skin_service_manager` class in the
+user-space API will be added.
+
+FUNCTION skink_connect_to_service: (service_name: const char *, service: skink_service *): int
+	Connect to a service
+
+	This function connects to a service, initializing **`service`**. The service programmer is supposed to provide a header file including the **`service_name`**
+	required by this function as well as the result data type which the user program could use to cast **`service`**`.[#memory](skink_service)` to.
+
+	INPUT service_name
+		The name of the shared memory used by the service to place the results. This name should be provided by the service
+		programmer in a header file.
+	INPUT service
+		A `[skink_service]` object that would be initialized and attached to the service.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)`. If it is too early to attach to a service.
+			- `[#SKINK_TOO_LATE](constants)`. If it is too late to attach to a service.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason, including **`must_stop`** becoming true. The operation _may_ be successful on retry.
+
+FUNCTION skink_disconnect_from_service: (service: skink_service *): void
+	Disconnect from a service
+
+	This function disconnects from **`service`** and makes the object invalid, i.e. `[#memory](skink_service)` will be `NULL`.
+
+	INPUT service
+		A `[skink_service]` object that was initialized by `[#skink_connect_to_service]`.
+
+FUNCTION skink_lock_service: (service: skink_service *, must_stop: bool *): int
+	Lock a periodic service
+
+	This function locks a service if it is periodic. The user needs to call `[#skink_unlock_service]` if this call is successful to allow the service to continue
+	execution.
+
+	**Note:** This function performs real-time operations and therefore must be called from a real-time context. If not, it will fail with an appropriate
+	return value.
+
+	INPUT service
+		The `[skink_service]` object of the service that should be locked.
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the request. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_ID](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from a non-real-time thread.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason, including **`must_stop`** becoming true. The operation _may_ be successful on retry.
+
+FUNCTION skink_unlock_service: (service: skink_service *): int
+	Unlock a previously locked periodic service
+
+	This function unlocks a previously [locked](#skink_lock_service) service if it is periodic.
+
+	**Note:** This function performs real-time operations and therefore must be called from a real-time context. If not, it will fail with an appropriate
+	return value.
+
+	INPUT service
+		The `[skink_service]` object of the service that should be unlocked.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_ID](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from a non-real-time thread.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason, including **`must_stop`** becoming true. The operation _may_ be successful on retry.
+
+FUNCTION skink_request_service: (service: skink_service *, must_stop: char *): int
+	Requests a sporadic service and awaits response
+
+	This function signals a [sporadic](Service Functions#skink_initialize_sporadic_service) service. The service will then be executed once and signals back.
+	This function will wait until the service is complete.
+
+	**Note:** This function performs real-time operations and therefore must be called from a real-time context. If not, it will fail with an appropriate
+	return value.
+
+	INPUT service
+		The `[skink_service]` object of the service that should be requested.
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the request. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_ID](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from a non-real-time thread.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason, including **`must_stop`** becoming true. The operation _may_ be successful on retry.
+
+FUNCTION skink_request_service_nonblocking: (service: skink_service *): int
+	Only requests a sporadic service but does not await its response
+
+	This function signals a [sporadic](Service Functions#skink_initialize_sporadic_service) service. The caller must call `[#skink_await_service_response]`
+	later to complete the request. If that function is not called, the [service callback](Callbacks#skink_service_function) is still called, but the sporadic
+	request synchronization mechanism breaks, which becomes an issue if more than one thread is calling this function.
+
+	The purpose of this function is to allow parallel requests to be sent to different services and then later await their responses. For example, instead
+	of three calls to `[#skink_request_service]`, which executes the services sequentially, a code such as the following can be used which executes the services in
+	parallel. Proper error handling needs to be done.
+
+		```
+		skink_request_service_nonblocking(&service0);
+		skink_request_service_nonblocking(&service1);
+		skink_request_service_nonblocking(&service2);
+		skink_await_service_response(&service0, NULL);
+		skink_await_service_response(&service1, NULL);
+		skink_await_service_response(&service2, NULL);
+		```
+
+	**Note:** This function performs real-time operations and therefore must be called from a real-time context. If not, it will fail with an appropriate
+	return value.
+
+	INPUT service
+		The `[skink_service]` object of the service that should be requested.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_ID](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from a non-real-time thread.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason. The operation _may_ be successful on retry.
+
+FUNCTION skink_await_service_response: (service: skink_service *, must_stop: char *): int
+	Awaits response from a sporadic service for which a request has already been sent
+
+	This function is the complement of `[#skink_request_service_nonblocking]`. That function sends a request to the sporadic service, while this function awaits its
+	response. See the comments of `skink_request_service_nonblocking` for more information.
+
+	**Note:** This function performs real-time operations and therefore must be called from a real-time context. If not, it will fail with an appropriate
+	return value.
+
+	INPUT service
+		The `[skink_service]` object of the service that should be waited on.
+	INPUT must_stop
+		If not `NULL`, it can be used to cancel the request. That is, this function will fail if **`must_stop`** becomes `true`.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKINK_SUCCESS](constants)` if successful.
+			- `[#SKINK_TOO_EARLY](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_TOO_LATE](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_ID](constants)`. If the service has been correctly initialized, this value should not be returned.
+			- `[#SKINK_BAD_CONTEXT](constants)` if this function is called from a non-real-time thread.
+			- `[#SKINK_FAIL](constants)` if failed for any other reason, including **`must_stop`** becoming true. The operation _may_ be successful on retry.

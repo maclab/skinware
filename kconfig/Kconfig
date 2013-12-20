@@ -1,0 +1,392 @@
+mainmenu "Skinware: The Skin Middle-ware"
+
+config SKIN_DEVELOPER_MODE
+	bool "Developer mode"
+	default "n"
+	help
+	This option enables other options intended for use by the developers of
+	Skinware.
+
+menu "General"
+
+config SKIN_INSTALL_DIR
+	string "Installation directory"
+	default "/usr/skin"
+	help
+	This option defines the directory where the various Skinware files will be
+	installed on your system.  This directory may be changed if you double-click
+	in the area named "Value".
+
+	The default installation directory is /usr/skin
+
+config SKIN_RTAI_CONFIG_TOOL
+	string "RTAI configuration tool"
+	default "/usr/realtime/bin/rtai-config"
+	depends on !SKIN_ROSSKIN_LIB_ONLY
+	help
+	This is a tool provided by RTAI.  This script normally resides in the RTAI
+	installation path (e.g. /usr/realtime/bin) and if the including directory
+	is in PATH already, the value rtai-config should suffice.  If PATH doesn't
+	include this script, then set the value of this variable to the full path
+	to rtai-config.
+
+	NOTE however, that even if rtai-config is in your PATH, it is not recommended
+	to rely on it.  The reason is that if you use sudo, it will not provide your
+	PATH to the scripts.  A workaround is to use `sudo PATH=$PATH ...`
+
+config SKIN_LARGE
+	bool "Large skin"
+	default n
+	help
+	By default, the skin assumes there will not be more then 65535 sensors in the
+	skin.  As a result, the size of all variables related to sensors, modules,
+	patches, regions and sub-regions is set to 2 bytes.  If this option is set,
+	the size of these variables will become 4 bytes.  The only drawback is
+	consuming extra memory and possibly slower acquisition rate.
+
+	If in doubt, say yes.
+
+config SKIN_PYTHON
+	bool "Make Python bindings"
+	default y
+	depends on !SKIN_ROSSKIN_LIB_ONLY
+	help
+	This option creates an additional shared object, pyskin.so that contains
+	python bindings to the user-space API.  Each function skin_X is bound to
+	pyskin.X and the behavior, input and output is the same as documented for
+	skin_X.
+
+config SKIN_ROSSKIN
+	bool "Make ROS module"
+	default n
+	help
+	This option creates and additional shared object librosskin.so as well as an
+	executable rosskin-server, which contain two ROS modules.  The server
+	executable handles connections to the skin (and therefore needs root access)
+	while the library can be used to connect to the server and remotely perform
+	data acquisitions.
+
+config SKIN_ROSSKIN_LIB_ONLY
+	bool "Build ROS user module ONLY"
+	default n
+	depends on SKIN_ROSSKIN
+	help
+	This option disables build of everything except the rosskin user module
+	library.  This option can be used to compile and use rosskin on a machine
+	that doesn't use Skinware itself.
+
+config SKIN_COLOR_BUILD
+	bool "Use colors in build"
+	default y
+	help
+	For better visualization of the progress of build, colors are used.  If this
+	annoys you, or if your shell ran into problems with color escape codes,
+	simply disable this option.
+
+config SKIN_DEBUG
+	bool "Debug mode"
+	default n
+	depends on SKIN_DEVELOPER_MODE
+	help
+	In debug mode, the logs will be more elaborate.  Some extra error checking
+	may also be performed.
+	
+	This is mainly for developers of Skinware.
+
+menu "Documentation"
+
+config SKIN_DOC
+	bool "Build DocThis! documentation (HTML and LaTeX)"
+	default n
+	help
+	This option causes the DocThis! program to be compiled and the documentation
+	of the skin generated in HTML and LaTeX.  Normal users may want to use the
+	already built documentation.
+
+config SKIN_DOC_PDF
+	bool "Build DocThis! documentation (PDF)"
+	default n
+	depends on SKIN_DOC
+	help
+	This option causes the generated LaTeX documentation to be compiled to PDF
+	by using pdflatex.
+
+config SKIN_DOC_PDFLATEX_VERBOSE
+	bool "Enable pdflatex verbose output"
+	default n
+	depends on SKIN_DOC_PDF && SKIN_DEVELOPER_MODE
+	help
+	By default, all documentation generated with pdflatex use the silent
+	(batchmode) of pdflatex.  If this option is enabled, pdflatex will be
+	verbose.
+	
+	This option is mainly intended for the developers of Skinware documentation.
+
+endmenu # Documentation
+
+endmenu # General
+
+menu "Modules"
+depends on !SKIN_ROSSKIN_LIB_ONLY
+
+menu "Drivers"
+
+config SKIN_DRIVER_VIRTUAL
+	bool "Driver of a virtual device"
+	default n
+	depends on SKIN_DEVELOPER_MODE
+	help
+	This option enables building of a driver producing imaginary data.
+	
+	This driver is mainly used by the developers of Skinware to test the behavior
+	of the middle-ware when presented with a huge amount of sensors.
+
+endmenu # Drivers
+
+menu "Services"
+
+config SKIN_SERVICE_TEST
+	bool "A test service"
+	default n
+	depends on SKIN_DEVELOPER_MODE
+	help
+	This option enables building of a service that tests varius possible service
+	types.
+	
+	This service is mainly used by the developers of Skinware to test the
+	correctness of the middle-ware handling both service and their readers.
+
+config SKIN_SERVICE_MOTION
+	bool "A demo motion tracking service"
+	default y
+	help
+	This option enables building of a simple demo service that tracks motion along
+	each of the layers of the skin.  The visualizer included with Skinware
+	visualizes results of this service.
+
+	This service serves as an example and is not meant to be used by the end user.
+	
+endmenu # Services
+
+endmenu # Modules
+
+menu "Advanced"
+depends on !SKIN_ROSSKIN_LIB_ONLY
+
+menu "Global"
+
+config SKIN_THREAD_MAX_DELAY
+	int "Reader tasks' maximum delay"
+	default 10000000
+	range 10000 100000000
+	help
+	When an acquisition thread is paused or is waiting for new data, it sleeps
+	by this amount.  The higher this number is, the less responsive the threads
+	would be.  This means that the total time since acquiring the data at kernel
+	level until the data are available to the user can be increased by at most
+	this amount.  On the other hand, the lower this number is, the more often
+	the thread wakes up and therefore the more CPU it uses.  Setting this number
+	to zero makes these waits effectively busy-waiting (DON'T DO IT).
+
+	Default value is 10,000,000 (nanoseconds).
+
+	Value in range [10,000, 100,000,000].
+
+config SKIN_TASK_STACK_SIZE
+	int "Threads' stack sizes"
+	default 10000
+	range 200 100000
+	help
+	This is the size of the stack allocated for each thread to run on.  The lower
+	bound is theoretically measured by the number of local variables (plus some
+	threshold), but is not tested (yet).  The default value is large enough and
+	in general doesn't impose a memory problem.  It can be reduced however if
+	memory constraints are tight in your system.
+
+	Default value is 4096.
+
+	Value in range [200, 100,000].
+
+endmenu # Global
+
+menu "Skin kernel"
+
+config SKIN_KERNEL_MAX_BUFFERS
+	int "Maximum possible acquisition buffers"
+	default 5
+	range 1 37
+	help
+	Data acquisition is done using multiple buffers to avoid either the readers
+	or writers from blocking each other.  The higher this value is, the more
+	memory is consumed, but the less chance there is for a swap skip.  See the
+	documentation for more information on swap skips and multi-buffer data
+	acquisition.
+
+	Note that, the skin kernel can be initilized with a value smaller than the
+	one specified here, although the memory consumption would be the same.
+
+	Default value is 5.
+
+	Value in range [1, 37].  Value 37 is chosen to simplify generating names for
+	synchronization locks.  In the unlikely event that you need more than 37
+	buffers, please contact support.
+
+config SKIN_KERNEL_MAX_LAYERS
+	int "Maximum possible sensor layers"
+	default 37
+	range 1 37
+	help
+	The skin kernel can handle multiple network drivers, each acquiring data from
+	multiple sensor types.  Each sensor type is grouped in a layer.  The total
+	number of sensor layers cannot exceed this value.  Higher values result in
+	slightly higher memory consumption, directly proportional to the number of
+	sub-regions, which in turn is computed by the number of regions in the skin
+	and the way they overlap.
+
+	Default value is 37.
+
+	Value in range [1, 37].  Value 37 is chosen to simplify generating names for
+	synchronization locks.  In the unlikely event that you have more than 37
+	sensor layers, please contact support.
+
+	If in doubt, choose 37.
+
+config SKIN_KERNEL_ACQ_PRIORITY
+	int "Kernel acquisition tasks' priority"
+	default 40
+	range 0 4294967295
+	help
+	Priority of data acquisition tasks in the skin kernel.  These are the tasks
+	that, using the attached drivers, acquire sensor data from the skin.  The
+	highest possible priority is 0 and otherwise should be positive.  This
+	priority can be configured to work best along with other RTAI tasks.
+
+	Default value is 40.
+
+config SKIN_KERNEL_TICK_PERIOD
+	int "Clock tick period"
+	default 100000
+	range 100 100000000
+	help
+	This is the tick period of RTAI's oneshot timer.  The higher this number is,
+	the less responsive the whole system becomes.  The lower it is, the more is
+	the overhead of scheduling.
+
+	Note: In the current version of Skinware, the timer used is in oneshot mode.
+	According to RTAI's documentation, this means that the tick period is ignored.
+
+	Default value is 100,000 (nanoseconds).
+
+	Value in range [100, 100,000,000].
+
+config SKIN_KERNEL_MAX_NAME_LENGTH
+	int "Maximum possible characters in a name"
+	default 50
+	range 1 1000
+	help
+	Associated with each sensor layer is a name, which can be used to identify the
+	desired sensors.  With each device too, a name is associated that can uniquely
+	identify it.  This value shows the maximum possible characters for sensor
+	layer or device names.  This value does not need to compensate for NUL.
+	Higher values result in higher memory consumption.
+
+	Default value is 50.
+
+	Value in range [1, 1000].
+
+endmenu # Skin kernel
+
+menu "User-space library"
+
+config SKIN_USER_ACQ_PRIORITY
+	int "User acquisition tasks' priority"
+	default 500
+	range 0 4294967295
+	help
+	Priority of data acquisition tasks in the skin library.  These are the tasks
+	that connect to the skin kernel and acquire sensor data for the user program.
+	The highest possible priority is 0 and otherwise should be positive.  This
+	priority can be configured to work best along with other RTAI tasks.
+
+	Default value is 500.
+
+endmenu # User-space library
+
+menu "Devices"
+
+config SKIN_DEVICE_MAX_DEVICES
+	int "Maximum number of devices"
+	default 10
+	range 1 250
+	help
+	This setting determines the maximum number of devices that can be attached
+	to Skinware.  Higher values result in slightly more memory consumption.
+
+	Default value is 10.
+
+	Value in range [1, 250].  Note that although this value is allowed to go as
+	high as 250, in truth no more than 37 devices can be functioning as that is
+	the limit on number of sensor layers.  See
+	
+	    Advanced -> Skin kernel -> Maximum possible sensor layers
+
+	for more details.
+
+endmenu # Devices
+
+menu "Services"
+
+config SKIN_SERVICE_MAX_SERVICES
+	int "Maximum number of services"
+	default 20
+	range 1 1000
+	help
+	This setting determines the maximum number of services that can be
+	simultaneously attached to the skin kernel or a user application.  This means
+	that there are at most this many services as kernel modules and separately,
+	this many services per initialized skin_object.  Higher values result in
+	slightly more memory consumption.
+
+	Default value is 20.
+
+	Value in range [1, 1000].
+
+config SKIN_SERVICE_ACQ_PRIORITY
+	int "Kernel level service acquisition tasks' priority"
+	default 200
+	range 0 4294967295
+	help
+	Priority of data acquisition tasks of the kernel level services.  These are
+	similar to the acquisition tasks in the user-side library.  This priority can
+	be configured to work best along with other RTAI tasks.
+
+	Note that user level services acquire data with the same priority as any other
+	user level application.
+
+	Default value is 200.
+
+config SKIN_SERVICE_KERNEL_PRIORITY
+	int "Kernel level service priority"
+	default 100
+	range 0 4294967295
+	help
+	The services are run by a thread whose priority is determined by this setting.
+	This setting determines priority of those services that run at kernel level.
+	This priority can be configured to work best along with other RTAI tasks.
+
+	Default value is 100.
+
+config SKIN_SERVICE_USER_PRIORITY
+	int "User level service priority"
+	default 300
+	range 0 4294967295
+	help
+	The services are run by a thread whose priority is determined by this setting.
+	This setting determines priority of those services that run at user level.
+	This priority can be configured to work best along with other RTAI tasks.
+
+	Default value is 300.
+
+endmenu # Services
+
+endmenu # Advanced

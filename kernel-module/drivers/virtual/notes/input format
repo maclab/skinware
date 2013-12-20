@@ -1,0 +1,15 @@
+An example:
+3
+Capacitance 25 60 5 2
+Organic 1000 48 4 1
+PVDF 2000 36 3 1
+3 0 12 12 12
+4 1 12 12 12 12
+2 0 12 12
+3 2 12 12 12
+
+
+Format:
+number-of-sensor-types
+(number-of-sensor-types lines) sensor-type-name sensor-data-acquisition-rate number-of-sensors number-of-modules number-of-patches
+(number-of-patches lines) number-of-modules sensor-type (number-of-modules values:) number-of-sensors-in-module

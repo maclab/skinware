@@ -1,0 +1,38 @@
+struct skink_patch
+# Skinware - Service API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+prev struct skink_module
+next struct skink_sensor_layer
+
+A patch is a set of modules in the skin, managed by a single microcontroller. As far as algorithms over the skin are concerned, details of patches are irrelevant.
+However, for those services that need to inspect the hardware itself, the following information are available.
+
+VARIABLE id: skink_patch_id
+	The id of this patch
+
+	This is the id of the patch, which shows its index in `[#patches](skink_sensor_layer)` of `skink_sensor_layer` in the [sensor layer](#layer) it belongs to.
+
+VARIABLE layer: skink_sensor_layer_id
+	Layer this patch belongs to
+
+	This is an index to `[#sensor_layers](skink_data_structures)` of `skink_data_structures` which shows the [sensor layer](skink_sensor_layer) this patch belongs to.
+
+VARIABLE modules_begin: skink_module_id
+	Start index of modules in this patch
+
+	This is an index to `[#modules](skink_sensor_layer)` of `skink_sensor_layer` which contains the modules of this patch. The modules of this patch are located
+	in indices `\[modules_begin, modules_begin + [#modules_count])`.
+
+VARIABLE modules_count: skink_module_size
+	Number of modules in this patch
+
+	See `[#modules_begin]`.

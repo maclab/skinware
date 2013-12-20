@@ -1,0 +1,58 @@
+index
+# Skinware - Driver API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut globals
+shortcut constants
+
+# Introduction
+
+The skin kernel provides API for drivers that take responsibility of a single sensor network. This includes configuring the network and any other
+necessary operations that makes data acquisition possible. Through this API, the range of hardware Skinware can work on can be increased.
+The driver is the only module that understands the hardware. Beyond the driver all data are threated the same.
+
+## List of Structures
+
+### `[skink_registration_data]`
+>	Each device driver needs to register itself with the skin kernel during the early initialization phases of the kernel. It needs to provide
+	some data, including a few callbacks to the skin kernel by through this structure.
+### `[skink_sensor_layer]`
+>	A sensor layer is a set of sensors grouped together by the network driver. Usually, this refers to sensors of the same type.
+### `[skink_sensor]`
+>	Sensors are the basic tactile elements. Each sensor is considered to be a point on the robot's skin able to produce tactile information. Although
+	the sensors are primarily designed for tactile purposes, they are not limited to it.
+### `[skink_module]`
+>	A module consists of sensors physically connected. It is the decision of the network driver which sensors are grouped in a module. In the current
+	implementation of ROBOSKIN, modules are triangles composed of 12 sensors, but the skin kernel is able to handle modules of any sizes.
+### `[skink_patch]`
+>	Each patch is a collection of modules controlled by one microcontroller. Patches exist due to the limitation that a microcontroller can handle only
+	a certain number of modules (currently 16). The network driver is responsible for grouping modules in patches. It is possible for certain
+	implementations of robotic skins not to have a notion of patches. In such a case, all modules can be considered in a single patch.
+
+## Types
+
+### [Data Types]
+>	Skinware may be configured to support larger skins. Therefore, the data types, such as sensor ids, use custom types described here.
+### [Callbacks]
+>	The drivers need to provide callbacks to the skin kernel. This allows Skinware to take control of the complexities of periodic read and
+	synchronization, making the drivers simpler.
+
+## Functions
+
+### `[skink_device]`
+>	These are the functions of the driver API themselves. They allow the driver module to register itself with the skin kernel and selectively
+	pause or resume itself. A driver may pause itself, remove itself from the Linux kernel and resume its operation after being inserted in the
+	Linux kernel.
+### `[skin_rt]`
+>	These functions are used in real-time contexts. This API can be used to create real-time threads, for example a watchdog thread, and
+	perform synchronization in real-time.
+
+## Examples
+
+### [Template]
+>	This is a template for the drivers. It shows the basic outline of a conforming driver, leaving the network specific parts out.

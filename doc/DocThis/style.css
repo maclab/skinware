@@ -1,0 +1,425 @@
+/*********************************
+ ******** General Layout *********
+ *********************************/
+body
+{
+	background-color: #f4faff;
+	font: 15px helvetica,arial,freesans,clean,sans-serif;
+}
+code
+{
+	font-size: 94%;
+	font-family: Monaco,"Courier New","DejaVu Sans Mono","Bitstream Vera Sans Mono",monospace;
+}
+/* This is for the over all layout of the page, everything would be inside a div with this id */
+#overall-layout
+{
+	width: 960px;
+	margin: auto;
+}
+	/*********************************
+	 ******** Header & Bottom ********
+	 *********************************/
+	/* The div responsible for the title, placed above the header */
+	#title
+	{
+		width: 100%;
+		text-align: center;
+	}
+	/* All the divs inside header would have this cless: */
+	div.header-bottom
+	{
+		height: 45px;
+	}
+	/* The div responsible for header/bottom. Previous page, next page and shortcuts go inside this */
+	#header
+	{
+		width: 100%;
+	}
+	#bottom
+	{
+		width: 100%;
+	}
+	/* The div responsible for previous page link */
+	#previous-page-header
+	{
+		float: left;
+		width: 20%;
+		text-align: left;
+	}
+	#previous-page-bottom
+	{
+		float: left;
+		width: 20%;
+		text-align: left;
+	}
+	/* The div responsible for next page link */
+	#next-page-header
+	{
+		float: left;
+		width: 20%;
+		text-align: right;
+	}
+	#next-page-bottom
+	{
+		float: left;
+		width: 20%;
+		text-align: right;
+	}
+	/* The div responsible for shortcut links */
+	#shortcuts-header
+	{
+		float: left;
+		width: 60%;
+		text-align: center;
+	}
+	#shortcuts-bottom
+	{
+		float: left;
+		width: 60%;
+		text-align: center;
+	}
+	/* The heading and subheading of the title */
+	#title-heading
+	{
+		margin-bottom: 0px;
+		padding-bottom: 0px;
+	}
+	#title-subheading
+	{
+		margin-top: 0px;
+		padding-top: 0px;
+	}
+	/* For that little text on the bottom that says the documentation was generated with DocThis! */
+	#docthis
+	{
+		color: #707070;
+		font-size: 80%;
+	}
+	a.title
+	{
+		text-decoration: none;
+		color: inherit;
+	}
+	code.nextprev
+	{
+		font-size: 100%;
+		font-weight: bold;
+	}
+/*********************************
+ ********** Normal Text **********
+ *********************************/
+	code.inLink
+	{
+		font-weight: bold;
+	}
+	/*********************************
+	 ************ Heading ************
+	 *********************************/
+	code.inHeading
+	{
+		font-weight: bold;
+	}
+	/*********************************
+	 *********** Paragraph ***********
+	 *********************************/
+	p
+	{
+		text-align: justify;
+		padding: 0px 15px 0px 15px;
+	}
+	p.indent
+	{
+		text-align: justify;
+		padding: 0px 15px 0px 45px;
+	}
+	code.inline
+	{
+		background-color: #fcfcfc;
+		border: 1px solid #dadada;
+		padding: 0px 2px 0px;
+		border-radius: 3px;
+	}
+	p.center
+	{
+		text-align: center;
+		padding: 0px 15px 0px 15px;
+	}
+	/*********************************
+	 ************* Item **************
+	 *********************************/
+	ul
+	{
+		padding-top: 10px;
+		padding-bottom: 10px;
+		text-align: justify;
+	}
+	ol
+	{
+		padding-top: 10px;
+		padding-bottom: 10px;
+		text-align: justify;
+	}
+	p.inListItem
+	{
+		margin: inherit;
+	}
+	p.itemContinuation
+	{
+		margin: inherit;
+		margin-top: 5px;
+	}
+	p.itemContinuationWithIndent
+	{
+		margin: inherit;
+		margin-top: 5px;
+		padding-left: 30px;
+	}
+	/*********************************
+	 ************** Pre **************
+	 *********************************/
+	pre
+	{
+		border: 1px solid #cacaca;
+		padding: 10px 15px 10px;
+		color: #202020;
+		background-color: #fcfcfc;
+		overflow:auto;
+		background-clip: padding-box;
+		border-radius: 3px;
+	}
+	code.pre
+	{
+		font-size: 94%;
+		font-family: Monaco,"Courier New","DejaVu Sans Mono","Bitstream Vera Sans Mono",monospace;
+	}
+	a.pre
+	{
+		color: inherit;
+	}
+	a.pre:hover
+	{
+		color: inherit;
+	}
+	span.somewhatImportantCode
+	{
+		color: #222222;
+		font-weight: bold;
+	}
+	span.veryImportantCode
+	{
+		color: #004080;
+		font-weight: bold;
+	}
+div.hr
+{
+	height: 0px;
+	margin: 10px 0px;
+	width: 100%;
+	background-color: #FFFFFF;
+	border-top: 1px solid #444;
+	border-bottom: 1px solid #aaa;
+	border-left-style: none;
+	border-right-style: none;
+}
+code.inSeeAlso
+{
+	font-weight: bold;
+}
+/*********************************
+ ******* Code Explanation ********
+ *********************************/
+	/*********************************
+	 ************ Notices ************
+	 *********************************/
+	span.noticeSummary
+	{
+		margin: 0px 10px;
+		padding: 0px 5px;
+		border: 1px solid rgb(221, 221, 221);
+		background-color: rgb(255, 220, 220);
+		border-radius: 3px;
+	}
+	div.notice
+	{
+		margin: 15px 30px 0px 0px;
+		padding: 0px 5px;
+		border: 2px solid rgb(221, 221, 221);
+		background-color: rgb(255, 248, 248);
+		border-radius: 10px;
+		font-style: oblique;
+	}
+	/*********************************
+	 ****** Summary of Elements ******
+	 *********************************/
+	code.overview
+	{
+		font-weight: bold;
+	}
+	p.overview
+	{
+		padding: 0px 0px 0px 30px;
+		margin: 0px 0px 3px;
+	}
+	a.overview
+	{
+		font-weight: bold;
+	}
+	p.shortDesc
+	{
+		padding: 0px 0px 0px 60px;
+		margin-top: 0px;
+		margin-bottom: 5px;
+	}
+	p.groupShortDesc
+	{
+		padding: 0px 0px 0px 30px;
+		margin-top: 0px;
+		margin-bottom: 10px;
+	}
+	/*********************************
+	 ******* Explanation Body ********
+	 *********************************/
+	div.def-id
+	{
+		font-size: 115%;
+		padding: 0px 0px 0px 0px;
+		text-align: justify;
+	}
+	div.def-explanation
+	{
+		padding: 0px 0px 0px 0px;
+		margin: 0px 0px 0px 30px;
+		text-align: justify;
+	}
+		/*********************************
+		 *** Element's Full Definition ***
+		 *********************************/
+		code.def
+		{
+			font-weight: bold;
+		}
+		table.def
+		{
+			border: 1px solid #868686;
+			background-color: #ffffff;
+			padding: 10px 10px 10px 10px;
+			font: inherit;
+		}
+		td.def
+		{
+			padding: 0px 0px 0px 0px;
+			white-space:nowrap;
+		}
+		td.defDefValue
+		{
+			padding: 00px 0px 0px 10px;
+			width: 100%;
+		}
+		td.defLastColumn
+		{
+			padding: 00px 0px 0px 0px;
+			width: 100%;
+		}
+		td.defRetValue
+		{
+			padding: 0px 0px 0px 0px;
+			width: 100%;
+		}
+		/*********************************
+		 **** Element's Argument List ****
+		 *********************************/
+		ul.defInput
+		{
+			padding-top: 0px;
+			padding-bottom: 0px;
+			text-align: justify;
+		}
+		code.defInput
+		{
+			font-size: 100%;
+			font-weight: bold;
+		}
+		p.defInput
+		{
+			padding: 0px;
+			margin: 0px;
+		}
+/*********************************
+ ********* Globals Page **********
+ *********************************/
+h2.globals
+{
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-top: 0px;
+	padding-bottom: 5px;
+}
+h3.globals
+{
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-left: 15px;
+}
+h4.globals
+{
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-left: 15px;
+}
+ul.globals
+{
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-top: 0px;
+	padding-bottom: 0px;
+	padding-left: 45px;
+}
+li.globals
+{
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-top: 0px;
+	padding-bottom: 0px;
+}
+code.globals
+{
+	font-size: 100%;
+	font-weight: bold;
+}
+a.globals
+{
+	text-decoration: none;
+	color: #2050b0;
+}
+a.globals:hover
+{
+	text-decoration: underline;
+	color: #2050b0;
+}
+a.globalsHeading
+{
+	text-decoration: none;
+	color: #103080;
+}
+a.globalsHeading:hover
+{
+	text-decoration: underline;
+	color: #103080;
+}
+div.globalsHr
+{
+	height: 0px;
+	margin: 10px 0px;
+	width: 50%;
+	background-color: #FFFFFF;
+	border-top: 1px solid #444;
+	border-bottom: 1px solid #aaa;
+	border-left-style: none;
+	border-right-style: none;
+}
+

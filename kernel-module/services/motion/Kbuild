@@ -1,0 +1,9 @@
+obj-m += skin_motion_detector.o
+skin_motion_detector-y := main.o
+
+VPATH := ../..
+
+SKINK_DEPENDENCIES := skink_config.h skink_common.h skink_version.h skink_rt.h skink_services.h skink_sensor_layer.h \
+		      skink_sensor.h skink_module.h skink_patch.h skink_sub_region.h skink_region.h skink.h
+
+main.o: main.c skin_motion.h $(SKINK_DEPENDENCIES)

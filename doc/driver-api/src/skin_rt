@@ -1,0 +1,852 @@
+functions skin_rt
+# Skinware - Driver API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skink_sensor_layer
+next api Data Types
+
+This set of functions, prefixed with `skin_rt` are an interface to the real-time abilities of the operating system. Currently, these functions use
+[RTAI](custom http://www.rtai.org) extension of the Linux kernel. This interface strives for hiding the details of RTAI as well as creating independence
+from it, in case the real-time base was changed. Also, this same set of functions is used between both kernel and user space. Due to RTAI's different
+behavior in the two spaces, though, it was not completely possible to create an interface exactly the same in kernel and user spaces. This documentation
+focuses on the behavior of these functions in kernel space, and although only slightly different, the behavior in user space is not explained here and is
+only present in the user-side API's documentation.
+
+Along with the functions, there are a set of defined constants and types. The constants can be found in the [constants page](constants).
+
+TYPE skin_rt_time: RTIME
+	Can contain time in nanoseconds
+
+	The measure of time. This type is a rename of RTAI's `RTIME` type which in this implementation is defined as `long long`, that is a 64 bit integer.
+	Throughout these functions, `skin_rt_time` is supposed to hold a value indicating time in nanoseconds (Note that in RTAI this is not always the case, but in
+	the implemented function, this is handled in such a way that values of this type would always hold time in nanoseconds). To print this value using `printf`
+	style functions, use `%llu`.
+
+TYPE skin_rt_task: RT_TASK
+	Can contain information on a real-time task
+
+	A rename of RTAI's `RT_TASK` structure. Pointers of this type are used with functions manipulating tasks, such as [suspending](#skin_rt_kernel_task_suspend),
+	[resuming](#skin_rt_kernel_task_resume) etc.
+
+TYPE skin_rt_semaphore: SEM
+	Can contain a semaphore usable in real-time tasks
+
+	A type for semaphores, a rename of RTAI's `SEM`.
+
+TYPE skin_rt_mutex: SEM
+	Can contain a mutex usable in real-time tasks
+
+	A type for mutexes, a rename of RTAI's `SEM`.
+
+TYPE skin_rt_rwlock: RWL
+	Can contain a readers-writers lock usable in real-time tasks
+
+	A type for readers-writers lock, a rename of RTAI's `RWL`.
+
+FUNCTION skin_rt_get_time: (): skin_rt_time
+	Gives the absolute time since the initialization of the real-time clock
+
+	Returns the number of nanoseconds passed since the real-time clock has started. Note that the start of the clock is not necessarily done by this program
+	(it could be already started by another program) and thus this time should not be confused with the time from program start.
+
+	OUTPUT
+		Returns current clock time in nanoseconds.
+
+FUNCTION skin_rt_get_exectime: (): skin_rt_time
+	Gives the execution time of the current task
+
+	Returns the number of nanoseconds the current task has been executed. This is useful for statistics.
+
+	OUTPUT
+		Returns current task's execution time in nanoseconds.
+
+FUNCTION skin_rt_sleep: (duration: skin_rt_time): void
+	Makes the real-time thread sleep for a given duration
+
+	This function makes the calling real-time task sleep for the given **`duration`** (in nanoseconds). There might be a higher priority task running at the
+	moment this time duration is expired and thus the thread may actually be blocked for more than the intended duration.
+
+	INPUT duration
+		Amount of time in nanoseconds requested for the real-time task to sleep.
+
+FUNCTION skin_rt_sleep_until: (time: skin_rt_time): void
+	Makes the real-time thread sleep until a given time
+
+	This function makes the calling real-time task sleep until time **`time`** (in nanoseconds). There might be a higher priority task running at this time and thus
+	the thread may actually be awakened after the intended time.
+
+	INPUT time
+		The absolute time in nanoseconds requested for the real-time task to sleep until.
+
+FUNCTION skin_rt_init: (tick_period: skin_rt_time, stop_flags: int *): skin_rt_time
+	Initializes the real-time subsystem to allow execution of other real-time functions
+
+	This function first starts the real-time timer if not already started. It then creates a /proc file used by the user-space version of `[#skin_rt_get_free_name]` if
+	not already created by another module. This function marks the operations it performed so that it could undo them in `[#skin_rt_stop]`. Note that only one kernel
+	module needs to run `skin_rt_init`. Since the first loaded module initializes the real-time subsystem, it should also be the last one to unload.
+
+	INPUT tick_period
+		Currently, the real-time clock created is set to oneshot mode, which according to RTAI ignores tick period. If ever changed, this shows the tick period of
+		the real-time clock.
+	INPUT stop_flags
+		Some flags set by this function so that it could undo its operations when `[#skin_rt_stop]` is called; operations such as stopping the clock.
+	OUTPUT
+		Returns the tick period to which the clock was configured. Currently, this value is of no significance.
+
+FUNCTION skin_rt_stop: (stop_flags: int): void
+	Shuts down the real-time subsystem
+
+	This function shuts the real-time subsystem down. The **`stop_flags`** are those set by `[#skin_rt_init]` which perform cleanup operations.
+
+	INPUT stop_flags
+		A set of flags set by `skin_rt_init`
+
+FUNCTION skin_rt_kernel_task_init: (task: skin_rt_task *, function: (long int): void, data: int, stack_size: int, priority: int): int
+	Creates a real-time task
+
+	This function creates a thread running **`function`** with argument **`data`** having a stack with size **`stack_size`** bytes and priority **`priority`**.
+	This function is similar to `[#skin_rt_kernel_task_init_detailed]` with the exception that it defaults the values of `uses_fpu` and `signal` to zero.
+
+	INPUT task
+		For each task, one object of type `[#skin_rt_task]` should be present which is initialized by this function.
+	INPUT function
+		This a function that would be called as a thread. This is similar to a Linux thread created via the POSIX thread library.
+	INPUT data
+		This is the argument sent to the function upon calling it as a new thread. Even though the argument is of type `int`, it can be cast to a pointer
+		if necessary.
+	INPUT stack_size
+		The size of the stack allocated to this thread. If this argument is 0, the minimum possible stack size will be automatically assigned.
+	INPUT priority
+		The real-time priority for this task.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_RT_SUCCESS](constants)` if successful.
+			- `[#SKIN_RT_INVALID](constants)` if **`task`** was already in use.
+			- `[#SKIN_RT_NO_MEM](constants)` if **`stack_size`** bytes could not be allocated for stack.
+
+FUNCTION skin_rt_kernel_task_init_detailed: (task: skin_rt_task *, function: (long int): void, data: int, stack_size: int, priority: int, uses_fpu: int, signal: (void): void): int
+	Creates a real-time task
+
+	This function creates a thread running **`function`** with argument **`data`** having a stack with size **`stack_size`** bytes and priority **`priority`**.
+	This function is similar to `[#skin_rt_kernel_task_init]` but has additional arguments.
+
+	INPUT task
+		For each task, one object of type `[#skin_rt_task]` should be present which is initialized by this function.
+	INPUT function
+		This a function that would be called as a thread. This is similar to a Linux thread created via the POSIX thread library.
+	INPUT data
+		This is the argument sent to the function upon calling it as a new thread. Even though the argument is of type `int`, it can be cast to a pointer
+		if necessary.
+	INPUT stack_size
+		The size of the stack allocated to this thread. If this argument is 0, the minimum possible stack size will be automatically assigned.
+	INPUT priority
+		The real-time priority for this task.
+	INPUT uses_fpu
+		If 0, the task cannot use the floating point processing unit (FPU). Otherwise, it is allowed. Note that in kernel space, using FPU is not recommended.
+	INPUT signal
+		This is a function called, with interrupts disabled, every time the task becomes the current running task after a context switch (except the first time).
+		See RTAI's documentation on `rt_task_init` for more information.
+	OUTPUT
+		Returns one of the following:
+			- `[#SKIN_RT_SUCCESS](constants)` if successful.
+			- `[#SKIN_RT_INVALID](constants)` if **`task`** was already in use.
+			- `[#SKIN_RT_NO_MEM](constants)` if **`stack_size`** bytes could not be allocated for stack.
+
+FUNCTION skin_rt_priority_is_valid: (priority: int): bool
+	Checks whether the given value is a valid priority
+
+	Use this function to check whether a computed priority is valid. This is most useful when increasing or decreasing a priority value respectively by adding and
+	subtracting `[#SKIN_RT_MORE_PRIORITY](constants)` from it.
+
+	INPUT priority
+		The priority to be tested.
+	OUTPUT
+		Returns whether the argument **`priority`** is a valid priority.
+
+FUNCTION skin_rt_kernel_task_resume: (task: skin_rt_task *): int
+	Resume a real-time task
+
+	This function resumes a paused or newly created task. Note that periodic tasks do not need to be resumed as they are invoked automatically after
+	`[#skin_rt_kernel_task_make_periodic]` is called.
+
+	INPUT task
+		The task being resumed.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` if successful or `[#SKIN_RT_INVALID](constants)` if given an invalid task.
+
+FUNCTION skin_rt_kernel_task_suspend: (task: skin_rt_task *): int
+	Suspends a real-time task
+
+	This function pauses a running task.
+
+	INPUT task
+		The task being paused.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` if successful or `[#SKIN_RT_INVALID](constants)` if given an invalid task.
+
+FUNCTION skin_rt_kernel_task_on_start: (): int
+	Real-time thread startup
+
+	Currently, this function does nothing.
+
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)`.
+
+FUNCTION skin_rt_kernel_task_on_start: (): int
+	Real-time thread shutdown
+
+	Currently, this function does nothing.
+
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)`.
+
+FUNCTION skin_rt_kernel_task_delete: (task: skin_rt_task *): int
+	Deletes a real-time task
+
+	This function deletes a real-time task previously created by `[#skin_rt_kernel_task_init]`.
+
+	INPUT task
+		Task to be deleted.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` if successful or `[#SKIN_RT_INVALID](constants)` if given an invalid task.
+
+FUNCTION skin_rt_kernel_task_make_periodic: (task: skin_rt_task *, start: skin_rt_time, period: skin_rt_time): int
+	Converts a given real-time task to periodic
+
+	Makes the given real-time task a period one and start it.
+
+	INPUT task
+		The task which needs to be made periodic.
+	INPUT start
+		The time the task would be scheduled to run for the first time.
+	INPUT period
+		Task period in nanoseconds.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` if successful or `[#SKIN_RT_INVALID](constants)` if given an invalid task.
+
+FUNCTION skin_rt_kernel_task_make_periodic_relative: (task: skin_rt_task *, delay: skin_rt_time, period: skin_rt_time): int
+	Converts a given real-time task to periodic
+
+	Makes the given real-time task a period one and start it. This is similar to `[#skin_rt_kernel_task_make_periodic]` except instead of taking an absolute start
+	time, it takes a **`delay`**. Therefore, it starts the thread at `current time + **delay**`.
+
+	INPUT task
+		The task which needs to be made periodic.
+	INPUT delay
+		The delay from now when the task would be scheduled to run for the first time.
+	INPUT period
+		Task period in nanoseconds.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` if successful or `[#SKIN_RT_INVALID](constants)` if given an invalid task.
+
+FUNCTION skin_rt_kernel_task_wait_period: (): void
+	Waits until the next period of the task arrives
+
+	Blocks the calling real-time task until the real-time scheduler decides to awaken it. The typical behavior of a periodic task is to have a while loop,
+	waiting for period at the end of each cycle. Alternatively, it could be a while loop with a call to this function in the top. The use of this function however is
+	completely a choice of the programmer and many effects can be achieved by clever calls to this function.
+
+FUNCTION skin_rt_next_period: (): skin_rt_time
+	Next period of calling task
+
+	This function returns the absolute time in which the next period of the calling task starts.
+
+	OUTPUT
+		Absolute time of next period
+
+FUNCTION skin_rt_period_time_left: (): skin_rt_time
+	Time left until next period
+
+	This function returns the time left until the next period of the calling thread. This value can be used for example to decide whether to continue
+	with a certain operation or leave it to next period.
+
+	OUTPUT
+		Time left until next period
+
+FUNCTION skin_rt_get_task: (): skin_rt_task *
+	Gets the task object of this thread
+
+	This function fetches the real-time [task](#skin_rt_task) of calling thread. If the thread is not real-time, it would return `NULL` and therefore,
+	this function can be used to determine whether a calling thread is already real-time or not.
+
+	OUTPUT
+		Real-time task of the calling thread.
+
+FUNCTION skin_rt_is_rt_context: (): bool
+	Tells whether the calling thread is in real-time context
+
+	This function uses `[#skin_rt_get_task]` to determine whether the calling thread runs in real-time context or not.
+
+	OUTPUT
+		Whether calling thread is in real-time context.
+
+FUNCTION skin_rt_sem_init: (sem: skin_rt_semaphore *, value: int): skin_rt_semaphore *
+	Initializes and outputs a real-time semaphore
+
+	This function creates a semaphore with initial value equal to **`value`** and returns a reference to it. The reason **`sem`** is taken in parameter and
+	also returned is that in RTAI, kernel modules need to provide the semaphore object themselves, while in user space applications, it is taken automatically.
+	Currently, in kernel space, the return value can be ignored. For forward compatibility, the following is the safest usage of this function
+		```
+		skin_rt_semaphore some_sem_variable;
+		skin_rt_semaphore *``real_sem = skin_rt_sem_init(\&some_sem_variable, init_value);``
+		/* usage of semaphore real_sem */
+		skin_rt_sem_wait(real_sem);
+		```
+
+	INPUT sem
+		The semaphore to be initialized
+	INPUT value
+		The initial value of the semaphore.
+	OUTPUT
+		A valid semaphore. In the current version, this is the same as the input argument **`sem`**.
+
+FUNCTION skin_rt_sem_delete: (sem: skin_rt_semaphore *): int
+	Deletes a real-time semaphore
+
+	Deletes a semaphore created with `[#skin_rt_sem_init]`.
+
+	INPUT sem
+		The semaphore being deleted.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_INVALID_SEM](constants)` if the argument does not point to a valid semaphore.
+
+FUNCTION skin_rt_sem_wait: (sem: skin_rt_semaphore *): int
+	Waits on a real-time semaphore until lock is acquired
+
+	If possible, acquires lock on **`sem`**. If not, blocks the caller until the lock is acquired, or
+	the process interrupted and the operation failed.
+
+	INPUT sem
+		The semaphore waiting on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_INVALID_SEM](constants)` if the argument does not point to a valid semaphore.
+
+FUNCTION skin_rt_sem_try_wait: (sem: skin_rt_semaphore *): int
+	Tries acquiring lock on real-time semaphore, but doesn't wait
+
+	This function tries to acquire a lock on the semaphore. If the semaphore was already locked, it would return with a value of `SKIN_RT_LOCK_NOT_ACQUIRED`.
+	If the lock was successfully acquired, the function would return successfully. Either way, this function is non-blocking.
+
+	INPUT sem
+		The semaphore waiting on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success, `[#SKIN_RT_LOCK_NOT_ACQUIRED](constants)` if the lock was not acquired and
+		`[#SKIN_RT_INVALID_SEM](constants)` if the argument does not point to a valid semaphore.
+
+FUNCTION skin_rt_sem_timed_wait: (sem: skin_rt_semaphore *, wait_time: skin_rt_time): int
+	Waits on a real-time semaphore until lock is acquired or wait time expires
+
+	This function tries to acquire a lock on the semaphore **`sem`**. If not possible, it would block the caller and wait until the semaphore is available.
+	If the wait takes more than **`wait_time`** nanoseconds, the caller would be awakened and the value `SKIN_RT_TIMEOUT` would be returned. It is advised
+	that this function be called in a while loop until it results in `SKIN_RT_SUCCESS`, waiting a certain amount of time each time, instead of
+	`[#skin_rt_sem_wait]` so that the real-time task would not remain blocked for too long. Inside the while loop then it would be possible to detect whether
+	there is anything wrong, or if another plan is going to be devised in case lock fails.
+
+	INPUT sem
+		The semaphore waiting on.
+	INPUT wait_time
+		The amount of time waiting to acquire the semaphore in nanoseconds.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success, `[#SKIN_RT_TIMEOUT](constants)` if timed out and `[#SKIN_RT_INVALID_SEM](constants)`
+		if the argument does not point to a valid semaphore.
+
+FUNCTION skin_rt_sem_post: (sem: skin_rt_semaphore *): int
+	Unlocks a real-time semaphore
+
+	Signals the semaphore **`sem`**.
+
+	INPUT sem
+		The semaphore posting to.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_INVALID_SEM](constants)` if the argument does not point to a valid semaphore.
+
+FUNCTION skin_rt_sem_broadcast: (sem: skin_rt_semaphore *): int
+	Broadcasts a real-time semaphore
+
+	Broadcasts the semaphore **`sem`**.
+
+	INPUT sem
+		The semaphore broadcasting.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_INVALID_SEM](constants)` if the argument does not point to a valid semaphore.
+
+FUNCTION skin_rt_mutex_init: (mutex: skin_rt_mutex *, value: int): skin_rt_mutex *
+	Initializes and outputs a real-time mutex
+
+	This function creates a mutex with initial value equal to **`value`** and returns a reference to it. The reason **`mutex`** is taken in parameter and
+	also returned is that in RTAI, kernel modules need to provide the mutex object themselves, while in user space applications, it is taken automatically.
+	Currently, in kernel space, the return value can be ignored. For forward compatibility, the following is the safest usage of this function
+		```
+		skin_rt_mutex some_mutex_variable;
+		skin_rt_mutex *``real_mutex = skin_rt_mutex_init(\&some_mutex_variable, init_value);``
+		/* usage of mutex real_mutex */
+		skin_rt_mutex_lock(real_mutex);
+		```
+
+	INPUT mutex
+		The mutex to be initialized
+	INPUT value
+		The initial value of the mutex.
+	OUTPUT
+		A valid mutex. In the current version, this is the same as the input argument **`mutex`**.
+
+FUNCTION skin_rt_mutex_delete: (mutex: skin_rt_mutex *): int
+	Deletes a real-time mutex
+
+	Deletes a mutex created with `[#skin_rt_mutex_init]`.
+
+	INPUT mutex
+		The mutex being deleted.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_INVALID_MUTEX](constants)` if the argument does not point to a valid mutex.
+
+FUNCTION skin_rt_mutex_lock: (mutex: skin_rt_mutex *): int
+	Waits on a real-time mutex until lock is acquired
+
+	If possible, acquires lock on **`mutex`**. If not, blocks the caller until the lock is acquired, or
+	the process interrupted and the operation failed.
+
+	INPUT mutex
+		The mutex requesting lock on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_INVALID_MUTEX](constants)` if the argument does not point to a valid mutex.
+
+FUNCTION skin_rt_mutex_try_lock: (mutex: skin_rt_mutex *): int
+	Tries acquiring lock on real-time mutex, but doesn't wait
+
+	This function tries to acquire a lock on the mutex. If the mutex was already locked, it would return with a value of `SKIN_RT_LOCK_NOT_ACQUIRED`.
+	If the lock was successfully acquired, the function would return successfully. Either way, this function is non-blocking.
+
+	INPUT mutex
+		The mutex requesting lock on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success, `[#SKIN_RT_LOCK_NOT_ACQUIRED](constants)` if the lock was not acquired and
+		`[#SKIN_RT_INVALID_MUTEX](constants)` if the argument does not point to a valid mutex.
+
+FUNCTION skin_rt_mutex_timed_lock: (mutex: skin_rt_mutex *, wait_time: skin_rt_time wait_time): int
+	Waits on a real-time mutex until lock is acquired or wait time expires
+
+	This function tries to acquire a lock on the mutex **`mutex`**. If not possible, it would block the caller and wait until the mutex is available.
+	If the wait takes more than **`wait_time`** nanoseconds, the caller would be awakened and the value `SKIN_RT_TIMEOUT` would be returned. It is
+	advised that this function be called in a while loop until it results in `SKIN_RT_SUCCESS`, waiting a certain amount of time each time, instead of
+	calling `[#skin_rt_mutex_lock]` so that the real-time task would not remain blocked for too long. Inside the while loop then it would be possible to
+	detect whether there is anything wrong, or if another plan is going to be devised in case lock fails.
+
+	INPUT mutex
+		The mutex requesting lock on.
+	INPUT wait_time
+		The amount of time waiting to acquire the mutex in nanoseconds.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success, `[#SKIN_RT_TIMEOUT](constants)` if timed out and `[#SKIN_RT_INVALID_MUTEX](constants)`
+		if the argument does not point to a valid mutex.
+
+FUNCTION skin_rt_mutex_unlock: (mutex: skin_rt_mutex *): int
+	Unlocks a real-time mutex
+
+	Unlocks the mutex **`mutex`**.
+
+	INPUT mutex
+		The mutex unlocking.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_INVALID_MUTEX](constants)` if the argument does not point to a valid mutex.
+
+FUNCTION skin_rt_mutex_broadcast: (mutex: skin_rt_mutex *): int
+	Broadcasts a real-time mutex
+
+	Broadcasts the mutex **`mutex`**.
+
+	INPUT mutex
+		The mutex broadcasting.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_INVALID_MUTEX](constants)` if the argument does not point to a valid mutex.
+
+FUNCTION skin_rt_rwlock_init: (rwl: skin_rt_rwlock *): skin_rt_rwlock *
+	Initializes and outputs a real-time readers-writers lock
+
+	This function creates a readers-writers lock with initial value equal to **`value`** and returns a reference to it. The reason **`rwl`** is taken in parameter and
+	also returned is that in RTAI, kernel modules need to provide the readers-writers lock object themselves, while in user space applications, it is taken automatically.
+	Currently, in kernel space, the return value can be ignored. For forward compatibility, the following is the safest usage of this function
+		```
+		skin_rt_rwlock some_rwl_variable;
+		skin_rt_rwlock *``real_rwl = skin_rt_rwlock_init(\&some_rwl_variable);``
+		```
+
+	INPUT rwl
+		The readers-writers lock to be initialized
+	OUTPUT
+		A valid readers-writers lock. In the current version, this is the same as the input argument **`rwl`**.
+
+FUNCTION skin_rt_rwlock_delete: (rwl: skin_rt_rwlock *): int
+	Deletes a real-time readers-writers lock
+
+	Deletes a readers-writers lock created with `[#skin_rt_rwlock_init]`.
+
+	INPUT rwl
+		The readers-writers lock being deleted.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_SYNC_MECHANISM_ERROR](constants)` if anything goes wrong.
+
+FUNCTION skin_rt_rwlock_read_lock: (rwl: skin_rt_rwlock *): int
+	Waits on a real-time readers-writers lock until read-lock is acquired
+
+	If possible, acquires readers lock on **`rwl`**. If not, blocks the caller until the lock is acquired, or the process interrupted and the operation failed.
+
+	INPUT rwl
+		The readers-writers lock requesting readers lock on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_SYNC_MECHANISM_ERROR](constants)` if anything goes wrong.
+
+FUNCTION skin_rt_rwlock_try_read_lock: (rwl: skin_rt_rwlock *): int
+	Tries acquiring read-lock on real-time readers-writers lock, but doesn't wait
+
+	This function tries to acquire a readers lock on the readers-writers lock. If the readers-writers lock was already locked, it would return with a value of
+	`SKIN_RT_LOCK_NOT_ACQUIRED`. If the lock was successfully acquired, the function would return successfully. Either way, this function is non-blocking.
+
+	INPUT rwl
+		The readers-writers lock requesting readers lock on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success, `[#SKIN_RT_LOCK_NOT_ACQUIRED](constants)` if the lock was not acquired and
+		`[#SKIN_RT_SYNC_MECHANISM_ERROR](constants)` if anything goes wrong.
+
+FUNCTION skin_rt_rwlock_timed_read_lock: (rwl: skin_rt_rwlock *, wait_time: skin_rt_time wait_time): int
+	Waits on a real-time readers-writers lock until read-lock is acquired or wait time expires
+
+	This function tries to acquire a readers lock on the readers-writers lock **`rwl`**. If not possible, it would block the caller and wait until the
+	readers lock is available. If the wait takes more than **`wait_time`** nanoseconds, the caller would be awakened and the value `SKIN_RT_TIMEOUT`
+	would be returned. It is advised that this function be called in a while loop until it results in `SKIN_RT_SUCCESS`, waiting a certain amount of
+	time each time, instead of calling `[#skin_rt_rwlock_read_lock]` so that the real-time task would not remain blocked for too long. Inside the while loop
+	then it would be possible to detect whether there is anything wrong, or if another plan is going to be devised in case lock fails.
+
+	INPUT rwl
+		The readers-writers lock requesting readers lock on.
+	INPUT wait_time
+		The amount of time waiting to acquire the readers lock in nanoseconds.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success, `[#SKIN_RT_TIMEOUT](constants)` if timed out and `[#SKIN_RT_SYNC_MECHANISM_ERROR](constants)`
+		if anything goes wrong.
+
+FUNCTION skin_rt_rwlock_read_unlock: (rwl: skin_rt_rwlock *): int
+	Unlocks a real-time readers-writers lock as a reader
+
+	Unlocks the readers-writers lock **`rwl`**.
+
+	INPUT rwl
+		The readers-writers lock requesting readers unlock on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_SYNC_MECHANISM_ERROR](constants)` if anything goes wrong.
+
+FUNCTION skin_rt_rwlock_write_lock: (rwl: skin_rt_rwlock *): int
+	Waits on a real-time readers-writers lock until write-lock is acquired
+
+	If possible, acquires write lock on **`rwl`**. If not, blocks the caller until the lock is acquired, or the process interrupted and the operation failed.
+
+	INPUT rwl
+		The readers-writers lock requesting writers lock on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_SYNC_MECHANISM_ERROR](constants)` if anything goes wrong.
+
+FUNCTION skin_rt_rwlock_try_write_lock: (rwl: skin_rt_rwlock *): int
+	Tries acquiring write-lock on real-time readers-writers lock, but doesn't wait
+
+	This function tries to acquire a writers lock on the readers-writers lock. If the readers-writers lock was already locked, it would return with a value of
+	`SKIN_RT_LOCK_NOT_ACQUIRED`. If the lock was successfully acquired, the function would return successfully. Either way, this function is non-blocking.
+
+	INPUT rwl
+		The readers-writers lock requesting writers lock on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success, `[#SKIN_RT_LOCK_NOT_ACQUIRED](constants)` if the lock was not acquired and
+		`[#SKIN_RT_SYNC_MECHANISM_ERROR](constants)` if anything goes wrong.
+
+FUNCTION skin_rt_rwlock_timed_write_lock: (rwl: skin_rt_rwlock *, wait_time: skin_rt_time wait_time): int
+	Waits on a real-time readers-writers lock until write-lock is acquired or wait time expires
+
+	This function tries to acquire a writers lock on the readers-writers lock **`rwl`**. If not possible, it would block the caller and wait until the
+	readers-writers lock is available. If the wait takes more than **`wait_time`** nanoseconds, the caller would be awakened and the value `SKIN_RT_TIMEOUT`
+	would be returned. It is advised that this function be called in a while loop until it results in `SKIN_RT_SUCCESS`, waiting a certain amount of time
+	each time, instead of calling `[#skin_rt_rwlock_write_lock]` so that the real-time task would not remain blocked for too long. Inside the while loop then
+	it would be possible to detect whether there is anything wrong, or if another plan is going to be devised in case lock fails.
+
+	INPUT rwl
+		The readers-writers lock requesting writers lock on.
+	INPUT wait_time
+		The amount of time waiting to acquire the writers lock in nanoseconds.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success, `[#SKIN_RT_TIMEOUT](constants)` if timed out and `[#SKIN_RT_SYNC_MECHANISM_ERROR](constants)`
+		if anything goes wrong.
+
+FUNCTION skin_rt_rwlock_write_unlock: (rwl: skin_rt_rwlock *): int
+	Unlocks a real-time readers-writers lock as a writer
+
+	Unlocks the readers-writers lock **`rwl`**.
+
+	INPUT rwl
+		The readers-writers lock requesting writers unlock on.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` on success and `[#SKIN_RT_SYNC_MECHANISM_ERROR](constants)` if anything goes wrong.
+
+FUNCTION skin_rt_shared_memory_alloc: (name: const char *, size: size_t, is_contiguous: bool *): void *
+	Allocates shared memory
+
+	This function tries to allocate contiguous memory of size **`size`** and identified by **`name`**. Note that due to memory fragmentation, although there
+	is enough memory, it may not be possible to acquire a contiguous chunk. The function then tries allocating discontiguous memory. To be more precise, this
+	function first requests memory allocation from Linux with option `GFP_KERNEL` and if failed requests memory with `vmalloc`.
+
+	The allocated memory must be freed with `[#skin_rt_shared_memory_free]`.
+
+	**Note:** In RTAI, memory allocation does **not** work when called from a real-time task, therefore, allocate the required memory before starting the real-time tasks.
+
+	INPUT name
+		Name of the shared memory. **`name`** can have at most `[#SKIN_RT_MAX_NAME_LENGTH](constants)` bytes.
+	INPUT size
+		Requested size to allocate memory.
+	INPUT is_contiguous
+		If not `NULL`, it will contain true if contiguous allocation was successful and false if discontiguous memory was allocated.
+	OUTPUT
+		Returns the address to the memory allocated, or `NULL` if allocation was unsuccessful.
+
+FUNCTION skin_rt_shared_memory_free: (name: const char *): int
+	Frees shared memory
+
+	Frees the memory allocated with `[#skin_rt_shared_memory_alloc]`.
+
+	INPUT name
+		The name of memory to be freed. **`name`** can have at most `[#SKIN_RT_MAX_NAME_LENGTH](constants)` bytes.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` if successful and `[#SKIN_RT_FAIL](constants)` in case of failure.
+
+FUNCTION skin_rt_shared_memory_attach: (name: const char *): void *
+	Attaches to shared memory already allocated
+
+	Attaches to a shared memory identified by **`name`**, already allocated with `[#skin_rt_shared_memory_alloc]`.
+
+	The program must detach itself from the shared memory when finished with `[#skin_rt_shared_memory_detach]`.
+
+	INPUT name
+		Name of the shared memory. **`name`** can have at most `[#SKIN_RT_MAX_NAME_LENGTH](constants)` bytes.
+	OUTPUT
+		Returns the address of the shared memory, or `NULL` if no shared memory with the given name has been allocated.
+
+FUNCTION skin_rt_shared_memory_detach: (name: const char *): int
+	Detaches from shared memory
+
+	Detaches from shared memory attached with `[#skin_rt_shared_memory_attach]`.
+
+	INPUT name
+		The name of shared memory to be detached from. **`name`** can have at most `[#SKIN_RT_MAX_NAME_LENGTH](constants)` bytes.
+	OUTPUT
+		Returns `[#SKIN_RT_SUCCESS](constants)` if successful and `[#SKIN_RT_FAIL](constants)` in case of failure.
+
+FUNCTION skin_rt_share_semaphore: (name: const char *, sem: skin_rt_semaphore *)
+	Shares a semaphore
+
+	This function shares a semaphore with the given **`name`**. It can be unshared with `[#skin_rt_unshare_semaphore]` and can be retrieved with
+	`[#skin_rt_get_shared_semaphore]`.
+
+	INPUT name
+		Name under which the semaphore would be shared.
+	INPUT sem
+		The address of the semaphore to be shared.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_FAIL](constants)`.
+
+FUNCTION skin_rt_share_mutex: (name: const char *, mutex: skin_rt_mutex *)
+	Shares a mutex
+
+	This function shares a mutex with the given **`name`**. It can be unshared with `[#skin_rt_unshare_mutex]` and can be retrieved with
+	`[#skin_rt_get_shared_mutex]`.
+
+	INPUT name
+		Name under which the mutex would be shared.
+	INPUT mutex
+		The address of the mutex to be shared.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_FAIL](constants)`.
+
+FUNCTION skin_rt_share_rwlock: (name: const char *, rwl: skin_rt_rwlock *)
+	Shares a readers-writers lock
+
+	This function shares a readers-writers lock with the given **`name`**. It can be unshared with `[#skin_rt_unshare_rwlock]` and can be retrieved with
+	`[#skin_rt_get_shared_rwlock]`.
+
+	INPUT name
+		Name under which the readers-writers lock would be shared.
+	INPUT rwl
+		The address of the readers-writers lock to be shared.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_FAIL](constants)`.
+
+FUNCTION skin_rt_unshare_semaphore: (name: const char *)
+	Unshare a shared semaphore
+
+	This function unshares a semaphore by removing its name from the list of shared objects.
+
+	INPUT name
+		Name of the shared semaphore.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_FAIL](constants)`.
+
+FUNCTION skin_rt_unshare_mutex: (name: const char *)
+	Unshare a shared mutex
+
+	This function unshares a mutex by removing its name from the list of shared objects.
+
+	INPUT name
+		Name of the shared mutex.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_FAIL](constants)`.
+
+FUNCTION skin_rt_unshare_rwlock: (name: const char *)
+	Unshare a shared readers-writers lock
+
+	This function unshares a readers-writers lock by removing its name from the list of shared objects.
+
+	INPUT name
+		Name of the shared readers-writers lock.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_FAIL](constants)`.
+
+FUNCTION skin_rt_get_shared_semaphore: (name: const char *): skin_rt_semaphore *
+	Attaches to a shared real-time semaphore
+
+	As of the current version of RTAI, only programs running in kernel space have the ability to share semaphores. In user space, they can only be used.
+	Through this function, the semaphore shared by the skin kernel can be acquired.
+
+	INPUT name
+		The name of a semaphore shared by the skin kernel. **`name`** can have at most `[#SKIN_RT_MAX_NAME_LENGTH](constants)` bytes.
+	OUTPUT
+		Returns the address of the shared semaphore or `NULL` if no such semaphore is shared by the skin kernel.
+
+FUNCTION skin_rt_get_shared_mutex: (name: const char *): skin_rt_mutex *
+	Attaches to a shared real-time mutex
+
+	As of the current version of RTAI, only programs running in kernel space have the ability to share mutexes. In user space, they can only be used.
+	Through this function, the mutex shared by the skin kernel can be acquired.
+
+	INPUT name
+		The name of a mutex shared by the skin kernel. **`name`** can have at most `[#SKIN_RT_MAX_NAME_LENGTH](constants)` bytes.
+	OUTPUT
+		Returns the address of the shared mutex or `NULL` if no such mutex is shared by the skin kernel.
+
+FUNCTION skin_rt_get_shared_rwlock: (name: const char *): skin_rt_rwlock *
+	Attaches to a shared real-time readers-writers lock
+
+	As of the current version of RTAI, only programs running in kernel space have the ability to share readers-writers locks. In user space, they can only be used.
+	Through this function, the readers-writers lock shared by the skin kernel can be acquired.
+
+	INPUT name
+		The name of a readers-writers lock shared by the skin kernel. **`name`** can have at most `[#SKIN_RT_MAX_NAME_LENGTH](constants)` bytes.
+	OUTPUT
+		Returns the address of the shared readers-writers lock or `NULL` if no such readers-writers lock is shared by
+		the skin kernel.
+
+FUNCTION skin_rt_sem_init_and_share: (sem: skin_rt_semaphore *, init_value: int, name: const char *): skin_rt_semaphore *
+	Both initialize and share a semaphore
+
+	This is a wrapper function for `[#skin_rt_sem_init]` and `[#skin_rt_share_semaphore]`.
+
+	INPUT sem
+		A semaphore to be initialized.
+	INPUT init_value
+		The initial value of the semaphore.
+	INPUT name
+		Name under which the semaphore would be shared.
+	OUTPUT
+		Returns **`sem`** on success and `NULL` on failure.
+
+FUNCTION skin_rt_mutex_init_and_share: (mutex: skin_rt_mutex *, init_value: int, name: const char *): skin_rt_mutex *
+	Both initialize and share a mutex
+
+	This is a wrapper function for `[#skin_rt_mutex_init]` and `[#skin_rt_share_mutex]`.
+
+	INPUT mutex
+		A mutex to be initialized.
+	INPUT init_value
+		The initial value of the mutex.
+	INPUT name
+		Name under which the mutex would be shared.
+	OUTPUT
+		Returns **`mutex`** on success and `NULL` on failure.
+
+FUNCTION skin_rt_rwlock_init_and_share: (rwl: skin_rt_rwlock *, name: const char *): skin_rt_rwlock *
+	Both initialize and share a readers-writers lock
+
+	This is a wrapper function for `[#skin_rt_rwlock_init]` and `[#skin_rt_share_rwlock]`.
+
+	INPUT rwl
+		A readers-writers lock to be initialized.
+	INPUT name
+		Name under which the readers-writers lock would be shared.
+	OUTPUT
+		Returns **`rwl`** on success and `NULL` on failure.
+
+FUNCTION skin_rt_sem_unshare_and_delete: (sem: skin_rt_semaphore *): int
+	Both unshare and delete a semaphore
+
+	This is a wrapper function for `[#skin_rt_unshare_semaphore]` and `[#skin_rt_sem_delete]`.
+
+	INPUT sem
+		A semaphore to be deleted.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_INVALID_SEM](constants)`.
+
+FUNCTION skin_rt_mutex_unshare_and_delete: (mutex: skin_rt_mutex *): int
+	Both unshare and delete a mutex
+
+	This is a wrapper function for `[#skin_rt_unshare_mutex]` and `[#skin_rt_mutex_delete]`.
+
+	INPUT mutex
+		A mutex to be deleted.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_INVALID_MUTEX](constants)`.
+
+FUNCTION skin_rt_rwlock_unshare_and_delete: (rwl: skin_rt_rwlock *): int
+	Both unshare and delete a readers-writer lock
+
+	This is a wrapper function for `[#skin_rt_unshare_rwlock]` and `[#skin_rt_rwlock_delete]`.
+
+	INPUT rwl
+		A readers-writer lock to be deleted.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_INVALID_RWLOCK](constants)`.
+
+FUNCTION skin_rt_name_available: (name: const char *): int
+	Checks whether a name string is available for sharing objects
+
+	Before using a name to acquire shared memory, share an object (in kernel space) or create a real-time task (automatically handled by the API),
+	this function can be used to ensure the name is available for use.
+
+	INPUT name
+		A name is useful for sharing objects, creating threads or acquiring memory. It can have at most `[#SKIN_RT_MAX_NAME_LENGTH](constants)` bytes.
+	OUTPUT
+		Returns whether this name is available for use or not.
+
+FUNCTION skin_rt_make_name_available: (name: const char *): int
+	Unregisters a given name
+
+	This function unregisters the given **`name`**. This is useful for making a reserved word available in case of bad cleanup or crash. It can be dangerous
+	however if one module unregisters a name used by the other module due to a conflict in reserved words.
+
+	INPUT name
+		The name to be made available.
+	OUTPUT
+		Returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_FAIL](constants)`.
+
+FUNCTION skin_rt_get_free_name: (name: char *): int
+	Reserves and returns a name that is unused
+
+	This function fills **`name`** with a new name, assuming it has at least [#SKIN_RT_MAX_NAME_LENGTH](constants) space, and returns whether it was
+	successful or not. This function is written due to the fact that with RTAI, if `rt_thread_init` is called with the same name, it crashes. Therefore,
+	threads with unimportant names could not be created by try and error with arbitrary names.
+
+	INPUT name
+		An array of sufficient size for the function to write a new name in.
+	OUTPUT
+		This function returns either `[#SKIN_RT_SUCCESS](constants)` or `[#SKIN_RT_FAIL](constants)`.

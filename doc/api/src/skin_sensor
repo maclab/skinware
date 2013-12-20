@@ -1,0 +1,291 @@
+struct skin_sensor
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_object
+next struct skin_sensor_type
+seealso `[skin_sensor_type]`
+seealso `[skin_module]`
+seealso `[skin_patch]`
+seealso `[skin_sub_region]`
+seealso `[skin_region_iterator]`
+seealso `[#skin_object_sensors](skin_object)`
+
+The `skin_sensor` struct holds data of one sensor in the skin.
+
+VARIABLE id: skin_sensor_id
+	Id of the sensor
+
+	The id of the sensor. This value is equal to the sensor's index in the sensor list obtainable via `[#skin_object_sensors](skin_object)` function.
+	If the value of `id` is equal to `[#SKIN_INVALID_ID](constants)`, that means the sensor is not properly initialized. See also
+	`[#skin_sensor_id](skin_object)`.
+
+VARIABLE sub_region_id: skin_sub_region_id
+	Id of the sub-region this sensor belongs to
+
+	The id of the sub-region the sensor belongs to. See `[#id](skin_sub_region)` of `skin_sub_region`.
+
+VARIABLE module_id: skin_module_id
+	Id of the module this sensor belongs to
+
+	The id of the module the sensor belongs to. See `[#id](skin_module)` of `skin_module`.
+
+VARIABLE sensor_type_id: skin_sensor_type_id
+	Sensor type of the sensor
+
+	The id of the sensor type the sensor belongs to. See `[#id](skin_sensor_type)` of `skin_sensor_type`.
+
+VARIABLE response: skin_sensor_response
+	Response value of the sensor
+
+	This variable holds the value of the response of the sensor. Note that it may not necessarily be up-to-date and
+	therefore it is advised to get the value of the sensor response through `[#skin_sensor_get_response]` function.
+	See also `[#skin_sensor_response](skin_object)`.
+
+VARIABLE relative_position: float[3]
+	Relative position of the sensor on the robot link
+
+	As explained under the short description of `skin_sensor` [here](index#skin_sensor), each sensor is assumed to be fixed
+	with respect to the [robot link](#robot_link) it is connected to. Therefore, the value of `relative_position` determined
+	through _[calibration](skin_object#skin_object_calibration_end)_ or provided from [cache](skin_object#skin_object_calibration_reload),
+	would be the relative position of the sensor with respect to the robot link's reference frame. This value can later be used to
+	compute the global position of the sensor given the current robot pose.
+
+VARIABLE relative_orientation: float[3]
+	Relative orientation of the sensor with respect to the robot link
+
+	Similar to `[#relative_position]`, the value of `relative_orientation` determined through _[calibration](skin_object#skin_object_calibration_end)_
+	or provided from [cache](skin_object#skin_object_calibration_reload), would be the relative orientation of the sensor
+	with respect to the [robot link](#robot_link)'s reference frame. The value stored in this variable is the normal vector to the surface of
+	the skin at this sensor. This value can later be used to compute the global orientation of the sensor given the current robot pose.
+
+VARIABLE radius: float
+	Radius of the sensor
+
+	This variable holds the radius of the sensor, assuming it's a circle (or a sphere) centered at `[#relative_position]`.
+
+VARIABLE robot_link: uint32_t
+	The robot link this sensor is located on
+
+	This is an identifier for the robot link this sensor is located on. This is a value provided by the calibrator and is meaningless to Skinware.
+	It can be used by the user application, together with `[#relative_position]` and `[#relative_orientation]` through the user's own
+	kinematics library to update `[#global_position]` and `[#global_orientation]` respectively.
+
+VARIABLE global_position: float[3]
+	Global position of the sensor
+
+	Global position of the sensor can be computed from `[#relative_position]` by the user program itself, and is not touched by Skinware.
+
+VARIABLE global_orientation: float[3]
+	Global orientation of the sensor
+
+	Global orientation of the sensor can be computed from `[#relative_orientation]` by the user program itself, and is not touched by Skinware.
+
+VARIABLE flattened_position: float[2]
+	Position of the sensor in the 2D map of sensors
+
+	Inspired by how the brain maps the 3D skin in 2D, there has been a 2D map incorporated in the library, and therefore
+	each sensor would additionally have a 2D location indicating its location in the 2D map.
+
+VARIABLE neighbors: skin_sensor_id *
+	Neighbors of the sensor in the 2D map of sensors
+
+	This array of ids, indicates which sensors are neighboring this sensor. These values are obtained as a result of
+	loading the 2D map of the skin as described [here](#flattened_position).
+
+VARIABLE neighbors_count: skin_sensor_size
+	Size of `neighbors`
+
+	Holds the size of `[#neighbors]` array.
+
+FUNCTION skin_sensor_init: (sensor: skin_sensor *): void
+	Initialize sensor to invalid
+
+	Initializer of the struct. Sets the sensor variables so that the sensor would be invalid.
+
+	INPUT sensor
+		The object of operation
+
+FUNCTION skin_sensor_free: (sensor: skin_sensor *): void
+	Free sensor
+
+	Free any resources and invalidate the sensor.
+
+	INPUT sensor
+		The object of operation
+
+FUNCTION skin_sensor_get_response: (sensor: skin_sensor *): skin_sensor_response
+	Gives the response of the sensor
+
+	Depending on the skin technology, the raw value of the response could be interpreted differently and therefore, the library is
+	responsible for converting these values to a defined range (see `[#response]`) with 0 as the minimum possible value.
+	The value computed will also be stored in `[#response]`. See also `[#skin_sensor_response](skin_object)`.
+
+	INPUT sensor
+		The object of operation
+	OUTPUT
+		The current up-to-date response of the sensor.
+
+FUNCTION skin_sensor_sensor_type: (sensor: skin_sensor *): skin_sensor_type *
+	Gives the sensor type this sensor belongs to
+
+	This function outputs a reference to the sensor type this sensor belongs to. This is the same as writing
+		```
+		\&[#skin_object_sensor_types](skin_object)(\&skin, NULL)\[sensor->[#sensor_type_id]\]
+		```
+	where `skin` is the skin object (of type `[skin_object]`) and `sensor` is the **`sensor`** parameter of this function.
+
+	INPUT sensor
+		The object of operation
+	OUTPUT
+		A reference to the sensor type this sensor belongs to.
+
+FUNCTION skin_sensor_sub_region: (sensor: skin_sensor *): skin_sub_region *
+	Gives the sub-region this sensor belongs to
+
+	This function outputs a reference to the sub-region this sensor belongs to. This is the same as writing
+		```
+		\&[#skin_object_sub_regions](skin_object)(\&skin, NULL)\[sensor->[#sub_region_id]\]
+		```
+	where `skin` is the skin object (of type `[skin_object]`) and `sensor` is the **`sensor`** parameter of this function.
+
+	INPUT sensor
+		The object of operation
+	OUTPUT
+		A reference to the sub-region this sensor belongs to.
+
+FUNCTION skin_sensor_module: (sensor: skin_sensor *): skin_module *
+	Gives the module this sensor belongs to
+
+	This functions outputs a reference to the module this sensor belongs to. This is the same as writing
+		```
+		\&[#skin_object_modules](skin_object)(\&skin, NULL)\[sensor->[#module_id]\]
+		```
+	where `skin` is the skin object (of type `[skin_object]`) and `sensor` is the **`sensor`** parameter of this function.
+
+	INPUT sensor
+		The object of operation
+	OUTPUT
+		A reference to the module this sensor belongs to.
+
+FUNCTION skin_sensor_patch: (sensor: skin_sensor *): skin_patch *
+	Gives the patch this sensor belongs to
+
+	This functions outputs a reference to the patch this sensor belongs to. This is the same as writing
+		```
+		\&[#skin_object_patches](skin_object)(\&skin, NULL)
+			\[[#skin_object_modules](skin_object)(\&skin, NULL)
+				\[sensor->[#module_id]\].[#patch_id](skin_module)\]
+		```
+	where `skin` is the skin object (of type `[skin_object]`) and `sensor` is the **`sensor`** parameter of this function.
+
+	INPUT sensor
+		The object of operation
+	OUTPUT
+		A reference to the patch this sensor belongs to.
+
+FUNCTION skin_sensor_for_each_region: (sensor: skin_sensor *, c: skin_callback_region, data: void *): void
+	Call a callback for all regions of sensor
+
+	This function iterates over regions of **`sensor`** calling [callback](skin_callbacks#skin_callback_region) **`c`** with additional data **`data`**.
+	This iteration stops when either all regions have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT sensor
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+MEMBER_TYPE skin_region_iterator: opaque
+NOTICE C++
+	A region iterator
+
+	Returned by `[#regions_iter_begin]` and `[#regions_iter_end]`. Please see the `[generic iterator page](skin_X_iterator)`.
+
+MEMBER_FUNCTION skin_sensor: ()
+NOTICE C++
+	Class constructor
+
+	Default constructor of the class. Calls `[#skin_sensor_init]`.
+
+MEMBER_FUNCTION ~skin_sensor: ()
+NOTICE C++
+	Class destructor
+
+	Destructor of the class. Calls `[#skin_sensor_free]`.
+
+MEMBER_FUNCTION get_response: (): skin_sensor_response
+NOTICE C++
+	Wrapper for `skin_sensor_get_response`
+
+	Calls `[#skin_sensor_get_response]`.
+
+	OUTPUT
+		See `[#skin_sensor_get_response]`.
+
+MEMBER_FUNCTION sensor_type: (): skin_sensor_type *
+NOTICE C++
+	Wrapper for `skin_sensor_sensor_type`
+
+	Calls `[#skin_sensor_sensor_type]`.
+
+	OUTPUT
+		See `[#skin_sensor_sensor_type]`.
+
+MEMBER_FUNCTION sub_region: (): skin_sub_region *
+NOTICE C++
+	Wrapper for `skin_sensor_sub_region`
+
+	Calls `[#skin_sensor_sub_region]`.
+
+	OUTPUT
+		See `[#skin_sensor_sub_region]`.
+
+MEMBER_FUNCTION module: (): skin_module *
+NOTICE C++
+	Wrapper for `skin_sensor_module`
+
+	Calls `[#skin_sensor_module]`.
+
+	OUTPUT
+		See `[#skin_sensor_module]`.
+
+MEMBER_FUNCTION patch: (): skin_patch *
+NOTICE C++
+	Wrapper for `skin_sensor_patch`
+
+	Calls `[#skin_sensor_patch]`.
+
+	OUTPUT
+		See `[#skin_sensor_patch]`.
+
+MEMBER_FUNCTION regions_iter_begin: (): skin_sensor::skin_region_iterator
+NOTICE C++
+	Gives an iterator to iterate over regions containing this sensor
+
+	This function returns a pointer of type `skin_sensor::[#skin_region_iterator]`, similar to C++'s STL `iterator` classes, which points
+	to the first of this sensor's regions. This iterator can then be used to traverse all regions containing this sensor. Note that the
+	regions traversed are not a copy and the iterators actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over regions containing this sensor, pointing to the first one.
+
+MEMBER_FUNCTION regions_iter_end: (): const skin_sensor::skin_region_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the regions
+
+	This function returns a pointer of type `skin_sensor::[#skin_region_iterator]`, similar to C++'s STL `iterator` classes, which points
+	to an invalid region. This iterator can then be used in comparison with another iterator to determine whether that iterator has reached
+	the end of its range. This is similar to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over regions containing this sensor pointing to an invalid region (and therefore should not be dereferenced).

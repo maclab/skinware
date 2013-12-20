@@ -1,0 +1,120 @@
+api Callbacks
+# Skinware - Driver API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+shortcut globals
+seealso `[skink_device]` functions
+prev struct skink_registration_data
+next functions skink_device
+
+Apart from device specific complications, Skinware-related code basically boils down to three callbacks.
+
+	- Details: This callback is called once for each layer and describes the structure of the skin
+	- Busy: This callback is called with _zero_ or _one_, indicating whether the driver is being used or not. If last call was with _one_, then the
+	  driver must **not** let itself be removed from the Linux kernel.
+	- Acquire: This callback is periodically called for each layer to let the driver periodically copy sensor data to the skin kernel's data structures.
+
+TYPE skink_device_details: (skink_sensor_layer *): void
+	Fill in skin structure details
+
+	Once called, this callback must fill in the following information, in the argument **`layer`** with id `layer->[#id_in_device](skink_sensor_layer)`.
+
+		- `layer->[#name](skink_sensor_layer)`: The name of the sensor layer. This name can be used by users or services to identify their
+		  sensor layer of interest and perform different tasks on different sensor types.
+		- `layer->[#sensors_count](skink_sensor_layer)`: The number of sensors in this layer.
+		- `layer->[#modules_count](skink_sensor_layer)`: The number of modules in this layer.
+		- `layer->[#patches_count](skink_sensor_layer)`: The number of patches in this layer.
+		- `layer->[#acquisition_rate](skink_sensor_layer)`: The acquisition rate for this layer. This value is in hertz.
+		- `layer->[#modules](skink_sensor_layer)\[*].[#sensors_count](skink_module)`: For each module in the layer, the device driver
+		  needs to specify how many sensors exist in it.
+		- `layer->[#patches](skink_sensor_layer)\[*].[#modules_count](skink_patch)`: For each patch in the layer, the device driver
+		  needs to specify how many modules exist in it.
+
+	Although the number of buffers is configurable, it is still possible to change it in `layer->[#number_of_buffers](skink_sensor_layer)`.
+	This should normally not be changed.
+
+TYPE skink_device_busy: (bool): void
+	Whether the device is busy or not
+
+	If called with _true_, the device must not be unloaded. If called with _false_, it is safe to
+	unload the driver's Linux kernel module. After `[#skink_device_pause](skink_device)` is successful, the device driver must wait until this function is
+	called with _false_. Once that is done, it is guaranteed that it would not be called with _true_ again until `[#skink_device_resume](skink_device)`
+	is called again and therefore the driver can be unloaded.
+
+	This function is as simple as:
+
+		```
+		bool is_busy = 0;
+
+		void busy_callback(bool busy)
+		{
+			is_busy = busy;
+		}
+		```
+
+	When unloading, the cleanup looks like the following:
+
+
+		```
+		bool is_busy;
+
+		void cleanup_module(void)
+		{
+			/*
+			 * Wait until initialization is done.  This is to make sure
+			 * skink_device_resume is not being called.  In a more complicated
+			 * driver, a mutex needs to be used.
+			 */
+			`while (!initialization_done)`
+			`{`
+				`set_current_state(TASK_INTERRUPTIBLE);`
+				`msleep(1);`
+			`}`
+			/*
+			 * Pause the device
+			 */
+			``skink_device_pause(device_id);``
+			/*
+			 * Wait until not busy
+			 */
+			``while (is_busy)``
+			``{``
+				``set_current_state(TASK_INTERRUPTIBLE);``
+				``msleep(1);``
+			``}``
+			/*
+			 * Continue with cleanup
+			 */
+		}
+		```
+
+TYPE skink_device_acquire: (skink_sensor_layer *, skink_sensor_id *, uint8_t): int
+	Fill in sensor data
+
+	This callback is periodically called for each layer by Skinware when the driver is [resumed](skink_device#skink_device_resume). It has three
+	arguments that are:
+	
+	- **`layer`**: The given **`layer`** has id `layer->[#id_in_device](skink_sensor_layer)`.
+	- **`sensor_map`**: It is possible for Skinware to rearrange the sensors of the layer. Therefore, a **`sensor_map`** is given that the driver would need to use.
+	  This means that, if originally the driver has put a sensor in position `i` when filling in the [details](#skink_device_details) of the network, it
+	  must now write its value to position `**sensor_map**<>\[i]`.
+	- **`buffer`**: Since there may be multiple buffers, the driver needs to write to the current **`buffer`**. More specifically, if filling in response for sensor `i`,
+	  it should be written in:
+
+		```
+		layer->[#sensors](skink_sensor_layer)\[sensor_map\[i]].[#response](skink_sensor)\[buffer]
+		```
+
+	The acquire callback needs to make sure the sensor values are mapped to 0 as the minimum value and [#SKINK_SENSOR_RESPONSE_MAX](constants) as the
+	maximum value.
+
+	The acquire callback also needs to make sure all sensor values are updated in each call. In the case of devices that may not produce data always,
+	[#skink_copy_from_previous_buffer](skink_device) has been implemented that copies the data from previous buffer to the current one. The end user will therefore
+	see unchanging data (as opposed to old and possibly different data previously written in the current buffer).

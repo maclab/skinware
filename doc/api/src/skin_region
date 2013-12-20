@@ -1,0 +1,214 @@
+struct skin_region
+# Skinware - User API
+version version 1.0.0.894
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_sensor_type
+next struct skin_sub_region
+seealso `[skin_sensor]`
+seealso `[skin_sub_region]`
+seealso `[skin_sensor_iterator]`
+seealso `[#skin_object_regions](skin_object)`
+seealso `[#skin_object_sub_region_indices](skin_object)`
+
+The `skin_region` struct holds data of one region of the skin.
+
+VARIABLE id: skin_region_id
+	Id of the region
+
+	The id of the region. This value is equal to the region's index in the region list obtainable via `[#skin_object_regions](skin_object)` function.
+	If the value of `id` is equal to `[#SKIN_INVALID_ID](constants)`, that means the region is not properly initialized.
+	See also `[#skin_region_id](skin_object)`.
+
+VARIABLE sub_region_indices_begin: skin_sub_region_index_id
+	Where the indices to the sub-regions of this region start
+
+	The indices to sub-regions of each region are stored consequently. They are located in the sub-region-indices list obtainable via
+	`[#skin_object_sub_region_indices](skin_object)` function, with indices in \[`sub_region_indices_begin`, `[#sub_region_indices_end]`).
+
+	**Note:** Unlike modules and patches, this index is not to the sub-regions array itself, but to a different
+	array, called _sub-region-indices_ which has values indexing the sub-regions array. The reason for this is that the
+	regions could share sub-regions and thus the sub-regions cannot be arranged in a way that would have a simple range such as
+	\[a, b) defining every region. Note also that this implies that although within a region's \[`sub_region_indices_begin`,
+	`sub_region_indices_end`) range the sub-region indices are unique, there may be duplicate sub-region indices in the
+	whole sub-region-indices array. See also `[#skin_sub_region_index_id](skin_object)`.
+
+VARIABLE sub_region_indices_end: skin_sub_region_index_id
+	Where the indices to the sub-regions of this region end
+
+	The indices to sub-regions of each region are stored consequently. They are located in the sub-region-indices list obtainable via
+	`[#skin_object_sub_region_indices](skin_object)` function, with indices in \[`[#sub_region_indices_begin]`, `sub_region_indices_end`).
+
+	See `[#sub_region_indices_begin]` for explanation.
+
+FUNCTION skin_region_init: (region: skin_region *): void
+	Initialize region to invalid
+
+	Initializer of the struct. Sets the region variables so that the region would be invalid.
+
+	INPUT region
+		The object of operation
+
+FUNCTION skin_region_free: (region: skin_region *): void
+	Free region
+
+	Free any resources and invalidate the region.
+
+	INPUT region
+		The object of operation
+
+FUNCTION skin_region_sub_region_indices: (region: skin_region *, count: skin_sub_region_index_size *): skin_sub_region_index_id *
+	Gives an array of indices to sub-regions belonging to this region
+
+	This function returns a reference to a part of the [sub-region-indices array](skin_object#skin_object_sub_region_indices) where indices to the
+	sub-regions of this region are located. That is, sub-regions of this region are the ones indexed in the sub-region-indices array from index
+	`[#sub_region_indices_begin]`. The array will have **`count`** elements. Note that this is **not** a copy of the sub-region-indices array,
+	but a reference to the original. See also `[#skin_sub_region_index_size](skin_object)` and `[#skin_sub_region_index_id](skin_object)`.
+
+	In case all sensors of the region are intended to be traversed, it is advised to use the `[#skin_region_for_each_sensor]` function or
+	an [iterator](#sensors_iter_begin) if in C++.
+
+	INPUT region
+		The object of operation
+	INPUT count
+		After `skin_region_sub_region_indices` finishes, this variable will hold the number of sub-regions in this region.
+
+		If `NULL`, it will be left untouched.
+	OUTPUT
+		As output, this function returns an array of indices to sub-regions belonging to this region. If the region is not properly
+		initialized, this function will return `NULL` and the input **`count`** will be left untouched.
+
+FUNCTION skin_region_sub_region_indices_count: (region: skin_region *): skin_sub_region_index_size
+	Gives the number of sub-regions belonging to this region
+
+	The output of this function is equal to the `count` argument of `[#skin_region_sub_region_indices]`.
+
+	INPUT region
+		The object of operation
+	OUTPUT
+		The number of sub-regions belonging to this region.
+
+FUNCTION skin_region_for_each_sensor: (region: skin_region *, c: skin_callback_sensor, data: void *): void
+	Call a callback for all sensors of region
+
+	This function iterates over sensors of **`region`** calling [callback](skin_callbacks#skin_callback_sensor) **`c`** with additional data **`data`**.
+	This iteration stops when either all sensors have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	The sensors are guaranteed to be traversed layer by layer, in order of layer id.
+
+	INPUT region
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+FUNCTION skin_region_for_each_sub_region: (region: skin_region *, c: skin_callback_sub_region, data: void *): void
+	Call a callback for all sub-regions of region
+
+	This function iterates over sub-regions of **`region`** calling [callback](skin_callbacks#skin_callback_sub_region) **`c`** with additional data **`data`**.
+	This iteration stops when either all sub_regions have been iterated or the callback returns `[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT region
+		The object of operation
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+
+MEMBER_TYPE skin_sensor_iterator: opaque
+NOTICE C++
+	A sensor iterator
+
+	Returned by `[#sensors_iter_begin]` and `[#sensors_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_TYPE skin_sub_region_iterator: opaque
+NOTICE C++
+	A sub-region iterator
+
+	Returned by `[#sub_regions_iter_begin]` and `[#sub_regions_iter_end]`. Please see the [generic iterator page](skin_X_iterator).
+
+MEMBER_FUNCTION skin_region: ()
+NOTICE C++
+	Class constructor
+
+	Default constructor of the class. Calls `[#skin_region_init]`.
+
+MEMBER_FUNCTION ~skin_region: ()
+NOTICE C++
+	Class destructor
+
+	Destructor of the class. Calls `[#skin_region_free]`.
+
+MEMBER_FUNCTION sub_region_indices: (count: skin_sub_region_index_size * = NULL): skin_sub_region_index_id *
+NOTICE C++
+	Wrapper for `skin_region_sub_region_indices`
+
+	Calls `[#skin_region_sub_region_indices]`.
+
+	INPUT count
+		See `[#skin_region_sub_region_indices]`.
+	OUTPUT
+		See `[#skin_region_sub_region_indices]`.
+
+MEMBER_FUNCTION sub_region_indices_count: (): skin_sub_region_index_size
+NOTICE C++
+	Wrapper for `skin_region_sub_region_indices_count`
+
+	Calls `[#skin_region_sub_region_indices_count]`.
+
+	OUTPUT
+		See `[#skin_region_sub_region_indices_count]`.
+
+MEMBER_FUNCTION sensors_iter_begin: (): skin_region::skin_sensor_iterator
+NOTICE C++
+	Gives an iterator to iterate over sensors of this region
+
+	This function returns a pointer of type `skin_region::[#skin_sensor_iterator]`, similar to C++'s STL `iterator` classes, which points to the
+	first of this region's sensors. This iterator can then be used to traverse all sensors of this region. Note that the sensors traversed are
+	not a copy and the iterators actually point to the original data.
+
+	The sensors are guaranteed to be traversed layer by layer, in order of layer id.
+
+	OUTPUT
+		The output of this function is an iterator over sensors of this region, pointing to the first one.
+
+MEMBER_FUNCTION sensors_iter_end: (): const skin_region::skin_sensor_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the sensors
+
+	This function returns a pointer of type `skin_region::[#skin_sensor_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid
+	sensor. This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range.
+	This is similar to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over sensors of this region pointing to an invalid sensor (and therefore should not be dereferenced).
+
+MEMBER_FUNCTION sub_regions_iter_begin: (): skin_region::skin_sub_region_iterator
+NOTICE C++
+	Gives an iterator to iterate over sub-regions of this region
+
+	This function returns a pointer of type `skin_region::[#skin_sub_region_iterator]`, similar to C++'s STL `iterator` classes, which points to the first
+	of this region's sub-regions. This iterator can then be used to traverse all sub-regions of this region. Note that the sub-regions traversed are not
+	a copy and the iterators actually point to the original data.
+
+	OUTPUT
+		The output of this function is an iterator over sub-regions of this region, pointing to the first one.
+
+MEMBER_FUNCTION sub_regions_iter_end: (): const skin_region::skin_sub_region_iterator
+NOTICE C++
+	Gives an invalid iterator marking the end of iteration over the sub-regions
+
+	This function returns a pointer of type `skin_region::[#skin_sub_region_iterator]`, similar to C++'s STL `iterator` classes, which points to an invalid
+	sub-region. This iterator can then be used in comparison with another iterator to determine whether that iterator has reached the end of its range.
+	This is similar to how iterators are used in C++'s STL.
+
+	OUTPUT
+		The output of this function is an iterator over sub-regions of this region pointing to an invalid sub-region (and therefore should not be dereferenced).

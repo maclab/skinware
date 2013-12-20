@@ -1,0 +1,21 @@
+globals
+# Skinware - Driver API
+version version 1.0.0.872
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword DIST
+keyword MacLAB
+shortcut index
+shortcut constants
+
+DataTypes
+skink_registration_data
+Callbacks
+skink_device
+skink_sensor_layer
+skink_sensor
+skink_module
+skink_patch
+skin_rt
