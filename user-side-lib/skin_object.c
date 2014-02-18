@@ -363,6 +363,7 @@ static void _copy_sensors(skin_object *so, skink_sensor *from, int phase)
 		skin_sensor empty = {0};
 		to[i] = empty;
 		to[i].id			= i;
+		to[i].sensor_type_id		= from[i].layer;
 		to[i].sub_region_id		= from[i].sub_region;
 		to[i].response			= 0;
 		if (phase == SKIN_LOAD_FOR_CALIBRATION)
