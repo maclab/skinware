@@ -166,6 +166,7 @@ while [ $# -gt 0 ]; do
 			[ "$skin_has_rosskin" == "y" ] && printf -- "$skin_rosskin_server\n" || error
 			;;
 		*)
+			printf -- "Unknown argument %s\n" "$1"
 			error
 			;;
 	esac
