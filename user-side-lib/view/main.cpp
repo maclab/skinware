@@ -1145,7 +1145,7 @@ void load_data(string home)
 		shFontShadowColor(0, 0, 0);
 		shFontShadow(SH_FONT_FULL_SHADOW);
 		fout << "shFont done (version: "SH_FONT_VERSION")" << endl;
-	        fout << "Using shImage (version " << SH_IMAGE_VERSION << ")" << endl;
+	        fout << "Using shImage (version "SH_IMAGE_VERSION")" << endl;
 	}
 	ifstream blin("blacklist");
 	if (blin.is_open())

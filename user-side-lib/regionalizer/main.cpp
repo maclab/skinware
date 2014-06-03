@@ -68,7 +68,7 @@ vector<module_mesh>		modules_triangulated;
 
 uint8_t				selection_threshold	= 127;
 
-ofstream			fout("log.out");
+FILE *fout = NULL;
 
 //#define SH_FULLSCREEN
 #ifdef SH_FULLSCREEN
@@ -83,11 +83,18 @@ int SH_RES_HEIGHT =		786;
 
 static skin_object		skin;
 static bool			_must_exit		= false;
-static int			_error_code		= EXIT_SUCCESS;
+static int			_error_code		= EXIT_FAILURE;
+
+#define log(...)				\
+do {						\
+	if (fout)				\
+		fprintf(fout, __VA_ARGS__);	\
+	fprintf(stderr, __VA_ARGS__);		\
+} while (0)
 
 void quit(int error_code)
 {
-	fout << "Quitting with error code " << error_code << endl;
+	log("Quitting with error code %d\n", error_code);
 	shNgin3dQuit();
 	shNginQuit();
 	SDL_Quit();
@@ -101,8 +108,8 @@ void initialize_SDL()
 {
 	if (SDL_Init(SDL_INIT_VIDEO) == -1)
 	{
-		fout << "Could not initialize SDL video..." << SDL_GetError() << endl;
-		fout << "Exiting program" << endl;
+		log("Could not initialize SDL video... %s\n", SDL_GetError());
+		log("Exiting program\n");
 		exit(0);
 	}
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
@@ -118,7 +125,7 @@ void initialize_SDL()
 	if (resin)
 	{
 		fscanf(resin, "%s %dx%d", temp, &SH_RES_WIDTH, &SH_RES_HEIGHT);
-		fout << "Screen resolution detected as " << SH_RES_WIDTH << "x" << SH_RES_HEIGHT << endl;
+		log("Screen resolution detected as %dx%d\n", SH_RES_WIDTH, SH_RES_HEIGHT);
 		pclose(resin);
 	}
 	if (SDL_SetVideoMode(SH_RES_WIDTH, SH_RES_HEIGHT, 0, SDL_OPENGL|SDL_FULLSCREEN) == NULL)
@@ -126,7 +133,7 @@ void initialize_SDL()
 	if (SDL_SetVideoMode(SH_RES_WIDTH, SH_RES_HEIGHT, 0, SDL_OPENGL) == NULL)
 #endif
 	{
-		fout << "Could not open an OpenGL window..." << SDL_GetError() << endl;
+		log("Could not open an OpenGL window... %s\n", SDL_GetError());
 		quit(EXIT_SUCCESS);
 		return;
 	}
@@ -475,7 +482,6 @@ uint8_t fix_response(skin_sensor *s)
 			r = response_range;
 		r = (uint32_t)r * 255 / response_range;
 	}
-	fout << "returning " << r << " (" << (unsigned int)(uint8_t)r << ")" << endl;
 	return (uint8_t)r;
 }
 
@@ -833,7 +839,7 @@ void load_data(const char *home)
 	skybox[5].shNginTLoad((h+"../gui/room_down.bmp").c_str());
 	for (int i = 0; i < 6; ++i)
 		if (!skybox[i].shNginTIsLoaded())
-			fout << "Sky box " << i << " didn't load" << endl;
+			log("Sky box %d didn't load\n", i);
 }
 
 void initialize_Ngin()
@@ -913,7 +919,7 @@ int read_settings(const char *file)
 	ifstream fin(file);
 	if (!fin.is_open())
 	{
-		fout << "Could not open file \"" << file << "\"" << endl;
+		log("Could not open file '%s'\n", file);
 		return -1;
 	}
 	string s;
@@ -965,7 +971,7 @@ void regionalize()
 {
 	int frame;
 	bool use_defaults = false;
-	fout << "Initializing..." << endl;
+	fprintf(fout, "Initializing...\n");
 	srand(time(NULL));
 	char exelink[50];
 	sprintf(exelink, "/proc/%d/exe", getpid());
@@ -1009,44 +1015,44 @@ void regionalize()
 	skin_object_for_each_sensor(&skin, _find_min_max, &min_max);
 	if (min_max.maxX == min_max.minX)
 	{
-		fout << "maxX is equal to minX" << endl;
+		fprintf(fout, "maxX is equal to minX\n");
 		meter_scale = 1;
 	}
 	else if (min_max.maxX - min_max.minX > min_max.maxY - min_max.minY)
 		meter_scale = 100.0f / (min_max.maxX - min_max.minX);
 	else
 		meter_scale = 100.0f / (min_max.maxY - min_max.minY);
-	fout << "Constructing module shapes done" << endl;
+	fprintf(fout, "Constructing module shapes done\n");
 	initialize_SDL();
 	if (_must_exit)
 		return;
-	fout << "SDL done" << endl;
+	fprintf(fout, "SDL done\n");
 	initialize_Ngin();
 	glPointSize(2);
-	fout << "Ngin done (version: "NGIN_VERSION")" << endl;
+	fprintf(fout, "Ngin done (version: "NGIN_VERSION")\n");
 	initialize_Ngin3d((home+"../settings/Ngin3d_settings").c_str(),
 			(min_max.maxX + min_max.minX) / 2 * meter_scale, (min_max.maxY + min_max.minY) / 2 * meter_scale);
-	fout << "Ngin3d done (version: "NGIN3D_VERSION")" << endl;
+	fprintf(fout, "Ngin3d done (version: "NGIN3D_VERSION")\n");
 	if (shFontLoad((home+"../gui/font.shf").c_str()) == SH_FONT_FILE_NOT_FOUND)
-		fout << "Could not load font" << endl;
+		fprintf(fout, "Could not load font\n");
 	else
 	{
 		shFontSize(0.5f);
 		shFontColor(255, 0, 0);
 		shFontShadowColor(0, 0, 0);
 		shFontShadow(SH_FONT_FULL_SHADOW);
-		fout << "shFont done (version: "SH_FONT_VERSION")" << endl;
-	        fout << "Using shImage (version " << SH_IMAGE_VERSION << ")" << endl;
+		fprintf(fout, "shFont done (version: "SH_FONT_VERSION")\n");
+	        fprintf(fout, "Using shImage (version "SH_IMAGE_VERSION")\n");
 	}
 	load_data(home.c_str());
-	fout << "gui data loaded" << endl;
+	fprintf(fout, "gui data loaded\n");
 	if (rescale_responses)
 	{
 		skin_sensor_size sensors_count = skin_object_sensors_count(&skin);
 		sensor_mins = new skin_sensor_response[sensors_count];
 		if (sensor_mins == NULL)
 		{
-			fout << "Could not allocate memory for sensor minimums.  Resclaing disabled" << endl;
+			fprintf(fout, "Could not allocate memory for sensor minimums.  Resclaing disabled\n");
 			cout << "Out of memory.  Rescaling disabled" << endl;
 			rescale_responses = false;
 		}
@@ -1062,7 +1068,7 @@ void regionalize()
 		unsigned int now = SDL_GetTicks();
 		if (now >= last+1000)
 		{
-			fout << (FPS = frame * 1000 / (now - last)) << " fps" << endl;
+			fprintf(fout, "%d fps\n", (FPS = frame * 1000 / (now - last)));
 			last += 1000;
 			frame = 0;
 		}
@@ -1077,11 +1083,23 @@ void regionalize()
 	}
 }
 
+void auto_regionalize()
+{
+	skin_module_size mcount = skin_object_modules_count(&skin);
+	for (skin_module_id i = 0; i < mcount; ++i)
+		cur_region.insert(i);
+	regions.push_back(cur_region);
+}
+
 int main(int argc, char *argv[])
 {
-	string cachefile = "unnamed.cache";
+	const char *cachefile = "unnamed.cache";
 	bool rebuild = false;
 	bool ignore_options = false;
+	bool fake_regionalize = false;
+
+	fout = fopen("log.out", "w");
+
 	for (int i = 1; i < argc; ++i)
 		if (ignore_options)
 			cachefile = argv[i];
@@ -1093,6 +1111,8 @@ int main(int argc, char *argv[])
 				"\tShow this help message\n"
 				"--reregionalize or -r\n"
 				"\tForce regionalization even if cache exists\n"
+				"--fake or -f\n"
+				"\tGenerate fake regionalization and put all in one region\n"
 				"--range X\n"
 				"\tScale values from their minimum to the given range X\n"
 				"--\n"
@@ -1102,6 +1122,8 @@ int main(int argc, char *argv[])
 				"from cache file.  If no cache file exists or cache file produces error, it will\n"
 				"proceed with regionalization.  If multiple cache file names are given, the last\n"
 				"one is taken.\n\n"
+				"If faking regionalization (for test purposes), the regionalization data would\n"
+				"not be cached.\n\n"
 				"Depending on the covering material over the sensors, the dynamic range of\n"
 				"values may change.  If this option is given, the minimum value of sensors are\n"
 				"stored and the sensor values are scaled from that starting point and up to X\n"
@@ -1123,48 +1145,45 @@ int main(int argc, char *argv[])
 			else
 				cout << "Missing value after --range.  Defaulting to 1000" << endl;
 		}
+		else if (strcmp(argv[i], "--fake") == 0 || strcmp(argv[i], "-f") == 0)
+			fake_regionalize = true;
 		else if (strcmp(argv[i], "--") == 0)
 			ignore_options = true;
 		else
 			cachefile = argv[i];
 	skin_object_init(&skin);
-	if (!rebuild)
+	if (!rebuild && !fake_regionalize)
 	{
 		int ret;
-		if ((ret = skin_object_regionalization_reload(&skin, cachefile.c_str())) != SKIN_SUCCESS)
+		if ((ret = skin_object_regionalization_reload(&skin, cachefile)) != SKIN_SUCCESS)
 		{
 			if (ret == SKIN_NO_FILE)
-			{
-				cout << "Regionalization cache does not exist.  Proceeding with regionalization..." << endl;
-				fout << "Regionalization cache does not exist.  Proceeding with regionalization..." << endl;
-			}
+				log("Regionalization cache does not exist.  Proceeding with regionalization...\n");
 			else
-			{
-				cout << "Skin regionalization cache reload error: " << skin_object_last_error(&skin) << endl;
-				fout << "Skin regionalization cache reload error: " << skin_object_last_error(&skin) << endl;
-			}
+				log("Skin regionalization cache reload error: %s\n", skin_object_last_error(&skin));
 			rebuild = true;
 		}
+		else
+			_error_code = EXIT_SUCCESS;
 	}
-	if (rebuild)
+	if (rebuild || fake_regionalize)
 	{
 		if (skin_object_regionalization_begin(&skin) != SKIN_SUCCESS)
 		{
-			cout << "Skin regionalization initialization error: " << skin_object_last_error(&skin) << endl;
-			fout << "Skin regionalization initialization error: " << skin_object_last_error(&skin) << endl;
-			skin_object_free(&skin);
-			return EXIT_FAILURE;
+			log("Skin regionalization initialization error: %s\n", skin_object_last_error(&skin));
+			goto exit_fail;
 		}
-		regionalize();
+		if (!fake_regionalize)
+			regionalize();
+		else
+			auto_regionalize();
 		if (!cancel_regionalization)
 		{
 			skin_regionalization_data *rdata = new skin_regionalization_data[regions.size()];
 			if (rdata == NULL)
 			{
-				cout << "Skin regionalization error: Out of memory" << endl;
-				fout << "Skin regionalization error: Out of memory" << endl;
-				skin_object_free(&skin);
-				return EXIT_FAILURE;
+				log("Skin regionalization error: Out of memory\n");
+				goto exit_fail;
 			}
 			for (skin_region_id i = 0; i < regions.size(); ++i)
 			{
@@ -1175,28 +1194,24 @@ int main(int argc, char *argv[])
 				rdata[i].modules = new skin_module_id[regions[i].size()];
 				if (rdata[i].modules == NULL)
 				{
-					cout << "Skin regionalization error: Out of memory" << endl;
-					fout << "Skin regionalization error: Out of memory" << endl;
-					skin_object_free(&skin);
-					return EXIT_FAILURE;
+					log("Skin regionalization error: Out of memory\n");
+					goto exit_fail;
 				}
 				for (set<skin_module_id>::iterator j = regions[i].begin(), end = regions[i].end(); j != end; ++j)
 					rdata[i].modules[rdata[i].size++] = *j;
 			}
-			if (skin_object_regionalization_end(&skin, rdata, regions.size(), cachefile.c_str()) != SKIN_SUCCESS)
+			if (skin_object_regionalization_end(&skin, rdata, regions.size(), fake_regionalize?NULL:cachefile) != SKIN_SUCCESS)
 			{
-				cout << "Skin regionalization error: " << skin_object_last_error(&skin) << endl;
-				fout << "Skin regionalization error: " << skin_object_last_error(&skin) << endl;
-				skin_object_free(&skin);
-				return EXIT_FAILURE;
+				log("Skin regionalization error: %s\n", skin_object_last_error(&skin));
+				goto exit_fail;
 			}
 		}
 		else
-		{
-			skin_object_free(&skin);
-			return EXIT_FAILURE;
-		}
+			goto exit_fail;
 	}
+exit_fail:
 	skin_object_free(&skin);
+	if (fout)
+		fclose(fout);
 	return _error_code;
 }

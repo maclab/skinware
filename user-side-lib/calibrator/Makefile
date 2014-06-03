@@ -4,7 +4,7 @@ include ../../Makefile.common
 TARGET := calibrate
 KERNEL_HOME := ../../kernel-module
 USER_HOME := ..
-CXXFLAGS += -I$(KERNEL_HOME) -I$(USER_HOME) $(USER_EXTRA_CXXFLAGS) $(EXTRA_CXXFLAGS)
+CFLAGS += -I$(KERNEL_HOME) -I$(USER_HOME) $(USER_EXTRA_CFLAGS) $(EXTRA_CFLAGS)
 LDFLAGS += -L$(USER_HOME) -lskin-$(USER_VERSION) -lrt $(USER_EXTRA_LDFLAGS) $(EXTRA_LDFLAGS)
 
 VPATH = ../tools
@@ -17,8 +17,8 @@ ifneq ($(CONFIG_SKIN_ROSSKIN_LIB_ONLY), y)
 endif
 $(TARGET): main.o $(USER_HOME)/libskin.a
 	$(LD) -o $@ $(filter-out %.a,$^) $(LDFLAGS)
-main.o: main.cpp $(wildcard $(USER_HOME)/*.h) $(wildcard $(KERNEL_HOME)/*.h)
-	$(CXX) $(CXXFLAGS) -o $@ -c $<
+main.o: main.c $(wildcard $(USER_HOME)/*.h) $(wildcard $(KERNEL_HOME)/*.h)
+	$(CC) $(CFLAGS) -o $@ -c $<
 .PHONY: clean
 clean:
 	-$(RM) *.o $(TARGET)
