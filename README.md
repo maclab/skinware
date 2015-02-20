@@ -14,3 +14,9 @@ The user-space library gets sensor data from the skin kernel and provides it to 
 All threads in the skin kernel are [RTAI](http://www.rtai.org) real-time threads.  Skinware goes a long
 way with synchronization mechanisms to ensure coherency of user data as well as consistency among users.  It also
 allows users with different needs to access data on their own accord.
+
+Skinware is done and maintained by Maclab, DIBRIS, University of Genova, Italy.
+Please visit [maclab](http://www.maclab.dibris.unige.it/) for more information.
+
+The mailing list for Skinware can be found in
+[google-groups/skinware](https://groups.google.com/d/forum/skinware).
