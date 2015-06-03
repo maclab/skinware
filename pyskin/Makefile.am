@@ -1,0 +1,3 @@
+ACLOCAL_AMFLAGS = -I m4
+
+python_PYTHON = skin@SKIN_SUFFIX_PYTHON@.py

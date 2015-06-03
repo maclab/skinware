@@ -1,0 +1,82 @@
+struct skin_driver_details
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_driver_callbacks
+next struct skin_driver
+seealso `[skin_driver]`
+
+This structure presents an overall view of the skin structure.  The details of the skin is taken through
+the `[#details](skin_driver_callbacks)` callback.  When a driver is revived, the old structure is given
+to the same callback to verify that the driver is representing the same piece of skin as before.
+
+VARIABLE overall: skin_driver_attr
+	Overall view of the skin
+
+	This is the overall view of the skin, as provided when the driver was [added](skin#skin_driver_add).
+	Revived or not, the `[#details](skin_driver_callbacks)` shouldn't modify this.
+
+	See also `[skin_driver_attr]`.
+
+VARIABLE patches: skin_patch_decl *
+	Patch declarations
+
+	This is an array of patch declarations.  To be filled by the `[#details](skin_driver_callbacks)` callback
+	if the driver is newly created, or reviewed if it is revived.
+	The size of this array is `[#overall].[#patch_count](skin_driver_attr)`.  The `skin_patch_decl` struct is defined as:
+
+		```
+		struct skin_patch_decl
+		{
+			skin_module_size module_count;
+		};
+		```
+
+	The modules of patches are laid out consecutively in the `[#modules]` array.
+
+	See also `[#skin_module_size](skin)`.
+
+VARIABLE modules: skin_module_decl *
+	Module declarations
+
+	This is an array of module declarations.  To be filled by the `[#details](skin_driver_callbacks)` callback
+	if the driver is newly created, or reviewed if it is revived.
+	The size of this array is `[#overall].[#module_count](skin_driver_attr)`.  The `skin_module_decl` struct is defined as:
+
+		```
+		struct skin_module_decl
+		{
+			skin_sensor_size sensor_count;
+		};
+		```
+
+	The sensors of modules are laid out consecutively in the `[#sensors]` array.
+
+	See also `[#skin_sensor_size](skin)`.
+
+VARIABLE sensors: skin_sensor_decl *
+	Sensor declarations
+
+	This is an array of sensor declarations.  To be filled by the `[#details](skin_driver_callbacks)` callback
+	if the driver is newly created, or reviewed if it is revived.
+	The size of this array is `[#overall].[#sensor_count](skin_driver_attr)`.  The `skin_sensor_decl` struct is defined as:
+
+		```
+		struct skin_sensor_decl
+		{
+			skin_sensor_unique_id uid;
+			skin_sensor_type_id type;
+		};
+		```
+
+	The driver is responsible for providing a unique id for each sensor (unique among sensors of the same type), as well as
+	deciding the type of the sensor.
+
+	See also [known sensor types](constants#Sensor Types), `[#skin_sensor_unique_id](skin)` and `[#skin_sensor_type_id](skin)`.

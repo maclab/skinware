@@ -1,0 +1,51 @@
+class SkinSensorType
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class SkinUser
+next class SkinSensor
+seealso `[SkinSensor]`
+seealso `[Skin::forEachSensorType](Skin#forEachX)`
+
+This is a C++ interface to `[skin_sensor_type]`.
+
+FUNCTION isValid: (): bool
+	Whether the object is valid
+
+	This function tells whether this object is valid.
+
+	OUTPUT
+		Returns true if the object is valid and can be used.
+
+FUNCTION getId: (): SkinSensorTypeId
+	Get the sensor type
+
+	See `[skin_sensor_type::id](skin_sensor_type#id)`.
+
+	OUTPUT
+		Returns the sensor type id.
+
+FUNCTION getUser: (): SkinUser
+	Get the user containing a sensor of this type
+
+	See `[skin_sensor_type::user](skin_sensor_type#user)`.
+
+	OUTPUT
+		Returns the user containing a sensor of this type.
+
+FUNCTION getSkin: (): Skin
+	Return main skin object
+
+	This function returns a reference to the main skin object.
+
+	OUTPUT
+		Returns a reference to the main skin object.

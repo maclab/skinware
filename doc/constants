@@ -1,0 +1,135 @@
+constants
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+seealso `[#skin_load](skin)`
+
+Constants in the skin are divided in the following groups:
+- Flags
+- Ranges
+- Sensor Types
+- Meta
+
+CONST_GROUP Flags
+	Values used as flags in the library
+
+	These are constants that are used within the library as flags, either to flag a certain data, or as input to
+	functions of the library.
+
+	CONSTANT SKIN_INVALID_ID: 0xffffffffu
+		An invalid id for sensors, modules, patches, etc
+
+		A value indicating an erroneous or non-existing entity; a sensor, a module, a patch, etc.
+		When comparing ids with this value, make sure you cast it to the proper type.  For example, checking
+		if a sensor has invalid id, its id needs to be compared with
+		`([skin_sensor_id](skin#skin_sensor_id))SKIN_INVALID_ID`.
+
+	CONSTANT SKIN_CALLBACK_CONTINUE: 0
+		Continue iteration of for-each operation
+
+		This flag can be used as return value of a [callback](skin_callback) to indicate that the iteration
+		must continue.
+
+	CONSTANT SKIN_CALLBACK_STOP
+		Stop iteration of for-each operation
+
+		This flag can be used as return value of a [callback](skin_callback) to indicate that the iteration
+		must stop.
+
+
+CONST_GROUP Ranges
+	Limits to range of values
+
+	These constants are limits to range of values such as the maximum possible response from a sensor, or maximum
+	number of sensors, modules etc in the skin.
+
+	CONSTANT SKIN_SENSOR_RESPONSE_MAX: 0xffff
+		Maximum value of a sensor response
+
+		This is the maximum possible value of a sensor response.  The minimum response of the sensors are 0.
+
+	CONSTANT SKIN_SENSOR_TYPE_MAX: 0xfffffffeu
+		Maximum number of sensor types in the skin
+
+		This number shows the maximum possible number of sensor types in the skin.
+
+	CONSTANT SKIN_SENSOR_MAX: 0xfffffffeu
+		Maximum number of sensors in the skin
+
+		This number shows the maximum possible number of sensors in the skin.
+
+	CONSTANT SKIN_MODULE_MAX: 0xfffffffeu
+		Maximum number of modules in the skin
+
+		This number shows the maximum possible number of modules in the skin.
+
+	CONSTANT SKIN_PATCH_MAX: 0xfffffffeu
+		Maximum number of patches in the skin
+
+		This number shows the maximum possible number of patches in the skin.
+
+CONST_GROUP Sensor Types
+	Constants identifying sensor types
+
+	These are constants that can be given to [sensor types](skin_sensor#type) to identify its type.  Skinware
+	itself doesn't care what type a sensor is.  These constants are therefore defined to facilitate identifying
+	sensors by different vendors so that application could detect them and know what to do with them.
+
+	The `[#skin_get_sensor_type_name](skin)` function can be used to get the name string of a type.
+
+	CONSTANT SKIN_SENSOR_TYPE_INVALID: 0
+		An invalid sensor type
+
+		This sensor type is reserved as invalid, to prevent it from being used as a specific type, the
+		reason being that an incompletely initialized sensor would have the value as type.
+
+	CONSTANT SKIN_SENSOR_TYPE_CYSKIN_TAXEL
+		A taxel in CySkin
+
+		A taxel in CySkin.
+
+	CONSTANT SKIN_SENSOR_TYPE_CYSKIN_TEMPERATURE
+		A temperature sensor in CySkin
+
+		A temperature sensor in CySkin.
+
+	CONSTANT SKIN_SENSOR_TYPE_MACLAB_ROBOSKIN_TAXEL
+		A taxel in ROBOSKIN (MacLab version)
+
+		A taxel in ROBOSKIN (MacLab version).
+
+	CONSTANT SKIN_SENSOR_TYPE_ROBOSKIN_TAXEL
+		A taxel in ROBOSKIN (Original version)
+
+		A taxel in ROBOSKIN (Original version).
+
+CONST_GROUP Meta
+	Constants providing information about the library
+
+	These are constants that give information about the library itself.  Currently, they only include
+	version-related constants.
+
+	CONSTANT SKIN_VERSION_MAJOR
+		The major number of the version of the skin API
+
+		The major number in the skin version.  This number changes only in case of fundamental changes in the
+		library.
+
+	CONSTANT SKIN_VERSION_MINOR
+		The minor number of the version of the skin API
+
+		The minor number in the skin version.  This number increases with added functionality or partial changes
+		in the library.
+
+	CONSTANT SKIN_VERSION_REVISION
+		The revision number of the version of the skin API
+
+		The revision number in the skin version.  This number increases only when minor changes to the library
+		take place while the overall functionality of the skin is the same.  This includes bug-fixing, renaming
+		functions and variables, added error-checking and such.

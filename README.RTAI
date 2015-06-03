@@ -1,0 +1,78 @@
+    Configuring RTAI for use of Skinware
+    ====================================
+
+There are two parts you need to pay attention to.  First, how to configure RTAI
+to have the required functionality and allocate enough resources.  Second,
+is bug fixes to RTAI itself if you are using an older version in which the bugs
+exist.
+
+If you get RTAI from http://github.com/ShabbyX/RTAI, the bugs are fixed and the
+default configuration is ok.
+
+Configuring RTAI
+----------------
+
+There are a couple of settings that you need to pay attention to when
+configuring RTAI.  The least problematic ones are:
+
+- In `Base system ---> Supported services`, make sure you have
+  `Semaphores` and `Shared memory` enabled.
+
+The following are other configuration that need to be taken care of,
+as they may cause nasty crashes if too many object are created:
+
+- In `Base system ---> Scheduling options`, set
+  `Number of registrable RTAI objects` to a higher value.  The
+  following is the number of objects used by Skinware
+
+        Total = sum(Bi + 1) + 2*Ws + D
+
+  where
+
+  * Bi is the number of buffers for writer i, including writers of drivers,
+  * Ws is the number of sporadic writers, including writers of drivers,
+  * D is the number of drivers
+
+  Of course, with higher number of buffers, services and drivers, the number of
+  registrable RTAI objects need to be increased.
+
+  If not sure, try 1024.
+
+- In `Base system ---> Other features`, if you had problem with allocating many
+  services (kernel threads to be precise), try disabling
+  `Real-time malloc support`.  Last time I tried, rtai_malloc can't get more
+  than 60 threads.  Without it, it seems to be working, but it's not a sure
+  thing.  If you had problems with it, know that it's an RTAI thing.
+
+- In `Base system ---> Scheduling options`, enable
+  `Display RTAI task execution time` which is used by Skinware to monitor its
+  performance.
+
+- An issue I have been experiencing with services is that when rtai_lxrt.ko is
+  loaded, some nasty oopses happen in RTAI's thread creation.  rtai_sched.ko
+  however doesn't have this issue.  Therefore, it is recommended to load
+  rtai_sched rather than rtai_lxrt.
+
+Fixing RTAI bugs
+----------------
+
+Currently, there is only one fix to RTAI identified.  This bug is present
+until version 3.9, but could remain in future versions too.
+
+- In file base/include/rtai_rwl.h, find the definition of
+  `rt_named_rwl_init` in user space.  It should look like this:
+
+        RTAI_PROTO(struct rtai_rwlock *, rt_named_rwl_init,(const char *name))
+
+  replace the line:
+
+        struct { const char *name; } arg = { name };
+
+  with:
+
+        struct { unsigned long name; } arg = { nam2num(name) };
+
+  Note that, if you are using named spinlocks with RTAI, you should fix the
+  same issue in rtai_spl.h in rt_named_spl_init function.  With named semaphore
+  this issue doesn't exist.  Other named synchronization locks need to be
+  checked.

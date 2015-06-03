@@ -1,0 +1,159 @@
+struct skin_writer
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin
+next struct skin_reader
+seealso `[skin_writer_attr]`
+seealso `[skin_writer_callbacks]`
+seealso `[skin_for_each_writer](skin#skin_for_each_X)`
+
+The `skin_writer` struct represents a writer, whether standalone (called a service) or belonging to a [driver](skin_driver).
+This structure is opaque.
+
+The writers are either periodic or sporadic.  A periodic writer periodically generates data, while a sporadic writer does
+so only on request.  It is generally unnecessary to send a request to a sporadic writer as it is done automatically by
+the attached [readers](skin_reader).
+
+Writers may be removed while readers are still attached to it.  This simply pauses those readers.  If the writer attempts to start
+again, it will be revived, in which case the [buffer size](skin_writer_attr#buffer_size), [buffer count](skin_writer_attr#buffer_count)
+and task period must match the previous time the writer was running.  Only if all readers detach from the writer can it
+be started anew with different attributes.
+
+All functions return `EINVAL` if given an invalid writer.
+
+FUNCTION skin_writer_pause: (writer: struct skin_writer *): int
+	Pause the writer
+
+	This function pauses the writer task.
+
+	INPUT writer
+		The writer being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_writer_resume: (writer: struct skin_writer *): int
+	Resume the writer
+
+	This function resumes the writer task.
+
+	INPUT writer
+		The writer being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_writer_is_paused: (writer: struct skin_writer *): bool
+	Tells whether writer is paused
+
+	This function tells whether the writer is paused.
+
+	INPUT writer
+		The writer being queried
+	OUTPUT
+		Returns true if writer is paused or false if otherwise or error.
+
+FUNCTION skin_writer_is_active: (writer: struct skin_writer *): bool
+	Tells whether the writer is active
+
+	This function tells whether the writer is still active.
+
+	INPUT writer
+		The writer being queried
+	OUTPUT
+		Returns true if writer is still active or false if otherwise or error.
+
+FUNCTION skin_writer_request: (writer: struct skin_writer *, stop: volatile sig_atomic_t * = NULL): int
+	Request write for a sporadic writer and await its completion
+
+	This function requests a write to be performed by a sporadic writer.  The function blocks until the request
+	is complete.  It is equivalent to:
+
+		```
+		[#skin_writer_request_nonblocking]<>(writer);
+		return [#skin_writer_await_response]<>(writer);
+		```
+
+	INPUT writer
+		The writer being manipulated
+	INPUT stop
+		If given and becomes nonzero, the request is canceled and the function returns.
+	OUTPUT
+		Returns 0 if successful or `ECANCELED` if canceled.
+
+FUNCTION skin_writer_request_nonblocking: (writer: struct skin_writer *): int
+	Request write for a sporadic writer
+
+	This function requests a write to be performed by a sporadic writer but doesn't wait for it to complete.
+	The request must be followed by a call to `[#skin_writer_await_response]`.
+
+	INPUT writer
+		The writer being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_writer_await_response: (writer: struct skin_writer *, stop: volatile sig_atomic_t * = NULL): int
+	Await complation of write previously requested
+
+	This function waits for completion of a write previously requested by `[#skin_writer_request_nonblocking]`.
+
+	INPUT writer
+		The writer being manipulated
+	INPUT stop
+		If given and becomes nonzero, the request is canceled and the function returns.
+	OUTPUT
+		Returns 0 if successful or `ECANCELED` if canceled.
+
+FUNCTION skin_writer_get_driver: (writer: struct skin_writer *): struct skin_driver *
+	Return driver this writer belongs to
+
+	This function returns the driver this writer belongs to, _if_ it belongs to a driver.
+
+	INPUT writer
+		The writer being queried
+	OUTPUT
+		Returns a reference to the driver, or `NULL` of it doesn't belong to a driver.
+
+FUNCTION skin_writer_get_attr: (writer: struct skin_writer *, attr: struct skin_writer_attr *): int
+	Returns the writer's attributes
+
+	This function returns the attributes with which the writer was created.
+
+	See also `[skin_writer_attr]`.
+
+	INPUT writer
+		The writer being queried
+	INPUT attr
+		The writer attributes to be filled by this function
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_writer_get_statistics: (writer: struct skin_writer *, stats: struct skin_writer_statistics *): int
+	Returns the writer's statistics
+
+	This function returns the statistics gathered by the writer during its execution.
+
+	See also `[skin_writer_statistics]`.
+
+	INPUT writer
+		The writer being queried
+	INPUT stats
+		The writer statistics to be filled by this function
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_writer_copy_last_buffer: (writer: struct skin_writer *): void
+	Duplicate data from last buffer
+
+	This function can be used by the [write callback](skin_writer_callbacks#write) to copy data from previous
+	buffer to current buffer.  This is useful if the writer on each call doesn't update all data but only parts
+	of it.
+
+	INPUT writer
+		The writer being manipulated

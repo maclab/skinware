@@ -1,0 +1,71 @@
+api skin_callback
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+next struct skin
+seealso `[skin]`
+
+The data structures of the skin, `[skin]`, `[skin_user]`, `[skin_module]` and `[skin_patch]` have associated functions
+that iterate over a related structure of them.  For example, for a patch, it is possible to iterate over the sensors
+that it contains.
+
+These functions have the following general form:
+
+```
+skin_X_for_each_Y(X *, skin_callback_Y, data)
+```
+
+In this representation, `X` is the structure the action originates from and `Y` is what is being iterated.  The
+callbacks are different depending on what is begin iterated (`Y`).  A user provided `data` is also given.  The
+structures that can be iterated are the following.
+
+- `[struct skin_sensor](skin_sensor)`
+- `[struct skin_module](skin_module)`
+- `[struct skin_patch](skin_patch)`
+- `[struct skin_sensor_type](skin_sensor_type)`
+- `[struct skin_reader](skin_reader)`
+- `[struct skin_writer](skin_writer)`
+- `[struct skin_driver](skin_driver)`
+- `[struct skin_user](skin_user)`
+
+Additionally, it is possible to efficiently iterate over all sensors of skin or a user, which are of a specific type.
+
+```
+skin_X_for_each_sensor_of_type(X *, skin_sensor_type_id, skin_callback_sensor, data)
+```
+
+With all of these callbacks, if it returns `[#SKIN_CALLBACK_STOP](constants)`, the iteration will stop.  Otherwise,
+`[#SKIN_CALLBACK_CONTINUE](constants)` must be returned.
+
+TYPE skin_callback_X: (struct skin_X *, void *): int
+	A callback for iterating over an object
+
+	This callback is called with `[skin_*_for_each_X](skin#skin_for_each_X)` functions, given the current
+	object as well as the data provided to that function.  The possible `X`s for each structure are:
+
+	- `[struct skin](skin)`:
+		* `sensor`
+		* `module`
+		* `patch`
+		* `sensor_type`
+		* `reader`
+		* `writer`
+		* `driver`
+		* `user`
+	- `[struct skin_user](skin_user)`:
+		* `sensor`
+		* `module`
+		* `patch`
+		* `sensor_type`
+	- `[struct skin_patch](skin_patch)`:
+		* `sensor`
+		* `module`
+	- `[struct skin_module](skin_module)`:
+		* `sensor`

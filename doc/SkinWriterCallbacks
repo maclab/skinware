@@ -1,0 +1,48 @@
+class SkinWriterCallbacks
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class SkinWriterAttr
+next class SkinWriter
+seealso `[SkinWriter]`
+
+This is a C++ interface to `[skin_writer_callbacks]`.
+
+TYPE writeCallback: std::function<int (SkinWriter &, void *, size_t)>
+	The type of callback that provides data
+
+	This is the type of the callback that provides the data.
+	See `[skin_writer_callbacks::write](skin_writer_callbacks#write)`.
+
+TYPE initCallback: std::function<void (SkinWriter &)>
+	The type of callback to call when the writer is created
+
+	This is the type of the callback to be called on writer creation.
+	See `[skin_writer_callbacks::init](skin_writer_callbacks#init)`.
+
+TYPE cleanCallback: std::function<void (SkinWriter &)>
+	The type of callback to call when the writer is removed
+
+	This is the type of the callback to be called on writer removal.
+	See `[skin_writer_callbacks::clean](skin_writer_callbacks#clean)`.
+
+FUNCTION SkinWriterCallbacks: (write: writeCallback, init: initCallback = NULL, clean: cleanCallback = NULL)
+	Constructor
+
+	Set the writer callbacks.  Initialization and cleanup functions are optional.
+
+	INPUT write
+		[Write callback](#writeCallback)
+	INPUT init
+		Optional [init callback](#initCallback)
+	INPUT clean
+		Optional [clean callback](#cleanCallback)

@@ -1,0 +1,95 @@
+class SkinPatch
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class SkinModule
+next class Skin
+seealso `[SkinSensor]`
+seealso `[SkinModule]`
+seealso `[Skin::forEachPatch](Skin#forEachX)`
+
+This is a C++ interface to `[skin_patch]`.
+
+FUNCTION isValid: (): bool
+	Whether the object is valid
+
+	This function tells whether this object is valid.
+
+	OUTPUT
+		Returns true if the object is valid and can be used.
+
+FUNCTION getId: (): SkinPatchId
+	Get id of the patch
+
+	See `[skin_sensor::id](skin_sensor#id)`.
+
+	OUTPUT
+		Returns id of this patch.
+
+FUNCTION sensorCount: (): SkinSensorSize
+	Get number of sensors in this patch
+
+	See `[skin_patch_sensor_count](skin_patch#skin_patch_sensor_count)`.
+
+	OUTPUT
+		Returns number of sensors in this patch.
+
+FUNCTION moduleCount: (): SkinModuleSize
+	Get number of modules in this patch
+
+	See `[skin_patch_module_count](skin_patch#skin_patch_module_count)`.
+
+	OUTPUT
+		Returns number of modules in this patch.
+
+FUNCTION getUser: (): skinUser
+	Get user this patch belongs to
+
+	See `[skin_patch::user](skin_patch#user)`.
+
+	OUTPUT
+		Returns the user this patch belongs to.
+
+FUNCTION getSkin: (): Skin
+	Return main skin object
+
+	This function returns a reference to the main skin object.
+
+	OUTPUT
+		Returns a reference to the main skin object.
+
+FUNCTION setUserData: (data: void *): void
+	Set arbitrary data
+
+	Set `[skin_patch::user_data](skin_patch#user_data)`.
+
+	INPUT data
+		Arbitrary data to be carried by this patch
+
+FUNCTION getUserData: (): void *
+	Get previously set data
+
+	Get `[skin_patch::user_data](skin_patch#user_data)`.
+
+	OUTPUT
+		Returns the previously set pointer.
+
+FUNCTION forEachX: (callback: SkinCallback<SkinX>): int
+	Call a callback for all sensors/modules of patch
+
+	See `[#skin_patch_for_each_X](skin_patch)` and `[SkinCallback]`.
+
+	INPUT callback
+		The callback to be called for each sensor/module
+	OUTPUT
+		This function returns nonzero if it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.

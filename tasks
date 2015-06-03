@@ -1,0 +1,40 @@
+TODO:
+- In the docs, add RT/NONRT tags to functions to make it clear what space each function runs in and what is allowed therefore.
+- implement the map from sensor (type, UID) to sensor as described below (*) and adjust blacklist value calculation based on that.
+
+Design decisions:
+
+Regionalizer
+- Create regions based on sensor (type, unique id).
+
+[Re]Calibration, [Re]Regionalization, Position update
+- For the regionalizer, it makes sense for it to be just a service and act as any other service would do.
+  For the calibrator, that also makes sense; a service to update global positions/orientations would be desirable and that
+  could at the same time take care of any adjustments to the relative positions/orientations.
+- Perhaps the calibrator can have an input that tells it which sensor unique ids are on which link, so it wouldn't need access
+  to the skin structure on every update.  That way it can simply publish the new values for each unique id.
+- (*) Regarding that, it's best to to have a map of sensor (type, unique id) to sensor.  A lot of problems regarding sensors
+  can be solved with that map (for example finding sensors of a region, etc).  This map too would be updated with skin_update.
+
+Misc
+- In the reader, instead of having registered users, have them call a function that waits for the next read.  That way,
+  I can hide the internals of how that synchronization is done.  That can be done with a lock that supports broadcast or
+  something.  If mutual execution is needed, they can pause the reader, wait for it to get paused, read, resume and then
+  wait for the next read.  That may have one problem though, the reader may read quickly before they can pause it, so
+  effectively two reads of reader for one usage of user.  For that, perhaps a one-shot read function would make sense.
+  That is, when you say skin_reader_read_once, it will keep a flag which makes the reader unpaused (if paused), and then
+  after reading once it will reset the flag so that the reader would not read again if it was originally paused.  Thinking
+  further, sporadic reader could be used in that case! So notify on read seems to only make sense for periodic (and soft)
+  readers, where one-shot doesn't make sense.
+
+Tasks taken from old verison:
+- Make the writers check for swaps, if too many consecutive swap skips, then perhaps a user has died and couldn't
+  unlock the buffer, so the writer would force unlock it
+- Keep timestamp of read data in reader, and for sensors make a convenience function to retrieve it
+- Put different priorities for Periodic, Sporadic and Soft readers. Periodic has the highest priority while Soft has lowest
+- The calibrator can open a window and using the same `fix_response` as in the visualizer, allow the user to manually calibrate.
+  Moving the sensors one by one would be ok, but another idea would be to define springs between sensors that are touched at the
+  same time with equal length (or length based on ratio of response from highest response, being the centeral point-of-touch of
+  a spherical probe) and have the user touch all the skin with his finger.  The springs would then rearrange the sensors.
+  There must be a way to make them shape in 3d!  Note: the sprint resulting shape is not necessarily unique (in the very least,
+  it could be mirrored).

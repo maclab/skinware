@@ -1,0 +1,90 @@
+Building and Installation of Skinware
+=====================================
+
+    0. Overview
+    -----------
+
+See README for prerequisites of building Skinware.  Then proceed with
+configuration, build and installation of Skinware as instructed in this file.
+
+Table of contents:
+1) Configuration
+2) Build
+3) Installation
+4) Usage
+
+    1. Configuration
+    ----------------
+
+The configuration of Skinware is done with autoconf, so the usual build
+sequence is used:
+
+    $ mkdir build && cd build
+    $ ../configure
+
+If you are building from the development repository, rather than a release tar
+file, you would of course need:
+
+    $ autoreconf -i
+
+beforehand.
+
+    2. Build
+    --------
+
+After configuration, simply write
+
+    $ make
+
+If there are errors in this stage, please report a bug as it shows a case that
+is mishandled by configure.ac.
+
+    3. Installation
+    ---------------
+
+As root, simply write
+
+    $ make install
+
+to install Skinware at the configured location.
+
+If at any point you needed to uninstall Skinware, again as root, execute
+
+    $ make uninstall
+
+which removes all installed files.
+
+    4. Usage
+    --------
+
+If not given any options to `./configure`, the defaults are used, which first
+of all uses `urt-config` to understand the real-time back-end and also
+installs the files in the search paths of the build tools.  Therefore, an
+application could be build simply with (in case of user-space application):
+
+    $ gcc -c $(urt-config --user-cflags) file.c
+    $ gcc file.o -lskin $(urt-config --user-ldflags)
+
+Or in C++:
+
+    $ g++ -c $(urt-config --user-cflags) file.cpp
+    $ g++ file.o -lskin++ $(urt-config --user-ldflags)
+
+Or with kernel modules:
+
+    $ make -C /lib/modules/$(uname -r)/build M=$PWD \
+        EXTRA_CFLAGS="$(urt-config --kernel-cflags) -I/use/local/include" \
+	KBUILD_EXTRA_SYMBOLS="$(urt-config --kernel-symbols) /lib/modules/$(uname -r)/skin/Module.symvers" \
+	modules
+
+That said, it is recommended to install in a more appropriate location,
+although that would require slightly more build options:
+
+    $ ../configure --prefix=/usr --includedir=/usr/include/skin
+
+As a final note, Skinware inherits a suffix from URT, which enables it to be
+installed with multiple real-time back-ends on the same system, each matching
+a corresponding URT installation.  Assuming URT has suffix -xyz, urt-xyz-config
+is used and the libraries created are `-lskin-xyz` and `-lskin++-xyz`.  In that
+case, it is also recommended to install the header files in
+`/usr/include/skin-xyz`.

@@ -1,0 +1,147 @@
+struct skin_reader
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_writer
+next struct skin_driver
+seealso `[skin_reader_attr]`
+seealso `[skin_reader_callbacks]`
+seealso `[skin_for_each_reader](skin#skin_for_each_X)`
+
+The `skin_reader` struct represents a reader attached to a [writer](skin_writer), whether standalone or belonging to
+a [user](skin_user).  This structure is opaque.
+
+The readers are either periodic, sporadic or soft.  A periodic reader periodically retrieves data from the writer,
+while a sporadic reader does so only on request.  A soft reader doesn't have real-time guarantees and tries to read
+data as often as it can without reading old data.  It is not hard to imagine therefore that the combination of a
+soft reader and a sporadic writer is deadly!  For this reason and a couple others, the rate at which a soft reader
+can request data is capped; the soft reader sleeps for `THREAD_MAX_DELAY` configuration value (which is otherwise
+used for maximum delay before a task responds to cancelation or other events).
+
+All functions return `EINVAL` if given an invalid reader.
+
+FUNCTION skin_reader_pause: (reader: struct skin_reader *): int
+	Pause the reader
+
+	This function pauses the reader task.
+
+	INPUT reader
+		The reader being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_reader_resume: (reader: struct skin_reader *): int
+	Resume the reader
+
+	This function resumes the reader task.
+
+	INPUT reader
+		The reader being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_reader_is_paused: (reader: struct skin_reader *): bool
+	Tells whether reader is paused
+
+	This function tells whether the reader is paused.
+
+	INPUT reader
+		The reader being queried
+	OUTPUT
+		Returns true if reader is paused or false if otherwise or error.
+
+FUNCTION skin_reader_is_active: (reader: struct skin_reader *): bool
+	Tells whether the writer is active
+
+	This function tells whether the writer this reader is attached to is still active.
+
+	INPUT reader
+		The reader being queried
+	OUTPUT
+		Returns true if the writer is still active or false if otherwise or error.
+
+FUNCTION skin_reader_request: (reader: struct skin_reader *, stop: volatile sig_atomic_t * = NULL): int
+	Request read for a sporadic reader and await its completion
+
+	This function requests a read to be performed by a sporadic reader.  The function blocks until the request
+	is complete.  It is equivalent to:
+
+		```
+		[#skin_reader_request_nonblocking]<>(reader);
+		return [#skin_reader_await_response]<>(reader);
+		```
+
+	INPUT reader
+		The reader being manipulated
+	INPUT stop
+		If given and becomes nonzero, the request is canceled and the function returns.
+	OUTPUT
+		Returns 0 if successful or `ECANCELED` if canceled.
+
+FUNCTION skin_reader_request_nonblocking: (reader: struct skin_reader *): int
+	Request read for a sporadic reader
+
+	This function requests a read to be performed by a sporadic reader but doesn't wait for it to complete.
+	The request must be followed by a call to `[#skin_reader_await_response]`.
+
+	INPUT reader
+		The reader being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_reader_await_response: (reader: struct skin_reader *, stop: volatile sig_atomic_t * = NULL): int
+	Await complation of read previously requested
+
+	This function waits for completion of a read previously requested by `[#skin_reader_request_nonblocking]`.
+
+	INPUT reader
+		The reader being manipulated
+	INPUT stop
+		If given and becomes nonzero, the wait is canceled and the function returns.
+	OUTPUT
+		Returns 0 if successful or `ECANCELED` if canceled.
+
+FUNCTION skin_reader_get_user: (reader: struct skin_reader *): struct skin_user *
+	Return user this reader belongs to
+
+	This function returns the user this reader belongs to, _if_ it belongs to a user.
+
+	INPUT reader
+		The reader being queried
+	OUTPUT
+		Returns a reference to the user, or `NULL` of it doesn't belong to a user.
+
+FUNCTION skin_reader_get_attr: (reader: struct skin_reader *, attr: struct skin_reader_attr *): int
+	Returns the reader's attributes
+
+	This function returns the attributes with which the reader was created.
+
+	See also `[skin_reader_attr]`.
+
+	INPUT reader
+		The reader being queried
+	INPUT attr
+		The reader attributes to be filled by this function
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_reader_get_statistics: (reader: struct skin_reader *, stats: struct skin_reader_statistics *): int
+	Returns the reader's statistics
+
+	This function returns the statistics gathered by the reader during its execution.
+
+	See also `[skin_reader_statistics]`.
+
+	INPUT reader
+		The reader being queried
+	INPUT stats
+		The reader statistics to be filled by this function
+	OUTPUT
+		Returns 0 if successful.

@@ -1,0 +1,28 @@
+struct skin_user_attr
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_user
+next struct skin_user_callbacks
+seealso `[skin_user]`
+
+This structure is used to configure a user.  A user attaches to a driver and takes the skin information from the driver.
+If the user's [reader attributes](skin_reader_attr) identify the driver, the user attribute is unused.  Otherwise,
+a driver satisfying these attributes is found to be attached to.
+
+VARIABLE sensor_type: skin_sensor_type_id
+	The sensor type to look for in a driver
+
+	When [attaching to a driver](skin#skin_driver_attach), if a name is given with the [reader attribute]
+	(skin_reader_attr#name), the driver is idenitifed by that name and this field is unused.  Otherwise,
+	the drivers are searched for one that provides a sensor of this type (and that is not already attached
+	to).  The user then attempts to attach to that driver.
+
+	See also `[#skin_sensor_type_size](skin)`.

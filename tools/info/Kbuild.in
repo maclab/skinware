@@ -1,0 +1,3 @@
+obj-m += skin_info.o
+skin_info-y = \
+              @srcdir@/main.o

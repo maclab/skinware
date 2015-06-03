@@ -1,0 +1,38 @@
+struct skin_driver_attr
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_driver
+next struct skin_driver_callbacks
+seealso `[skin_driver]`
+
+This structure is used to configure a driver.  It provides basic information on the structure of the skin.
+The details of the skin is taken through the `[#details](skin_driver_callbacks)` callback.
+
+VARIABLE patch_count: skin_patch_size
+	The number of patches in this piece of skin
+
+	This is the total number of patches in the piece of skin provided by this driver.
+
+	See also `[#skin_patch_size](skin)`.
+
+VARIABLE module_count: skin_module_size
+	The number of modules in this piece of skin
+
+	This is the total number of modules in the piece of skin provided by this driver.
+
+	See also `[#skin_module_size](skin)`.
+
+VARIABLE sensor_count: skin_sensor_size
+	The number of sensors in this piece of skin
+
+	This is the total number of sensors in the piece of skin provided by this driver.
+
+	See also `[#skin_sensor_size](skin)`.

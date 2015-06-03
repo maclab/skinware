@@ -1,0 +1,48 @@
+struct skin_reader_callbacks
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_reader_attr
+next struct skin_reader
+seealso `[skin_reader]`
+
+This structure is used to provide callbacks to and regarding a reader.
+
+VARIABLE read: (struct skin_reader *, void *, size_t, void *): void
+	The callback that reads data
+
+	This callback is called by the reader every time data needs to be read; periodically by a periodic reader,
+	on request by a sporadic reader or any time new data is available by a soft reader.
+	It is given the reader object, the memory to be read, the [size](skin_writer_attr#buffer_size) of that memory
+	and [user provided data](#user_data).
+
+VARIABLE init: (struct skin_reader *, void *): void
+	The callback to call when the reader is created
+
+	This callback is called if the reader is successfully created, before the generic reader init [hook](skin_hook)
+	is called, and is given the reader object as well as [user provided data](#user_data).
+
+	This callback is optional.
+
+VARIABLE clean: (struct skin_reader *, void *): void
+	The callback to call when the reader is removed
+
+	This callback is called when the reader is removed, after the generic reader clean [hook](skin_hook)
+	is called, and is given the reader object as well as [user provided data](#user_data).
+
+	**Note**: when this callback is called, the reader task is already removed.  At this point only the [statistics]
+	(skin_reader_statistics) are available.
+
+	This callback is optional.
+
+VARIABLE user_data: void *
+	User provided data
+
+	This is user provided data, given to all callbacks.

@@ -1,0 +1,5 @@
+obj-m += skin_calibrate.o skin_calibrate_lib.o
+skin_calibrate-y = \
+                   @srcdir@/main.o
+skin_calibrate_lib-y = \
+                   @srcdir@/calib.o

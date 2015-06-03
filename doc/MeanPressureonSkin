@@ -1,0 +1,202 @@
+example Mean Pressure on Skin
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin
+next struct skin_sensor
+seealso `[skin]`
+seealso `[skin_sensor]`
+
+This simple example shows a quick startup of the skin and scanning its sensors.  Additional data structures and other
+sensor properties (such as [#type](skin_sensor) etc) are not used.
+
+```
+#define URT_LOG_PREFIX "mean pressure: "
+``#include \<skin.h\>``
+
+URT_MODULE_LICENSE("GPL");
+URT_MODULE_AUTHOR("Shahbaz Youssefi");
+URT_MODULE_DESCRIPTION("Mean pressure example");
+
+unsigned int interval_ms = 1000;
+
+URT_MODULE_PARAM_START()
+URT_MODULE_PARAM(interval_ms, uint, "Calculate every interval_ms (default: 1000)")
+URT_MODULE_PARAM_END()
+
+struct data
+{
+	``[struct skin](skin) *skin``;
+};
+
+static int start(struct data *d);
+static void body(struct data *d);
+static void stop(struct data *d);
+
+URT_GLUE(start, body, stop, struct data, interrupted, done)
+
+static void cleanup(struct data *d)
+{
+	``[#skin_free](skin)(d->skin);``
+	``urt_exit();``
+}
+
+static int _sum(struct skin_sensor *sensor, void *d)
+{
+	unsigned int *sum = d;
+
+	*sum += `[#skin_sensor_get_response](skin_sensor)(s)`;
+	return [#SKIN_CALLBACK_CONTINUE](constants);
+}
+
+static int start(struct data *d)
+{
+	*d = (struct data){0};
+
+	if (interval_ms < 1)
+		interval_ms = 1;
+
+	if (``urt_init()``)
+		return EXIT_FAILURE;
+
+	``d->skin = [#skin_init](skin)();``
+	if (d->skin == NULL)
+		goto exit_no_skin;
+
+	return 0;
+exit_no_skin:
+	urt_err("Init failed\\n");
+	cleanup(d);
+	return EXIT_FAILURE;
+}
+
+static void body(struct data *d)
+{
+	urt_task_attr tattr = {
+		.period = interval_ms * 1000000ll,
+	};
+	while (!interrupted)
+	{
+		unsigned int sum = 0, count = 0;
+
+		/* connect to newly attached drivers and disconnect from removed drivers */
+		``[#skin_update](skin)(d->skin, &tattr);`
+		/* start operation of newly attached drivers */
+		``[#skin_resume](skin)(d->skin);`
+
+		/* find the sum of all sensors on the skin */
+		`[skin_for_each_sensor](skin#skin_for_each_X)(d->skin, _sum, &sum);`
+		count = `[#skin_sensor_count](skin)(d->skin);`
+		if (count == 0)
+			urt_out("No sensors in the skin\\n");
+		else
+			urt_out("Average skin response is: %f\\n", sum / (float)count);
+
+		urt_sleep(interval_ms * 1000000ll);
+	}
+
+	done = 1;
+}
+
+static void stop(struct data *d)
+{
+	cleanup(d);
+}
+```
+
+The same example in C++ can be written as follows:
+
+```
+#define URT_LOG_PREFIX "mean pressure: "
+``#include \<skin++.h\>``
+
+URT_MODULE_LICENSE("GPL");
+URT_MODULE_AUTHOR("Shahbaz Youssefi");
+URT_MODULE_DESCRIPTION("Mean pressure example");
+
+unsigned int interval_ms = 1000;
+
+URT_MODULE_PARAM_START()
+URT_MODULE_PARAM(interval_ms, uint, "Calculate every interval_ms (default: 1000)")
+URT_MODULE_PARAM_END()
+
+struct data
+{
+	``[Skin] skin``;
+};
+
+static int start(struct data *d);
+static void body(struct data *d);
+static void stop(struct data *d);
+
+URT_GLUE(start, body, stop, struct data, interrupted, done)
+
+static void cleanup(struct data *d)
+{
+	``d->skin.[#free](Skin)();``
+	``urt_exit();``
+}
+
+static int start(struct data *d)
+{
+	*d = (struct data){0};
+
+	if (interval_ms < 1)
+		interval_ms = 1;
+
+	if (``urt_init()``)
+		return EXIT_FAILURE;
+
+	if (``d->skin.[#init](Skin)();``)
+		goto exit_no_skin;
+
+	return 0;
+exit_no_skin:
+	urt_err("Init failed\\n");
+	cleanup(d);
+	return EXIT_FAILURE;
+}
+
+static void body(struct data *d)
+{
+	urt_task_attr tattr = {
+		.period = interval_ms * 1000000ll,
+	};
+	while (!interrupted)
+	{
+		unsigned int sum = 0, count = 0;
+
+		/* connect to newly attached drivers and disconnect from removed drivers */
+		``d->skin.[#update](Skin)(tattr);`
+		/* start operation of newly attached drivers */
+		``d->skin.[#resume](Skin)();`
+
+		/* find the sum of all sensors on the skin */
+		`d->skin.[forEachSensor](Skin#forEachX)(\[&\](SkinSensor s){`
+					sum += `s.[#getResponse](SkinSensor)();`
+					return [#SKIN_CALLBACK_CONTINUE](constants);
+				`})`
+		count = `d->skin.[#sensorCount](Skin)();`
+		if (count == 0)
+			urt_out("No sensors in the skin\\n");
+		else
+			urt_out("Average skin response is: %f\\n", sum / (float)count);
+
+		urt_sleep(interval_ms * 1000000ll);
+	}
+
+	done = 1;
+}
+
+static void stop(struct data *d)
+{
+	cleanup(d);
+}
+```

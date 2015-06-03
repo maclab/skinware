@@ -1,0 +1,21 @@
+obj-m += skin.o
+skin-y = \
+         @srcdir@/kern_main.o \
+         @srcdir@/base.o \
+         @srcdir@/driver.o \
+         @srcdir@/hooks.o \
+         @srcdir@/internal.o \
+         @srcdir@/iterators.o \
+         @srcdir@/load.o \
+         @srcdir@/module.o \
+         @srcdir@/names.o \
+         @srcdir@/patch.o \
+         @srcdir@/reader.o \
+         @srcdir@/sensor.o \
+         @srcdir@/sensor_types.o \
+         @srcdir@/service_provider.o \
+         @srcdir@/service_user.o \
+         @srcdir@/tools.o \
+         @srcdir@/user.o \
+         @srcdir@/writer.o \
+         @srcdir@/inline.o

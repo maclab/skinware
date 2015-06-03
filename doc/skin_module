@@ -1,0 +1,97 @@
+struct skin_module
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_sensor
+next struct skin_patch
+seealso `[skin_sensor]`
+seealso `[skin_patch]`
+seealso `[skin_for_each_module](skin#skin_for_each_X)`
+
+The `skin_module` struct holds data of one module in the skin.
+
+VARIABLE id: skin_module_id
+	Id of the module
+
+	The id of the module.  This value is equal to the module's index in the user's module list.  Unless iterating modules
+	of a user with `[skin_user_for_each_module](skin_user#skin_user_for_each_X)`, this id is not particularly useful.
+
+	See also `[#skin_module_id](skin)`.
+
+VARIABLE patch: skin_patch_id
+	Id of the patch this module belongs to
+
+	The id of the patch the module belongs to.  See `[#id](skin_patch)` of `skin_patch`.
+
+	See also `[#skin_patch_id](skin)`.
+
+VARIABLE sensors: struct skin_sensor *
+	The array of sensors of this module
+
+	This is a pointer to the sensors array where this module's sensors reside, which contains `[#sensor_count]`
+	sensors.  It is recommended for the sensors to be accessed with `[#skin_module_for_each_sensor]` instead.
+
+VARIABLE sensor_count: skin_sensor_size
+	Number of sensors in this module
+
+	See description on `[#sensors]` array.
+
+	See also `[#skin_sensor_size](skin)`.
+
+VARIABLE user: struct skin_user *
+	User this module belongs to
+
+	This is a reference to the [user](skin_user) this module belongs to.
+
+VARIABLE user_data: void *
+	Arbitrary data
+
+	This is a placeholder for extending module data.  An application can set this to any value it wants.  A usage
+	pattern could be to allocate memory for additional data on module init and free that memory on module
+	clean using [hooks](skin#skin_set_X_E_hook).
+
+FUNCTION skin_module_sensor_count: (module: struct skin_module *): skin_sensor_size
+	Gives the number of sensors in module
+
+	This function returns a module's number of sensors.
+
+	See also `[#skin_sensor_size](skin)`.
+
+	INPUT module
+		The module being queried
+	OUTPUT
+		The number of sensors in this module.
+
+FUNCTION skin_module_get_patch: (module: struct skin_module *): struct skin_patch *
+	Gives the patch this module belongs to
+
+	This functions outputs a reference to the patch this module belongs to.
+
+	INPUT module
+		The module being queried
+	OUTPUT
+		A reference to the patch this module belongs to.
+
+FUNCTION skin_module_for_each_sensor: (module: struct skin_module *, c: skin_callback_sensor, data: void * = NULL): int
+	Call a callback for all sensors of module
+
+	This function iterates over sensors of **`module`** calling [callback](skin_callback) **`c`** with additional
+	data **`data`**.  This iteration stops when either all sensors have been iterated or the callback returns
+	`[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT module
+		The module being queried
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+	OUTPUT
+		This function returns nonzero if given an invalid module or it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.

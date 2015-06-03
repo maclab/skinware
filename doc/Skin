@@ -1,0 +1,365 @@
+class Skin
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+next class SkinSensor
+seealso `[SkinSensor]`
+seealso `[SkinModule]`
+seealso `[SkinPatch]`
+seealso `[SkinDriver]`
+seealso `[SkinWriter]`
+
+This is a C++ interface to `[skin]`.
+
+GLOBAL-TYPE SkinSensorId: skin_sensor_id
+	Type of sensor id
+
+	See `[#skin_sensor_id](skin)`.
+
+GLOBAL-TYPE SkinSensorUniqueId: skin_sensor_unique_id
+	Type of unique identifier of sensor
+
+	See `[#skin_sensor_unique_id](skin)`.
+
+GLOBAL-TYPE SkinSensorSize: skin_sensor_size
+	Type of number of sensors
+
+	See `[#skin_sensor_size](skin)`.
+
+GLOBAL-TYPE SkinSensorResponse: skin_sensor_response
+	Type of sensor response
+
+	See `[#skin_sensor_response](skin)`.
+
+GLOBAL-TYPE SkinSensorType_id: skin_sensor_type_id
+	Type of sensor type id
+
+	See `[#skin_sensor_type_id](skin)`.
+
+GLOBAL-TYPE SkinSensorType_size: skin_sensor_type_size
+	Type of number of sensor types
+
+	See `[#skin_sensor_type_size](skin)`.
+
+GLOBAL-TYPE SkinModuleId: skin_module_id
+	Type of module id
+
+	See `[#skin_module_id](skin)`.
+
+GLOBAL-TYPE SkinModuleSize: skin_module_size
+	Type of number of modules
+
+	See `[#skin_module_size](skin)`.
+
+GLOBAL-TYPE SkinPatchId: skin_patch_id
+	Type of patch id
+
+	See `[#skin_patch_id](skin)`.
+
+GLOBAL-TYPE SkinPatchSize: skin_patch_size
+	Type of number of patches
+
+	See `[#skin_patch_size](skin)`.
+
+FUNCTION getSkin: (): struct skin *
+	Return skin's C object
+
+	This function returns a reference to the C object of [skin].  This is useful to interface with libraries
+	written in C.
+
+	OUTPUT
+		Returns a reference to skin's C object.
+
+FUNCTION init: (name: const char * = NULL): int
+	Initialize the skin
+
+	See `[#skin_init](skin)`.
+
+	INPUT name
+		The name of the skin kernel.  The shared memory and lock names derive from this.  If not given,
+		`"SKN"` is used
+	OUTPUT
+		Returns 0 if successful, or the error code.
+
+FUNCTION free: (): void
+	Free the skin
+
+	See `[#skin_free](skin)`.
+
+FUNCTION add: (attr: const SkinWriterAttr &,
+		taskAttr: const urt_task_attr &,
+		callbacks: const SkinWriterCallbacks &,
+		error: int * = NULL): SkinWriter
+	Provide a service
+
+	See `[#skin_service_add](skin)`, `[SkinWriterAttr]`, `[SkinWriterCallbacks]` and `[SkinWriter]`.
+
+	INPUT attr
+		The [writer attributes](SkinWriterAttr)
+	INPUT taskAttr
+		The URT task attributes (refer to URT documentation)
+	INPUT callbacks
+		The [writer callbacks](SkinWriterCallbacks)
+	INPUT error
+		Error code if failed
+	OUTPUT
+		Returns a reference to the newly created [writer](SkinWriter), or an [invalid](SkinWriter#isValid) writer if error.
+
+FUNCTION attach: (attr: const SkinReaderAttr &,
+		taskAttr: const urt_task_attr &,
+		callbacks: const SkinReaderCallbacks &,
+		error: int * = NULL): SkinReader
+	Attach to a service
+
+	See `[#skin_service_attach](skin)`, `[SkinReaderAttr]`, `[SkinReaderCallbacks]` and `[SkinReader]`.
+
+	INPUT attr
+		The [reader attributes](SkinReaderAttr)
+	INPUT taskAttr
+		The URT task attributes (refer to URT documentation)
+	INPUT callbacks
+		The [reader callbacks](SkinReaderCallbacks)
+	INPUT error
+		Error code if failed
+	OUTPUT
+		Returns a reference to the newly created [reader](SkinReader), or an [invalid](SkinReader#isValid) reader if error.
+
+FUNCTION add: (attr: const SkinDriverAttr &,
+		writerAttr: const SkinWriterAttr &,
+		taskAttr: const urt_task_attr &,
+		callbacks: const SkinDriverCallbacks &,
+		error: int * = NULL): SkinWriter
+	Provide skin data through a driver
+
+	See `[#skin_driver_add](skin)`, `[SkinDriverAttr]`, `[SkinDriverCallbacks]` and `[SkinDriver]`.
+
+	INPUT attr
+		The [driver attributes](SkinDriverAttr)
+	INPUT writerAttr
+		The associated [writer attributes](SkinWriterAttr)
+	INPUT taskAttr
+		The URT task attributes (refer to URT documentation)
+	INPUT callbacks
+		The [driver callbacks](SkinDriverCallbacks)
+	INPUT error
+		Error code if failed
+	OUTPUT
+		Returns a reference to the newly created [driver](SkinDriver), or an [invalid](SkinDriver#isValid) driver if error.
+
+FUNCTION attach: (attr: const SkinUserAttr &,
+		readerAttr: const SkinReaderAttr &,
+		taskAttr: const urt_task_attr &,
+		callbacks: const SkinUserCallbacks &,
+		error: int * = NULL): SkinUser
+	Attach to a driver
+
+	See `[#skin_driver_attach](skin)`, `[SkinUserAttr]`, `[SkinUserCallbacks]` and `[SkinUser]`.
+
+	INPUT attr
+		The [user attributes](SkinUserAttr), used only if **`readerAttr`** is not provided, or
+		doesn't provide a name
+	INPUT readerAttr
+		The [reader attributes](SkinReaderAttr), used to identify a specific driver
+	INPUT taskAttr
+		The URT task attributes (refer to URT documentation)
+	INPUT callbacks
+		The [user callbacks](SkinUserCallbacks)
+	INPUT error
+		Error code if failed
+	OUTPUT
+		Returns a reference to the newly created [user](SkinUser), or an [invalid](SkinUser#isValid) user if error.
+		If **`readerAttr`** is not provided, this function also returns an invalid user if no more drivers that support
+		the requested sensor type exist.
+
+FUNCTION remove: (writer: SkinWriter &): void
+	Remove a service
+
+	See `[#skin_service_remove](skin)`.
+
+	INPUT writer
+		Writer to be removed
+
+FUNCTION detach: (reader: SkinReader &): void
+	Remove a service
+
+	See `[#skin_service_detach](skin)`.
+
+	INPUT reader
+		Reader to be removed
+
+FUNCTION remove: (driver: SkinDriver &): void
+	Remove a driver
+
+	See `[#skin_service_remove](skin)`.
+
+	INPUT driver
+		Driver to be removed
+
+FUNCTION detach: (user: SkinUser &): void
+	Remove a driver
+
+	See `[#skin_service_detach](skin)`.
+
+	INPUT user
+		User to be removed
+
+FUNCTION load: (taskAttr: const urt_task_attr &): int
+	Load the skin
+
+	See `[#skin_load](skin)`.
+
+	INPUT taskAttr
+		The URT task attributes (refer to URT documentation) to be used for all resulting [users](#attach2).
+	OUTPUT
+		Returns zero if at least one driver was successful attached to, otherwise it returns `ENOENT` if no new
+		drivers were available or other errors if encountered.
+
+FUNCTION update: (taskAttr: const urt_task_attr &): int
+	Update the skin
+
+	See `[#skin_update](skin)`.
+
+	INPUT taskAttr
+		The URT task attributes (refer to URT documentation) to be used for all resulting [users](#attach2).
+	OUTPUT
+		Returns zero if at least one driver was successful detached from or attached to, otherwise it returns `ENOENT`
+		if no new drivers were available or other errors if encountered.
+
+FUNCTION unload: (): void
+	Unload the skin
+
+	See `[#skin_unload](skin)`.
+
+FUNCTION pause: (): void
+	Pause the skin
+
+	See `[#skin_pause](skin)`.
+
+FUNCTION resume: (): void
+	Resume the skin
+
+	See `[#skin_resume](skin)`.
+
+FUNCTION request: (stop: volatile sig_atomic_t *): void
+	Request data from the skin
+
+	See `[#skin_request](skin)`.
+
+	INPUT stop
+		If given and becomes nonzero, the wait is canceled and the function returns.  Note that response
+		from some readers may have been successful while some were canceled.
+
+FUNCTION sensorCount: (): SkinSensorSize
+	Get the total number of sensors
+
+	See `[#skin_sensor_count](skin)`.
+
+	OUTPUT
+		The total number of sensors.
+
+FUNCTION moduleCount: (): SkinModuleSize
+	Get the total number of modules
+
+	See `[#skin_module_count](skin)`.
+
+	OUTPUT
+		The total number of modules.
+
+FUNCTION patchCount: (): SkinSensorSize
+	Get the total number of patches
+
+	See `[#skin_patch_count](skin)`.
+
+	OUTPUT
+		The total number of patches.
+
+FUNCTION sensorTypeCount: (): SkinSensorTypeSize
+	Get the total number of sensor types
+
+	See `[#skin_sensor_type_count](skin)`.
+
+	OUTPUT
+		The total number of sensor types.
+
+FUNCTION writerCount: (): SkinWriterSize
+	Get the total number of writers
+
+	See `[#skin_writer_count](skin)`.
+
+	OUTPUT
+		The total number of writers.
+
+FUNCTION readerCount: (): SkinReaderSize
+	Get the total number of readers
+
+	See `[#skin_reader_count](skin)`.
+
+	OUTPUT
+		The total number of readers.
+
+FUNCTION driverCount: (): SkinDriverSize
+	Get the total number of drivers
+
+	See `[#skin_driver_count](skin)`.
+
+	OUTPUT
+		The total number of drivers.
+
+FUNCTION userCount: (): SkinUserSize
+	Get the total number of users
+
+	See `[#skin_user_count](skin)`.
+
+	OUTPUT
+		The total number of users.
+
+FUNCTION forEachX: (callback: SkinCallback<SkinX>): int
+	Call a callback for all `X`s of skin
+
+	See `[#skin_for_each_X](skin)` and `[SkinCallback]`.
+
+	INPUT callback
+		The callback to be called
+	OUTPUT
+		This function returns nonzero if it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.
+
+FUNCTION forEachSensorOfType: (type: SkinSensorTypeId, callback: SkinCallback<SkinSensor>): int
+	Call a callback for all sensors of a specific type
+
+	See `[#skin_for_each_sensor_of_type](skin)` and `[SkinCallback]`.
+
+	INPUT type
+		The sensors of this type would be iterated
+	INPUT callback
+		The callback to be called
+	OUTPUT
+		This function returns nonzero if it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.
+
+FUNCTION setXEHook: (hook: SkinHook<SkinX>): void
+	Set a hook for event E on object X
+
+	See `[#skin_set_X_E_hook](skin)` and `[SkinHook]`.
+
+	INPUT hook
+		The callback to be called on event
+
+GLOBAL-FUNCTION skinGetSensorTypeName: (type: SkinSensorTypeId): const char *
+	Get name string of sensor type
+
+	See `[#skin_get_sensor_type_name](skin)`.
+
+	INPUT type
+		The sensor type whose name needs to be looked up
+	OUTPUT
+		A string representing the sensor type, or `NULL` if an unknown.

@@ -1,0 +1,107 @@
+struct skin_sensor
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin
+next struct skin_module
+seealso `[skin_module]`
+seealso `[skin_patch]`
+seealso `[skin_for_each_sensor](skin#skin_for_each_X)`
+
+The `skin_sensor` struct holds data of one sensor in the skin.
+
+VARIABLE id: skin_sensor_id
+	Id of the sensor
+
+	The id of the sensor.  This value is equal to the sensor's index in the user's sensor list.  Unless iterating sensors
+	of a user with `[skin_user_for_each_sensor](skin_user#skin_user_for_each_X)`, this id is not particularly useful.
+
+	See also `[#skin_sensor_id](skin)`.
+
+VARIABLE uid: skin_sensor_unique_id
+	Unique id of sensor
+
+	The unique identifier of the sensor.  This identifier is set by the driver and is expected to be unique among sensors
+	which have the same `[#type]` among all drivers.  It is the responsibility of the drivers to ensure this, especially
+	taking care of setting the type correctly based on [the defined constants](constants#Sensor Types).
+
+	See also `[#skin_sensor_unique_id](skin)`.
+
+VARIABLE module: skin_module_id
+	Id of the module this sensor belongs to
+
+	The id of the module the sensor belongs to.  See `[#id](skin_module)` of `skin_module`.
+
+	See also `[#skin_module_id](skin)`.
+
+VARIABLE type: skin_sensor_type_id
+	Sensor type of the sensor
+
+	The type of this sensor.  This type is set by the driver to any value meaningful to the driver itself.  A set
+	of known types are [defined](constants#Sensor Types) which can be used by drivers so they don't interfere with
+	each other.  If you are a driver developer that wants to add a new type, please send a patch, or open a pull
+	request on GitHub.
+
+	See also `[#skin_sensor_type_id](skin)`.
+
+VARIABLE response: skin_sensor_response
+	Response value of the sensor
+
+	This variable holds the value of the response of the sensor.  Note that in the future, it may not necessarily
+	be up-to-date or it may require synchronization.  Therefore it is advised to get the value of the sensor
+	response through `[#skin_sensor_get_response]` function.
+
+	See also `[#skin_sensor_response](skin)`.
+
+VARIABLE user: struct skin_user *
+	User this sensor belongs to
+
+	This is a reference to the [user](skin_user) this sensor belongs to.
+
+VARIABLE user_data: void *
+	Arbitrary data
+
+	This is a placeholder for extending sensor data.  An application can set this to any value it wants.  A usage
+	pattern could be to allocate memory for additional data on sensor init and free that memory on sensor
+	clean using [hooks](skin#skin_set_X_E_hook).
+
+FUNCTION skin_sensor_get_response: (sensor: struct skin_sensor *): skin_sensor_response
+	Gives the response of the sensor
+
+	Depending on the skin technology, the raw value of the response could be interpreted differently and therefore,
+	the drivers are responsible for converting these values to a defined range (see `[#response]`) with 0 as the
+	minimum possible value and `[#SKIN_SENSOR_RESPONSE_MAX](constants)` as the maximum;
+
+	See also `[#skin_sensor_response](skin)`.
+
+	INPUT sensor
+		The sensor being queried
+	OUTPUT
+		The current up-to-date response of the sensor.
+
+FUNCTION skin_sensor_get_module: (sensor: struct skin_sensor *): struct skin_module *
+	Gives the module this sensor belongs to
+
+	This functions outputs a reference to the module this sensor belongs to.
+
+	INPUT sensor
+		The sensor being queried
+	OUTPUT
+		A reference to the module this sensor belongs to.
+
+FUNCTION skin_sensor_get_patch: (sensor: struct skin_sensor *): struct skin_patch *
+	Gives the patch this sensor belongs to
+
+	This functions outputs a reference to the patch this sensor belongs to.
+
+	INPUT sensor
+		The sensor being queried
+	OUTPUT
+		A reference to the patch this sensor belongs to.

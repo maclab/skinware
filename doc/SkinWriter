@@ -1,0 +1,125 @@
+class SkinWriter
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class Skin
+next class SkinReader
+seealso `[SkinWriterAttr]`
+seealso `[SkinWriterCallbacks]`
+seealso `[Skin::forEachWriter](Skin#forEachX)`
+
+This is a C++ interface to `[skin_writer]`.
+
+FUNCTION isValid: (): bool
+	Whether the object is valid
+
+	This function tells whether this object is valid.
+
+	OUTPUT
+		Returns true if the object is valid and can be used.
+
+FUNCTION pause: (): int
+	Pause the writer
+
+	See `[#skin_writer_pause](skin_writer)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION resume: (): int
+	Resume the writer
+
+	See `[#skin_writer_resume](skin_writer)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION isPaused: (): bool
+	Tells whether writer is paused
+
+	See `[#skin_writer_is_paused](skin_writer)`.
+
+	OUTPUT
+		Returns true if writer is paused or false if otherwise or error.
+
+FUNCTION isActive: (): bool
+	Tells whether the writer is active
+
+	See `[#skin_writer_is_active](skin_writer)`.
+
+	OUTPUT
+		Returns true if writer is still active or false if otherwise or error.
+
+FUNCTION request: (stop: volatile sig_atomic_t * = NULL): int
+	Request write for a sporadic writer and await its completion
+
+	See `[#skin_writer_request](skin_writer)`.
+
+	INPUT stop
+		If given and becomes nonzero, the request is canceled and the function returns.
+	OUTPUT
+		Returns 0 if successful or `ECANCELED` if canceled.
+
+FUNCTION requestNonblocking: (): int
+	Request write for a sporadic writer
+
+	See `[#skin_writer_request_nonblocking](skin_writer)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION awaitResponse: (stop: volatile sig_atomic_t * = NULL): int
+	Await complation of write previously requested
+
+	See `[#skin_writer_await_response](skin_writer)`.
+
+	INPUT stop
+		If given and becomes nonzero, the request is canceled and the function returns.
+	OUTPUT
+		Returns 0 if successful or `ECANCELED` if canceled.
+
+FUNCTION getDriver: (): SkinDriver
+	Return driver this writer belongs to
+
+	See `[#skin_writer_get_driver](skin_writer)`.
+
+	OUTPUT
+		Returns a reference to the driver, or an [invalid](SkinDriver#isValid) driver of it doesn't belong to a driver.
+
+FUNCTION getSkin: (): Skin
+	Return main skin object
+
+	This function returns a reference to the main skin object.
+
+	OUTPUT
+		Returns a reference to the main skin object.
+
+FUNCTION getAttr: (): SkinWriterAttr
+	Returns the writer's attributes
+
+	See `[#skin_writer_get_attr](skin_writer)` and `[SkinWriterAttr]`.
+
+	OUTPUT
+		Returns the writer's attributes.
+
+FUNCTION getStatistics: (): SkinWriterStatistics
+	Returns the writer's statistics
+
+	See `[#skin_writer_get_statistics](skin_writer)` and `[SkinWriterStatistics]`.
+
+	OUTPUT
+		Returns the writer's statistics.
+
+FUNCTION CopyLastBuffer: (): void
+	Duplicate data from last buffer
+
+	See `[#skin_writer_copy_last_buffer](skin_writer)`.

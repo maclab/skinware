@@ -1,0 +1,29 @@
+struct skin_sensor_type
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_user
+next struct skin_sensor
+seealso `[skin_sensor]`
+seealso `[skin_for_each_sensor_type](skin#skin_for_each_X)`
+
+The `skin_sensor_type` struct is not persistent in the skin and is created while [iterating](skin#skin_for_each_X)
+so it can be given to a [callback](skin_callback#skin_callback_X).
+
+VARIABLE id: skin_sensor_type_id
+	The sensor type
+
+	The sensor type itself, as used in sensors' `[#type](skin_sensor)`.  The `[#skin_get_sensor_type_name](skin)`
+	can be used to retrieve the name string of the type.
+
+VARIABLE user: struct skin_user *
+	The user containing a sensor of this type
+
+	This is a reference to the first [user](skin_user) found that contained a sensor of this type.

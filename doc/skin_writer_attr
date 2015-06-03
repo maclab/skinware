@@ -1,0 +1,35 @@
+struct skin_writer_attr
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_writer
+next struct skin_writer_callbacks
+seealso `[skin_writer]`
+
+This structure is used to configure a writer, whether standalone or of a driver.
+
+VARIABLE buffer_size: size_t
+	Size of data buffer
+
+	This is the size of data the writer is going to provide.  In the case of drivers, this size is automatically
+	calculated and is therefore unused.
+
+VARIABLE buffer_count: uint8_t
+	Number of data buffers
+
+	This is the number of buffers to use for transferring data to readers.  The higher the number of buffers,
+	the more memory is consumed, but the less chances of synchronization difficulties, such as [swap skips]
+	(skin_writer_statistics#swap_skips)
+
+VARIABLE name: const char *
+	The name of the writer
+
+	This is the name with which the writer (and the driver) is identified.  At most `URT_NAME_LEN - 3` characters
+	are taken from this name.

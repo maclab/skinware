@@ -1,0 +1,101 @@
+struct skin_driver
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_reader
+next struct skin_user
+seealso `[skin_driver_attr]`
+seealso `[skin_driver_callbacks]`
+seealso `[skin_for_each_driver](skin#skin_for_each_X)`
+
+The `skin_driver` struct represents a driver.  A driver is a special kind of service, which uses a [writer](skin_writer),
+to provide data to [users](skin_user), while also providing them with the skin structure.  This structure is opaque.
+
+Drivers, similar to writers, may be removed while users are still attached to it.  This pauses the users' readers.  If the
+driver attempts to start again, it will be revived, in which case not only its writer should be able to revive (see the
+overview of [writers](skin_writer)) but also its [driver attributes](skin_driver_attr) must match the previous values.
+Furthermore, the drivers `[#details](skin_driver_callbacks)` callback must ensure that the skin structure is the same
+as previously declared.  Only if all users detach from the driver can it be started anew with different attributes.
+
+All functions return `EINVAL` if given an invalid driver.
+
+FUNCTION skin_driver_pause: (driver: struct skin_driver *): int
+	Pause the driver
+
+	This function pauses the driver's writer task.
+
+	INPUT driver
+		The driver being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_driver_resume: (driver: struct skin_driver *): int
+	Resume the driver
+
+	This function resumes the driver's writer task.
+
+	INPUT driver
+		The driver being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_driver_is_paused: (driver: struct skin_driver *): bool
+	Tells whether driver is paused
+
+	This function tells whether the driver's writer is paused.
+
+	INPUT driver
+		The driver being queried
+	OUTPUT
+		Returns true if driver is paused or false if otherwise or error.
+
+FUNCTION skin_driver_is_active: (driver: struct skin_driver *): bool
+	Tells whether driver is active
+
+	This function tells whether the driver's writer is still active.
+
+	INPUT driver
+		The driver being queried
+	OUTPUT
+		Returns true if driver is still active or false if otherwise or error.
+
+FUNCTION skin_driver_get_writer: (driver: struct skin_driver *): struct skin_writer *
+	Return the writer of this driver
+
+	This function returns the writer of this driver.
+
+	INPUT driver
+		The driver being queried
+	OUTPUT
+		Returns a reference to the writer, or `NULL` if error.
+
+FUNCTION skin_driver_get_attr: (driver: struct skin_driver *, attr: struct skin_driver_attr *): int
+	Returns the driver's attributes
+
+	This function returns the attributes with which the driver was created.
+
+	See also `[skin_driver_attr]`.
+
+	INPUT driver
+		The driver being queried
+	INPUT attr
+		The driver attributes to be filled by this function
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_driver_copy_last_buffer: (driver: struct skin_driver *): void
+	Duplicate data from last buffer
+
+	This function can be used by the [acquire callback](skin_driver_callbacks#acquire) to copy data from previous
+	buffer to current buffer.  This is useful if the driver on each call doesn't update all data but only parts
+	of it.
+
+	INPUT driver
+		The driver being manipulated

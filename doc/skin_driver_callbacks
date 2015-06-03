@@ -1,0 +1,84 @@
+struct skin_driver_callbacks
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_driver_attr
+next struct skin_driver_details
+seealso `[skin_driver]`
+
+This structure is used to provide callbacks to and regarding a driver.
+
+VARIABLE details: (struct skin_driver *, bool, struct skin_driver_details *, void *): int
+	The callback that provides/verifies the details of the skin structure
+
+	This callback is called during the creation of the driver to fill in or verify the details of the skin.
+	It is given the driver object, a boolean value that tells whether the driver is new (false) and needs
+	to fill in the driver details, or it is revived (true) and needs to verify that the driver details
+	match its previous declaration, and [user provided data](#user_data).
+
+	If new, the given `skin_driver_details` structure must be completely filled by this callback.  If revived,
+	it must not be modified, but rather verified against.  A driver that may discover the same skin in different
+	orders has the choice to rearrange its internal representation of the skin to match its old one upon revival.
+
+	If this function returns nonzero, the driver creation is canceled.
+
+VARIABLE acquire: (struct skin_driver *, skin_sensor_response *, skin_sensor_size, void *): int
+	The callback that provides sensor responses
+
+	This callback is indirectly called by the driver's writer (similar to `[#write](skin_writer_callbacks)`)
+	when new data is needed.  It is given the driver object, the sensor responses memory to write to, the
+	[number of sensors](skin_driver_attr#sensor_count) to be filled and [user provided data](#user_data).
+
+	If a multibuffer driver decides to write new data only to parts of the memory,
+	`[#skin_driver_copy_last_buffer](skin_driver)` function needs to be used first to fill the current buffer
+	with the values from the previous buffer.  Otherwise the data may "flicker".
+
+	If this function returns nonzero, the driver is marked as bad, but it continues operation nonetheless.  However,
+	an application may monitor bad drivers and attempt to externally unload and reload them.
+
+VARIABLE init: (struct skin_driver *, void *): void
+	The callback to call when the driver is created
+
+	This callback is called if the driver is successfully created, before the generic driver init [hook](skin_hook)
+	is called, and is given the driver object as well as [user provided data](#user_data).
+
+	This callback is optional.
+
+VARIABLE clean: (struct skin_driver *, void *): void
+	The callback to call when the driver is removed
+
+	This callback is called when the driver is removed, after the generic driver clean [hook](skin_hook)
+	is called, and is given the driver object as well as [user provided data](#user_data).
+
+	**Note**: when this callback is called, the driver's writer is already removed.  At this point the driver is inaccessible.
+
+	This callback is optional.
+
+VARIABLE writer_init: (struct skin_writer *, void *): void
+	The callback to call when the driver's writer is created
+
+	This callback is called if the driver's writer is successfully created.
+	See [writer's init callback](skin_writer_callbacks#init).  The driver's writer is created before the driver itself,
+	and thus `[#skin_writer_get_driver](skin_writer)` would return `NULL`.
+
+	This callback is optional.
+
+VARIABLE writer_clean: (struct skin_writer *, void *): void
+	The callback to call when the driver's writer is removed
+
+	This callback is called when the driver's writer is removed.
+	See [writer's clean callback](skin_writer_callbacks#clean).  The driver's writer is removed before the driver itself.
+
+	This callback is optional.
+
+VARIABLE user_data: void *
+	User provided data
+
+	This is user provided data, given to all callbacks.

@@ -1,0 +1,52 @@
+api SkinCallback
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+next class Skin
+seealso `[Skin]`
+
+This is a C++ interface to [callbacks](skin_callback).  The callbacks of the type defined here are given to object iteration
+functions as callback.
+
+These functions have the following general form:
+
+```
+X::forEachY(SkinCallback<Y> c)
+```
+
+and
+
+In this representation, `X` is the class the action originates from and `Y` is what is being iterated.  The
+classes that can be iterated are the following.
+
+- `[SkinSensor]`
+- `[SkinModule]`
+- `[SkinPatch]`
+- `[SkinSensorType]`
+- `[SkinReader]`
+- `[SkinWriter]`
+- `[SkinDriver]`
+- `[SkinUser]`
+
+Additionally, it is possible to efficiently iterate over all sensors of skin or a user, which are of a specific type.
+
+```
+X::forEachSensorOfType(SkinSensorTypeId, SkinCallback<Sensor> c)
+```
+
+The behavior of the iteration functions and callbacks are the same as their C counterparts.  See
+`[skin_for_each_Y](skin)` and [callbacks](skin_callback).
+
+TYPE SkinCallback: std::function<int (Object)>
+	A callback for iterating over an object
+
+	Equivalent of `[skin_callback_X](skin_callback)`.

@@ -1,0 +1,89 @@
+class SkinDriver
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class SkinReader
+next class SkinUser
+seealso `[SkinDriverAttr]`
+seealso `[SkinDriverCallbacks]`
+seealso `[Skin::forEachDriver](Skin#forEachX)`
+
+This is a C++ interface to `[skin_driver]`.
+
+FUNCTION isValid: (): bool
+	Whether the object is valid
+
+	This function tells whether this object is valid.
+
+	OUTPUT
+		Returns true if the object is valid and can be used.
+
+FUNCTION pause: (): int
+	Pause the driver
+
+	See `[#skin_driver_pause](skin_driver)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION resume: (): int
+	Resume the driver
+
+	See `[#skin_driver_resume](skin_driver)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION isPaused: (): bool
+	Tells whether driver is paused
+
+	See `[#skin_driver_is_paused](skin_driver)`.
+
+	OUTPUT
+		Returns true if driver is paused or false if otherwise or error.
+
+FUNCTION isActive: (): bool
+	Tells whether the driver is active
+
+	See `[#skin_driver_is_active](skin_driver)`.
+
+	OUTPUT
+		Returns true if driver is still active or false if otherwise or error.
+
+FUNCTION getWriter: (): SkinWriter
+	Return the writer of this driver
+
+	See `[#skin_driver_get_writer](skin_driver)`.
+
+	OUTPUT
+		Returns a reference to the writer, or an [invalid](SkinWriter#isValid) writer if error.
+
+FUNCTION getSkin: (): Skin
+	Return main skin object
+
+	This function returns a reference to the main skin object.
+
+	OUTPUT
+		Returns a reference to the main skin object.
+
+FUNCTION getAttr: (): SkinDriverAttr
+	Returns the driver's attributes
+
+	See `[#skin_driver_get_attr](skin_driver)` and `[SkinDriverAttr]`.
+
+	OUTPUT
+		Returns the driver's attributes.
+
+FUNCTION CopyLastBuffer: (): void
+	Duplicate data from last buffer
+
+	See `[#skin_driver_copy_last_buffer](skin_driver)`.

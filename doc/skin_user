@@ -1,0 +1,161 @@
+struct skin_user
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_driver
+next struct skin
+seealso `[skin_user_attr]`
+seealso `[skin_user_callbacks]`
+seealso `[skin_for_each_user](skin#skin_for_each_X)`
+
+The `skin_user` struct represents a user attached to a [driver](skin_driver).  This structure is opaque.
+
+All functions return `EINVAL` if given an invalid user.
+
+FUNCTION skin_user_pause: (user: struct skin_user *): int
+	Pause the user
+
+	This function pauses the user's reader task.
+
+	INPUT user
+		The user being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_user_resume: (user: struct skin_user *): int
+	Resume the user
+
+	This function resumes the user's reader task.
+
+	INPUT user
+		The user being manipulated
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION skin_user_is_paused: (user: struct skin_user *): bool
+	Tells whether user is paused
+
+	This function tells whether the user's reader is paused.
+
+	INPUT user
+		The user being queried
+	OUTPUT
+		Returns true if user is paused or false if otherwise or error.
+
+FUNCTION skin_user_is_active: (user: struct skin_user *): bool
+	Tells whether the driver is active
+
+	This function tells whether the driver this user is attached to is still active.
+
+	INPUT user
+		The user being queried
+	OUTPUT
+		Returns true if the driver is still active or false if otherwise or error.
+
+FUNCTION skin_user_get_reader: (user: struct skin_user *): struct skin_reader *
+	Return the reader of this user
+
+	This function returns the reader of this user.
+
+	INPUT user
+		The user being queried
+	OUTPUT
+		Returns a reference to the reader, or `NULL` if error.
+
+FUNCTION skin_user_sensor_count: (user: struct skin_user *): skin_sensor_size
+	Gives the number of sensors handled by user
+
+	This function returns a user's number of sensors.
+
+	See also `[#skin_sensor_size](skin)`.
+
+	INPUT user
+		The user being queried
+	OUTPUT
+		The number of sensors handled by the user.
+
+FUNCTION skin_user_module_count: (user: struct skin_user *): skin_module_size
+	Gives the number of modules handled by user
+
+	This function returns a user's number of modules.
+
+	See also `[#skin_module_size](skin)`.
+
+	INPUT user
+		The user being queried
+	OUTPUT
+		The number of modules handled by the user.
+
+FUNCTION skin_user_patch_count: (user: struct skin_user *): skin_patch_size
+	Gives the number of patches handled by user
+
+	This function returns a user's number of patches.
+
+	See also `[#skin_patch_size](skin)`.
+
+	INPUT user
+		The user being queried
+	OUTPUT
+		The number of patches handled by the user.
+
+FUNCTION skin_user_sensor_type_count: (user: struct skin_user *): skin_sensor_type_size
+	Gives the number of sensor types handled by user
+
+	This function returns a user's number of sensor types.
+
+	See also `[#skin_sensor_type_size](skin)`.
+
+	INPUT user
+		The user being queried
+	OUTPUT
+		The number of sensor types handled by the user.
+
+FUNCTION skin_user_for_each_X: (user: struct skin_user *, c: skin_callback_X, data: void * = NULL): int
+	Call a callback for all sensors/modules/patches/sensor types of user
+
+	This function iterates over `X`s of **`user`** calling [callback](skin_callback) **`c`** with additional
+	data **`data`**.  This iteration stops when either all `X`s have been iterated or the callback returns
+	`[#SKIN_CALLBACK_STOP](constants)`.
+
+	The possible `X`s are:
+
+	- `sensor`,
+	- `module`,
+	- `patch`,
+	- `sensor_type`.
+
+	INPUT user
+		The user being queried
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+	OUTPUT
+		This function returns nonzero if given an invalid argument or it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.
+
+FUNCTION skin_user_for_each_sensor_of_type: (user: struct skin_user *, type: skin_sensor_type_id, c: skin_callback_sensor, data: void * = NULL): int
+	Call a callback for all sensors of a specific type handled by user
+
+	This function iterates over sensors of a specific type handled by **`user`** calling [callback](skin_callback) **`c`** with additional
+	data **`data`**.  This iteration stops when either all sensors have been iterated or the callback returns
+	`[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT user
+		The user being queried
+	INPUT type
+		The sensors of this type would be iterated
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+	OUTPUT
+		This function returns nonzero if given an invalid argument or it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.

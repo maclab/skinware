@@ -1,0 +1,54 @@
+struct skin_writer_callbacks
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_writer_attr
+next struct skin_writer
+seealso `[skin_writer]`
+
+This structure is used to provide callbacks to and regarding a writer.
+
+VARIABLE write: (struct skin_writer *, void *, size_t, void *): int
+	The callback that provides data
+
+	This callback is called by the writer every time new data is needed; periodically by a periodic writer and
+	on request by a sporadic writer.  It is given the writer object, the memory to write to, the [size]
+	(skin_writer_attr#buffer_size) of that memory and [user provided data](#user_data).
+
+	If a multibuffer writer decides to write new data only to parts of the memory,
+	`[#skin_writer_copy_last_buffer](skin_writer)` function needs to be used first to fill the current buffer
+	with the values from the previous buffer.  Otherwise the data may "flicker".
+
+	If this function returns nonzero, the writer is marked as bad, but it continues operation nonetheless.  However,
+	an application may monitor bad writers and attempt to externally unload and reload them.
+
+VARIABLE init: (struct skin_writer *, void *): void
+	The callback to call when the writer is created
+
+	This callback is called if the writer is successfully created, before the generic writer init [hook](skin_hook)
+	is called, and is given the writer object as well as [user provided data](#user_data).
+
+	This callback is optional.
+
+VARIABLE clean: (struct skin_writer *, void *): void
+	The callback to call when the writer is removed
+
+	This callback is called when the writer is removed, after the generic writer clean [hook](skin_hook)
+	is called, and is given the writer object as well as [user provided data](#user_data).
+
+	**Note**: when this callback is called, the writer task is already removed.  At this point only the [statistics]
+	(skin_writer_statistics) are available.
+
+	This callback is optional.
+
+VARIABLE user_data: void *
+	User provided data
+
+	This is user provided data, given to all callbacks.

@@ -1,0 +1,64 @@
+struct skin_user_callbacks
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_user_attr
+next struct skin_user
+seealso `[skin_user]`
+
+This structure is used to provide callbacks to and regarding a user.
+
+VARIABLE peek: (struct skin_user *, skin_sensor_response *, skin_sensor_size, void *): void
+	The callback that reads sensor responses
+
+	This callback is indirectly called by the user's reader (similar to `[#read](skin_reader_callbacks)`)
+	when new data is available.  It is given the user object, the sensor responses memory to read from, the
+	[number of sensors](skin_user#skin_user_sensor_count) present and [user provided data](#user_data).
+
+VARIABLE init: (struct skin_user *, void *): void
+	The callback to call when the user is created
+
+	This callback is called if the user is successfully created, before the generic user init [hook](skin_hook)
+	is called, and is given the user object as well as [user provided data](#user_data).
+
+	This callback is optional.
+
+VARIABLE clean: (struct skin_user *, void *): void
+	The callback to call when the user is removed
+
+	This callback is called when the user is removed, after the generic user clean [hook](skin_hook)
+	is called, and is given the user object as well as [user provided data](#user_data).
+
+	**Note**: when this callback is called, the user's reader is already removed.  At this point only
+	`[data iterators](skin_user#skin_user_for_each_X)` are available.
+
+	This callback is optional.
+
+VARIABLE reader_init: (struct skin_reader *, void *): void
+	The callback to call when the user's reader is created
+
+	This callback is called if the user's reader is successfully created.
+	See [reader's init callback](skin_reader_callbacks#init).  The user's reader is created before the user itself,
+	and thus `[#skin_reader_get_user](skin_reader)` would return `NULL`.
+
+	This callback is optional.
+
+VARIABLE reader_clean: (struct skin_reader *, void *): void
+	The callback to call when the user's reader is removed
+
+	This callback is called when the user's reader is removed.
+	See [reader's clean callback](skin_reader_callbacks#clean).  The user's reader is removed before the user itself.
+
+	This callback is optional.
+
+VARIABLE user_data: void *
+	User provided data
+
+	This is user provided data, given to all callbacks.

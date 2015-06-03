@@ -1,0 +1,132 @@
+class SkinUser
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class SkinDriver
+next class Skin
+seealso `[SkinUserAttr]`
+seealso `[SkinUserCallbacks]`
+seealso `[Skin::forEachUser](Skin#forEachX)`
+
+This is a C++ interface to `[skin_user]`.
+
+FUNCTION isValid: (): bool
+	Whether the object is valid
+
+	This function tells whether this object is valid.
+
+	OUTPUT
+		Returns true if the object is valid and can be used.
+
+FUNCTION pause: (): int
+	Pause the user
+
+	See `[#skin_user_pause](skin_user)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION resume: (): int
+	Resume the user
+
+	See `[#skin_user_resume](skin_user)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION isPaused: (): bool
+	Tells whether user is paused
+
+	See `[#skin_user_is_paused](skin_user)`.
+
+	OUTPUT
+		Returns true if user is paused or false if otherwise or error.
+
+FUNCTION isActive: (): bool
+	Tells whether the user is active
+
+	See `[#skin_user_is_active](skin_user)`.
+
+	OUTPUT
+		Returns true if driver is still active or false if otherwise or error.
+
+FUNCTION getReader: (): SkinReader
+	Return the reader of this user
+
+	See `[#skin_user_get_reader](skin_user)`.
+
+	OUTPUT
+		Returns a reference to the reader, or an [invalid](SkinReader#isValid) reader if error.
+
+FUNCTION getSkin: (): Skin
+	Return main skin object
+
+	This function returns a reference to the main skin object.
+
+	OUTPUT
+		Returns a reference to the main skin object.
+
+FUNCTION sensorCount: (): SkinSensorSize
+	Get the number of sensors handled by user
+
+	See `[skin_user_sensor_count](skin_user#skin_user_sensor_count)`.
+
+	OUTPUT
+		Returns number of sensors handled by the user.
+
+FUNCTION moduleCount: (): SkinModuleSize
+	Get the number of modules handled by user
+
+	See `[skin_user_module_count](skin_user#skin_user_module_count)`.
+
+	OUTPUT
+		Returns number of modules handled by the user.
+
+FUNCTION patchCount: (): SkinPatchSize
+	Get the number of patchs handled by user
+
+	See `[skin_user_patch_count](skin_user#skin_user_patch_count)`.
+
+	OUTPUT
+		Returns number of patchs handled by the user.
+
+FUNCTION sensorTypeCount: (): SkinSensorTypeSize
+	Get the number of sensor types handled by user
+
+	See `[skin_user_sensor_type_count](skin_user#skin_user_sensor_type_count)`.
+
+	OUTPUT
+		Returns number of sensor types handled by the user.
+
+FUNCTION forEachX: (callback: SkinCallback<SkinX>): int
+	Call a callback for all sensors/modules/patches/sensor types of patch
+
+	See `[#skin_user_for_each_X](skin_user)` and `[SkinCallback]`.
+
+	INPUT callback
+		The callback to be called
+	OUTPUT
+		This function returns nonzero if it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.
+
+FUNCTION forEachSensorOfType: (type: SkinSensorTypeId, callback: SkinCallback<SkinSensor>): int
+	Call a callback for all sensors of a specific type handled by user
+
+	See `[#skin_user_for_each_sensor_of_type](skin_user)` and `[SkinCallback]`.
+
+	INPUT type
+		The sensors of this type would be iterated
+	INPUT callback
+		The callback to be called
+	OUTPUT
+		This function returns nonzero if it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.

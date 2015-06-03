@@ -1,0 +1,542 @@
+struct skin
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+next struct skin_sensor
+seealso `[skin_sensor]`
+seealso `[skin_module]`
+seealso `[skin_patch]`
+seealso `[skin_driver]`
+seealso `[skin_writer]`
+
+The `skin` structure contains the main data of the skin and normally a single object of it is acquired.  This structure
+is used to create [drivers](skin_driver) and [writers](skin_writer) and attach to those created by others with
+[users](skin_user) and [readers](skin_reader).
+
+This structure can also be used by applications that don't need to get involved in details of which drivers to
+attach to and how the skin is organized by hardware.  For that, the skin can be [updated](#skin_update) to attach to
+whatever driver there is and detach from any that go away, on the fly.  Afterwards, all [sensors](skin_sensor) of the
+skin can be [iterated](#skin_for_each_X) regardless of how they are distributed.
+
+All functions that return error, return `EINVAL` if given an invalid input.
+
+TYPE skin_sensor_id: uint32_t
+	Type of sensor id
+
+	The type of sensor ids.
+
+TYPE skin_sensor_unique_id: uint64_t
+	Type of unique identifier of sensor
+
+	The type of sensor unique ids.  See also `[#uid](skin_sensor)`.
+
+TYPE skin_sensor_size: skin_sensor_id
+	Type of number of sensors
+
+	This type will be large enough to hold the number of sensors in the skin.
+
+TYPE skin_sensor_response: uint16_t
+	Type of sensor response
+
+	The responses of the sensors will have this type.  See also `[#SKIN_SENSOR_RESPONSE_MAX](constants)`.
+
+TYPE skin_sensor_type_id: uint32_t
+	Type of sensor type id
+
+	The type of sensor type ids.
+
+TYPE skin_sensor_type_size: skin_sensor_type_id
+	Type of number of sensor types
+
+	This type will be large enough to hold the number of sensor types in the skin.
+
+TYPE skin_module_id: uint32_t
+	Type of module id
+
+	The type of module ids.
+
+TYPE skin_module_size: skin_module_id
+	Type of number of modules
+
+	This type will be large enough to hold the number of modules in the skin.
+
+TYPE skin_patch_id: uint32_t
+	Type of patch id
+
+	The type of patch ids.
+
+TYPE skin_patch_size: skin_patch_id
+	Type of number of patches
+
+	This type will be large enough to hold the number of patches in the skin.
+
+FUNCTION skin_init: (name: const char * = NULL, error: int * = NULL): struct skin *
+	Initialize the skin
+
+	This function initializes the skin.  The skin _kernel_ is a shared memory that different processes use to
+	coordinate.  If shared memory whose name derives from **`name`** doesn't exist, the skin kernel is created
+	with that name.  Otherwise, it is verified that the shared memory correctly represents a skin kernel and
+	it is attached to.  At most `URT_NAME_LEN - 3` characters from **`name`** are taken.
+
+	**Note**: `urt_init` needs to be called before this function.
+
+	INPUT name
+		The name of the skin kernel.  The shared memory and lock names derive from this.  If not given,
+		`"SKN"` is used
+	INPUT error
+		Error code if failed
+	OUTPUT
+		Returns the skin object, or `NULL` if error.
+
+FUNCTION skin_free: (skin: struct skin *): void
+	Free the skin
+
+	This function terminates all tasks of the skin and detaches from the skin kernel.  This operation is faster
+	than terminating all tasks one by one.
+
+	**Note**: `urt_exit` shouldn't be called until this function is called.
+
+	INPUT skin
+		The main skin object
+
+FUNCTION skin_service_add: (skin: struct skin *,
+		attr: const struct skin_writer_attr *,
+		task_attr: const struct urt_task_attr *,
+		callbacks: const struct skin_writer_callbacks *,
+		error: int * = NULL): struct skin_writer *
+	Provide a service
+
+	This function lets the application provide a service.  The `period` of **`task_attr`**, determines whether
+	the task is periodic (nonzero period) or sporadic (zero period).
+
+	The service is identified by a name, given by the **`attr`** attributes.  The attributes also determine the
+	amount of data provided by the service and the number of buffers to use for synchronization.
+
+	The **`callbacks`** provide means of actually writing the data, as well as optional initialization and
+	cleanup hooks.
+
+	**Note**: Newly created writers are in paused state.  They need to be resumed either
+	[individually](skin_writer#skin_writer_resume) or [en masse](#skin_resume).
+
+	INPUT skin
+		The main skin object
+	INPUT attr
+		The [writer attributes](skin_writer_attr)
+	INPUT task_attr
+		The URT task attributes (refer to URT documentation)
+	INPUT callbacks
+		The [writer callbacks](skin_writer_callbacks)
+	INPUT error
+		Error code if failed
+	OUTPUT
+		Returns a reference to the newly created [writer](skin_writer), or `NULL` if error.
+
+FUNCTION skin_service_attach: (skin: struct skin *,
+		attr: const struct skin_reader_attr *,
+		task_attr: const struct urt_task_attr *,
+		callbacks: const struct skin_reader_callbacks *,
+		error: int * = NULL): struct skin_reader *
+	Attach to a service
+
+	This function lets the application use a service provided by another application.  If `soft` is set in
+	the **`task_attr`**, the reader becomes soft, otherwise the `period` of **`task_attr`**, determines whether
+	the task is periodic (nonzero period) or sporadic (zero period).
+
+	The service is identified by a name, given by the **`attr`** attributes.
+
+	The **`callbacks`** provide means of actually reading the data, as well as optional initialization and
+	cleanup hooks.
+
+	**Note**: Newly created readers are in paused state.  They need to be resumed either
+	[individually](skin_reader#skin_reader_resume) or [en masse](#skin_resume).
+
+	INPUT skin
+		The main skin object
+	INPUT attr
+		The [reader attributes](skin_reader_attr)
+	INPUT task_attr
+		The URT task attributes (refer to URT documentation)
+	INPUT callbacks
+		The [reader callbacks](skin_reader_callbacks)
+	INPUT error
+		Error code if failed
+	OUTPUT
+		Returns a reference to the newly created [reader](skin_reader), or `NULL` if error.
+
+FUNCTION skin_driver_add: (skin: struct skin *,
+		attr: const struct skin_driver_attr *,
+		writer_attr: const struct skin_writer_attr *,
+		task_attr: const struct urt_task_attr *,
+		callbacks: const struct skin_driver_callbacks *,
+		error: int * = NULL): struct skin_driver *
+	Provide skin data through a driver
+
+	This function lets the application provide skin data through a driver.  The **`writer_attr`** and
+	**`task_attr`** determine the type of the writer as in `[#skin_service_add]`.  The `buffer_size`
+	of **`writer_attr`** is filled by this function and is therefore unused.
+
+	The basic structure of the skin is provided by the **`attr`** attributes, which also determins the
+	`buffer_size` of the writer attributes.
+
+	The **`callbacks`** provide means of first determining the structure of the skin in more details and
+	then actually acquiring the skin data, as well as optional initialization and cleanup hooks.
+
+	**Note**: Newly created drivers are in paused state.  They need to be resumed either
+	[individually](skin_driver#skin_driver_resume) or [en masse](#skin_resume).
+
+	INPUT skin
+		The main skin object
+	INPUT attr
+		The [driver attributes](skin_driver_attr)
+	INPUT writer_attr
+		The associated [writer attributes](skin_writer_attr)
+	INPUT task_attr
+		The URT task attributes (refer to URT documentation)
+	INPUT callbacks
+		The [driver callbacks](skin_driver_callbacks)
+	INPUT error
+		Error code if failed
+	OUTPUT
+		Returns a reference to the newly created [driver](skin_driver), or `NULL` if error.
+
+FUNCTION skin_driver_attach: (skin: struct skin *,
+		attr: const struct skin_user_attr *,
+		reader_attr: const struct skin_reader_attr *,
+		task_attr: const struct urt_task_attr *,
+		callbacks: const struct skin_user_callbacks *,
+		error: int * = NULL): struct skin_user *
+	Attach to a driver
+
+	This function lets the application attach to a driver and retrieve skin data provided by a driver.  The
+	**`task_attr`** determines the type of the reader as in `[#skin_service_attach]`.
+
+	if **`reader_attr`** provides a name, the target driver is immediately identified, in which case **`attr`**
+	is unused.  However, if no name is provided, all drivers are searched for one that provides the `sensor_type`
+	set in **`attr`**.  The first driver that is not yet attached to containing a sensor of that type is targeted.
+
+	The **`callbacks`** provide means retrieving the skin data, as well as optional initialization and
+	cleanup hooks.  If the `peek` callback is not provided, a default callback is used that reads the
+	sensor responses and places them in the respective sensor's `[#response](skin_sensor)`.
+
+	**Note**: Newly created users are in paused state.  They need to be resumed either
+	[individually](skin_user#skin_user_resume) or [en masse](#skin_resume).
+
+	INPUT skin
+		The main skin object
+	INPUT attr
+		The [user attributes](skin_user_attr), used only if **`reader_attr`** is not provided, or
+		doesn't provide a name
+	INPUT reader_attr
+		The [reader attributes](skin_reader_attr), used to identify a specific driver
+	INPUT task_attr
+		The URT task attributes (refer to URT documentation)
+	INPUT callbacks
+		The [user callbacks](skin_user_callbacks)
+	INPUT error
+		Error code if failed
+	OUTPUT
+		Returns a reference to the newly created [user](skin_user), or `NULL` if error.  If **`reader_attr`**
+		is not provided, this function also returns `NULL` if no more drivers that support the requested
+		sensor type exist.
+
+FUNCTION skin_service_remove: (writer: struct skin_writer *): void
+	Remove a service
+
+	This function removes a writer previously created by `[#skin_service_add]`.
+
+	INPUT writer
+		Writer to be removed
+
+FUNCTION skin_service_detach: (reader: struct skin_reader *): void
+	Remove a service
+
+	This function removes a reader previously created by `[#skin_service_attach]`.
+
+	INPUT reader
+		Reader to be removed
+
+FUNCTION skin_driver_remove: (driver: struct skin_driver *): void
+	Remove a driver
+
+	This function removes a driver previously created by `[#skin_driver_add]`.
+
+	INPUT driver
+		Driver to be removed
+
+FUNCTION skin_driver_detach: (user: struct skin_user *): void
+	Remove a driver
+
+	This function removes a user previously created by `[#skin_driver_detach]`, `[#skin_load]` or `[#skin_update]`.
+
+	INPUT user
+		User to be removed
+
+FUNCTION skin_load: (skin: struct skin *, task_attr: const urt_task_attr *): int
+	Load the skin
+
+	This function attaches to all drivers currently available.  If some drivers were already attached, they are
+	not detached from, nor are they attached to again.
+
+	This convenience function is useful for attaching to all pieces of skin available, without having to worry how they
+	are made availables.  This is equivalent to calling `[#skin_driver_attach]` for all drivers alive.
+
+	**Note**: Newly created users are in paused state.  They need to be resumed either
+	[individually](skin_user#skin_user_resume) or [en masse](#skin_resume).
+
+	INPUT skin
+		The main skin object
+	INPUT task_attr
+		The URT task attributes (refer to URT documentation) to be used for all resulting [users](#skin_driver_attach).
+	OUTPUT
+		Returns zero if at least one driver was successful attached to, otherwise it returns `ENOENT` if no new
+		drivers were available or other errors if encountered.
+
+FUNCTION skin_update: (skin: struct skin *, task_attr: const urt_task_attr *): int
+	Update the skin
+
+	This function detaches from all drivers that are not active anymore and attaches to all new drivers currently available.
+	If some drivers were already attached and are still alive, they are not detached from, nor are they attached to again.
+	However, if a driver was previously attached to with a reader that has a different type that would be implied by
+	**`task_attr`** (i.e, previously it had different `soft` and `period` fields), the driver is detach from and attached
+	to again with the new task attributes.
+
+	This convenience function is useful for letting go (and allowing cleanup) of bad drivers as well as attaching to
+	any new pieces of skin that become available on the fly.
+
+	**Note**: Newly created users are in paused state.  They need to be resumed either
+	[individually](skin_user#skin_user_resume) or [en masse](#skin_resume).
+
+	INPUT skin
+		The main skin object
+	INPUT task_attr
+		The URT task attributes (refer to URT documentation) to be used for all resulting [users](#skin_driver_attach).
+	OUTPUT
+		Returns zero if at least one driver was successful detached from or attached to, otherwise it returns `ENOENT`
+		if no new drivers were available or other errors if encountered.
+
+FUNCTION skin_unload: (skin: struct skin *): void
+	Unload the skin
+
+	This function completely unloads the skin.  That is, it detachs from all drivers and services and removes all
+	drivers and services provided.  This function would be much faster than trying to remove and detach from all
+	drivers and services separately.
+
+	INPUT skin
+		The main skin object
+
+FUNCTION skin_pause: (skin: struct skin *): void
+	Pause the skin
+
+	This function pauses the whole skin; all writers and readers.
+
+	INPUT skin
+		The main skin object
+
+FUNCTION skin_resume: (skin: struct skin *): void
+	Resume the skin
+
+	This function resumes the whole skin; all writers and readers.
+
+	**Note**: Newly created tasks are in paused state.  This function can be used to resume all of them.
+
+	INPUT skin
+		The main skin object
+
+FUNCTION skin_request: (skin: struct skin *, stop: volatile sig_atomic_t *): void
+	Request data from the skin
+
+	This function makes a [request](skin_reader#skin_reader_request) to all sporadic readers of the skin,
+	which includes both services and drivers whose readers are sporadic.  This is equivalent to sending
+	`[#skin_reader_request_nonblocking](skin_reader)` to all readers following by
+	`[#skin_reader_await_response](skin_reader)` for the same readers, ensuring that no reader is created or
+	removed in the meantime.
+
+	INPUT skin
+		The main skin object
+	INPUT stop
+		If given and becomes nonzero, the wait is canceled and the function returns.  Note that response
+		from some readers may have been successful while some were canceled.
+
+FUNCTION skin_sensor_count: (skin: struct skin *): skin_sensor_size
+	Gives the total number of sensors
+
+	This function returns the total number of sensors.
+
+	See also `[#skin_sensor_size]`.
+
+	INPUT skin
+		The main skin object
+	OUTPUT
+		The total number of sensors.
+
+FUNCTION skin_module_count: (skin: struct skin *): skin_module_size
+	Gives the total number of modules
+
+	This function returns the total number of modules.
+
+	See also `[#skin_module_size]`.
+
+	INPUT skin
+		The main skin object
+	OUTPUT
+		The total number of modules.
+
+FUNCTION skin_patch_count: (skin: struct skin *): skin_patch_size
+	Gives the total number of patches
+
+	This function returns the total number of patches.
+
+	See also `[#skin_patch_size]`.
+
+	INPUT skin
+		The main skin object
+	OUTPUT
+		The total number of patches.
+
+FUNCTION skin_sensor_type_count: (skin: struct skin *): skin_sensor_type_size
+	Gives the total number of sensor types
+
+	This function returns the total number of sensor types.
+
+	See also `[#skin_sensor_type_size]`.
+
+	INPUT skin
+		The main skin object
+	OUTPUT
+		The total number of sensor types.
+
+FUNCTION skin_writer_count: (skin: struct skin *): size_t
+	Gives the number of writers
+
+	This function returns the number of writers, which includes both standalone and driver writers.
+
+	INPUT skin
+		The main skin object
+	OUTPUT
+		The number of writers.
+
+FUNCTION skin_reader_count: (skin: struct skin *): size_t
+	Gives the number of readers
+
+	This function returns the number of readers, which includes both service and user readers.
+
+	INPUT skin
+		The main skin object
+	OUTPUT
+		The number of readers.
+
+FUNCTION skin_driver_count: (skin: struct skin *): size_t
+	Gives the number of drivers
+
+	This function returns the number of drivers created.
+
+	INPUT skin
+		The main skin object
+	OUTPUT
+		The number of drivers.
+
+FUNCTION skin_user_count: (skin: struct skin *): size_t
+	Gives the number of users
+
+	This function returns the number of users created.
+
+	INPUT skin
+		The main skin object
+	OUTPUT
+		The number of users.
+
+FUNCTION skin_for_each_X: (skin: struct skin *, c: skin_callback_X, data: void * = NULL): int
+	Call a callback for all `X`s of skin
+
+	This function iterates over all `X`s calling [callback](skin_callback) **`c`** with additional
+	data **`data`**.  This iteration stops when either all `X`s have been iterated or the callback returns
+	`[#SKIN_CALLBACK_STOP](constants)`.
+
+	The possible `X`s are:
+
+	- `sensor`,
+	- `module`,
+	- `patch`,
+	- `sensor_type`,
+	- `writer`,
+	- `reader`,
+	- `driver`,
+	- `user`.
+
+	INPUT skin
+		The main skin object
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+	OUTPUT
+		This function returns nonzero if given an invalid argument or it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.
+
+FUNCTION skin_for_each_sensor_of_type: (skin: struct skin *, type: skin_sensor_type_id, c: skin_callback_sensor, data: void * = NULL): int
+	Call a callback for all sensors of a specific type
+
+	This function iterates over all sensors of a specific type calling [callback](skin_callback) **`c`** with additional
+	data **`data`**.  This iteration stops when either all sensors have been iterated or the callback returns
+	`[#SKIN_CALLBACK_STOP](constants)`.
+
+	INPUT skin
+		The main skin object
+	INPUT type
+		The sensors of this type would be iterated
+	INPUT c
+		The callback to be called
+	INPUT data
+		User defined data
+	OUTPUT
+		This function returns nonzero if given an invalid argument or it was interrupted by receiving
+		`[#SKIN_CALLBACK_STOP](constants)` from the callback.  Otherwise, it returns 0.
+
+FUNCTION skin_set_X_E_hook: (skin: struct skin *, hook: skin_hook_X, data: void * = NULL): void
+	Set a hook for event E on object X
+
+	This function sets a callback to be called when event `E` happens for object `X`.  See the description
+	of these [generic hooks](skin_hook) for more info.  The callback is given the object for which the
+	event has triggered with additional data **`data`**.
+
+	The possible `E`s are:
+
+	- `init`,
+	- `clean`.
+
+	The possible `X`s are:
+
+	- `sensor`,
+	- `module`,
+	- `patch`,
+	- `writer`,
+	- `reader`,
+	- `driver`,
+	- `user`.
+
+	INPUT skin
+		The main skin object
+	INPUT hook
+		The callback to be called on event
+	INPUT data
+		User defined data
+
+FUNCTION skin_get_sensor_type_name: (type: skin_sensor_type_id): const char *
+	Get name string of sensor type
+
+	This function retrieves a name assigned to the sensor type.  If the sensor type is none of those
+	[defined](constants#Sensor Types) already, the function would return `NULL`.
+
+	See also `[#skin_sensor_type_id]`.
+
+	INPUT type
+		The sensor type whose name needs to be looked up
+	OUTPUT
+		A string representing the sensor type, or `NULL` if an unknown.

@@ -1,0 +1,44 @@
+api SkinHook
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+next class Skin
+seealso `[Skin]`
+
+This is a C++ interface to [hooks](skin_hook).  The callbacks of the type defined here are set as object initialization
+and clean up hooks.
+
+The functions setting the hooks have the following general form:
+
+```
+Skin::setXEHook(struct skin *, skin_hook_X, data)
+```
+
+In this representation, `X` is the object the hook is being set for and `E` is the event.  The events are the following.
+
+- Init
+- Clean
+
+The classes that can be hooked are the following.
+
+- `[SkinSensor]`
+- `[SkinModule]`
+- `[SkinPatch]`
+- `[SkinReader]`
+- `[SkinWriter]`
+- `[SkinDriver]`
+- `[SkinUser]`
+
+TYPE SkinHook: std::function<void (Object)>
+	A callback for object event
+
+	Equivalent of `[skin_hook_X](skin_hook)`.

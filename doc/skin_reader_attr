@@ -1,0 +1,23 @@
+struct skin_reader_attr
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_reader
+next struct skin_reader_callbacks
+seealso `[skin_reader]`
+
+This structure is used to configure a reader, whether standalone or of a user.
+
+VARIABLE name: const char *
+	The name of the writer
+
+	This is the name with which the writer this reader is going to be attached to is identified.  In case of
+	users, this name is optional, in which case the reader attaches to the writer of a driver that supports
+	a sensor of type `[#sensor_type](skin_user_attr)`.  At most `URT_NAME_LEN - 3` characters are taken from this name.

@@ -1,0 +1,794 @@
+import urt@SKIN_SUFFIX_PYTHON@ as urt
+from ctypes import *
+
+cdll.LoadLibrary("libskin@SKIN_SUFFIX@.so")
+_skin = CDLL("libskin@SKIN_SUFFIX@.so")
+
+# types
+
+## basic id/size types
+
+sensor_type_id = c_uint32
+sensor_id = c_uint32
+module_id = c_uint32
+patch_id = c_uint32
+sensor_unique_id = c_uint64
+sensor_response = c_uint16
+
+sensor_type_size = sensor_type_id
+sensor_size = sensor_id
+module_size = module_id
+patch_size = patch_id
+
+## data structures
+
+skin = c_void_p
+
+writer = c_void_p
+reader = c_void_p
+driver = c_void_p
+user = c_void_p
+
+class sensor(Structure):
+    _fields_ = [("id", sensor_id),
+                ("uid", sensor_unique_id),
+                ("response", sensor_response),
+                ("module", module_id),
+                ("type", sensor_type_id),
+                ("user", user),
+                ("user_data", c_void_p)]
+
+class module(Structure):
+    _fields_ = [("id", module_id),
+                ("patch", patch_id),
+                ("user", user),
+                ("sensors", POINTER(sensor)),
+                ("sensor_count", sensor_size),
+                ("user_data", c_void_p)]
+
+class patch(Structure):
+    _fields_ = [("id", patch_id),
+                ("user", user),
+                ("modules", POINTER(module)),
+                ("module_count", module_size),
+                ("user_data", c_void_p)]
+
+class sensor_type(Structure):
+    _fields_ = [("id", sensor_type_id),
+                ("user", user)]
+
+class writer_attr(Structure):
+    _fields_ = [("buffer_size", c_size_t),
+                ("buffer_count", c_uint8),
+                ("name", c_char_p)]
+
+# The functions that take these structures automatically convert the functions to CFUNCTYPE.  Similar
+# to urt.task_new, the real structure is then returned to the caller so that the references to these
+# CFUNCTYPEs are not lost.  With for_each functions, this is not necessary because the callback is
+# not used after the for_each function returns.
+
+class writer_callbacks:
+    def __init__(self, write = None, init = None, clean = None, user_data = None):
+        self.write = write
+        self.init = init
+        self.clean = clean
+        self.user_data = user_data
+
+_callback_writer_write = CFUNCTYPE(c_int, writer, c_void_p, c_size_t, c_void_p)
+_callback_writer_init = CFUNCTYPE(None, writer, c_void_p)
+_callback_writer_clean = CFUNCTYPE(None, writer, c_void_p)
+class _writer_callbacks(Structure):
+    _fields_ = [("write", _callback_writer_write),
+                ("init", _callback_writer_init),
+                ("clean", _callback_writer_clean),
+                ("user_data", c_void_p)]
+
+class writer_statistics(Structure):
+    _fields_ = [("start_time", urt.time),
+                ("worst_write_time", urt.time),
+                ("best_write_time", urt.time),
+                ("accumulated_write_time", urt.time),
+                ("write_count", c_uint64),
+                ("swap_skips", c_uint64)]
+
+class reader_attr(Structure):
+    _fields_ = [("name", c_char_p)]
+
+class reader_callbacks:
+    def __init__(self, read = None, init = None, clean = None, user_data = None):
+        self.read = read
+        self.init = init
+        self.clean = clean
+        self.user_data = user_data
+
+_callback_reader_read = CFUNCTYPE(c_int, reader, c_void_p, c_size_t, c_void_p)
+_callback_reader_init = CFUNCTYPE(None, reader, c_void_p)
+_callback_reader_clean = CFUNCTYPE(None, reader, c_void_p)
+class _reader_callbacks(Structure):
+    _fields_ = [("read", _callback_reader_read),
+                ("init", _callback_reader_init),
+                ("clean", _callback_reader_clean),
+                ("user_data", c_void_p)]
+
+class reader_statistics(Structure):
+    _fields_ = [("start_time", urt.time),
+                ("worst_reade_time", urt.time),
+                ("best_reade_time", urt.time),
+                ("accumulated_reade_time", urt.time),
+                ("reade_count", c_uint64)]
+
+class driver_attr(Structure):
+    _fields_ = [("patch_count", patch_size),
+                ("module_count", module_size),
+                ("sensor_count", sensor_size)]
+
+class patch_decl(Structure):
+    _fields_ = [("module_count", module_size)]
+
+class module_decl(Structure):
+    _fields_ = [("sensor_count", sensor_size)]
+
+class sensor_decl(Structure):
+    _fields_ = [("uid", sensor_unique_id),
+                ("type", sensor_type_id)]
+
+class driver_details(Structure):
+    _fields_ = [("overall", driver_attr),
+                ("patches", POINTER(patch_decl)),
+                ("modules", POINTER(module_decl)),
+                ("sensors", POINTER(sensor_decl))]
+
+class driver_callbacks:
+    def __init__(self, details = None, acquire = None, init = None, clean = None,
+                    writer_init = None, writer_clean = None, user_data = None):
+        self.details = details
+        self.acquire = acquire
+        self.init = init
+        self.clean = clean
+        self.writer_init = writer_init
+        self.writer_clean = writer_clean
+        self.user_data = user_data
+
+_callback_driver_details = CFUNCTYPE(c_int, driver, c_bool, POINTER(driver_details), c_void_p)
+_callback_driver_acquire = CFUNCTYPE(c_int, driver, POINTER(sensor_response), sensor_size, c_void_p)
+_callback_driver_init = CFUNCTYPE(None, driver, c_void_p)
+_callback_driver_clean = CFUNCTYPE(None, driver, c_void_p)
+_callback_driver_writer_init = CFUNCTYPE(None, writer, c_void_p)
+_callback_driver_writer_clean = CFUNCTYPE(None, writer, c_void_p)
+class _driver_callbacks(Structure):
+    _fields_ = [("details", _callback_driver_details),
+                ("acquire", _callback_driver_acquire),
+                ("init", _callback_driver_init),
+                ("clean", _callback_driver_clean),
+                ("writer_init", _callback_driver_writer_init),
+                ("writer_clean", _callback_driver_writer_clean),
+                ("user_data", c_void_p)]
+
+class user_attr(Structure):
+    _fields_ = [("sensor_type", sensor_type_id)]
+
+class user_callbacks:
+    def __init__(self, peek = None, init = None, clean = None,
+                    reader_init = None, reader_clean = None, user_data = None):
+        self.peek = peek
+        self.init = init
+        self.clean = clean
+        self.reader_init = reader_init
+        self.reader_clean = reader_clean
+        self.user_data = user_data
+
+_callback_user_peek = CFUNCTYPE(None, user, POINTER(sensor_response), sensor_size, c_void_p)
+_callback_user_init = CFUNCTYPE(None, user, c_void_p)
+_callback_user_clean = CFUNCTYPE(None, user, c_void_p)
+_callback_user_reader_init = CFUNCTYPE(None, reader, c_void_p)
+_callback_user_reader_clean = CFUNCTYPE(None, reader, c_void_p)
+class _user_callbacks(Structure):
+    _fields_ = [("peek", _callback_user_peek),
+                ("init", _callback_user_init),
+                ("clean", _callback_user_clean),
+                ("reader_init", _callback_user_reader_init),
+                ("reader_clean", _callback_user_reader_clean),
+                ("user_data", c_void_p)]
+
+## iteration and hook callbacks
+
+callback_writer = CFUNCTYPE(c_int, writer, c_void_p)
+callback_reader = CFUNCTYPE(c_int, reader, c_void_p)
+callback_driver = CFUNCTYPE(c_int, driver, c_void_p)
+callback_user = CFUNCTYPE(c_int, user, c_void_p)
+
+callback_sensor = CFUNCTYPE(c_int, POINTER(sensor), c_void_p)
+callback_module = CFUNCTYPE(c_int, POINTER(module), c_void_p)
+callback_patch = CFUNCTYPE(c_int, POINTER(patch), c_void_p)
+callback_sensor_type = CFUNCTYPE(c_int, POINTER(sensor_type), c_void_p)
+
+hook_writer = CFUNCTYPE(None, writer, c_void_p)
+hook_reader = CFUNCTYPE(None, reader, c_void_p)
+hook_driver = CFUNCTYPE(None, driver, c_void_p)
+hook_user = CFUNCTYPE(None, user, c_void_p)
+
+hook_sensor = CFUNCTYPE(None, POINTER(sensor), c_void_p)
+hook_module = CFUNCTYPE(None, POINTER(module), c_void_p)
+hook_patch = CFUNCTYPE(None, POINTER(patch), c_void_p)
+
+# constants
+
+INVALID_ID = 0xffffffff
+SENSOR_RESPONSE_MAX = 0xffff
+
+CALLBACK_CONTINUE = 0
+CALLBACK_STOP = 1
+
+## predefined sensor types.  This can be easily regenerated from skin/include/skin_sensor_types.h
+
+SENSOR_TYPE_INVALID = 0
+SENSOR_TYPE_CYSKIN_TAXEL = 0x00001001
+SENSOR_TYPE_CYSKIN_TEMPERATURE = 0x00001002
+SENSOR_TYPE_MACLAB_ROBOSKIN_TAXEL = 0x00002001
+SENSOR_TYPE_ROBOSKIN_TAXEL = 0x00003001
+
+# internal helper functions
+
+def _to_cfunctype(functype, func):
+    """Convert function to given CFUNCTYPE taking care of None"""
+    return functype(func) if func else functype(0)
+
+# skin base
+
+_skin.skin_init.argtypes = [c_char_p, POINTER(c_int)]
+_skin.skin_init.restype = skin
+def init(name = None):
+    error = c_int(0)
+    skin = _skin.skin_init(name, byref(error))
+    return skin, error
+
+_skin.skin_free.argtypes = [skin]
+free = _skin.skin_free
+
+## services
+
+_skin.skin_service_add.argtypes = [skin, POINTER(writer_attr), POINTER(urt.task_attr),
+                                    POINTER(_writer_callbacks), POINTER(c_int)]
+_skin.skin_service_add.restype = writer
+def service_add(skin, attr, task_attr, callbacks):
+    """Create a service
+
+    Note:
+    For functions given as callback, pyskin automatically creates CFUNCTYPE objects.  References
+    to these objects are not kept anywhere and they risk garbage collection.  This function returns
+    an object holding these references as the last element of the return value.  It is important
+    that you keep a reference to this object until the service is removed."""
+    callbacks_for_c = _writer_callbacks(_to_cfunctype(_callback_writer_write, callbacks.write),
+                                        _to_cfunctype(_callback_writer_init, callbacks.init),
+                                        _to_cfunctype(_callback_writer_clean, callbacks.clean),
+                                        callbacks.user_data)
+    error = c_int(0)
+    writer = _skin.skin_service_add(skin, byref(attr), byref(task_attr), byref(callbacks_for_c), byref(error))
+    return writer, error, callbacks_for_c
+
+_skin.skin_service_remove.argtypes = [writer]
+service_remove = _skin.skin_service_remove
+
+_skin.skin_service_attach.argtypes = [skin, POINTER(reader_attr), POINTER(urt.task_attr),
+                                        POINTER(_reader_callbacks), POINTER(c_int)]
+_skin.skin_service_attach.restype = reader
+def service_attach(skin, attr, task_attr, callbacks):
+    """Attach to a service
+
+    Note:
+    For functions given as callback, pyskin automatically creates CFUNCTYPE objects.  References
+    to these objects are not kept anywhere and they risk garbage collection.  This function returns
+    an object holding these references as the last element of the return value.  It is important
+    that you keep a reference to this object until the service is detached from."""
+    callbacks_for_c = _reader_callbacks(_to_cfunctype(_callback_reader_read, callbacks.read),
+                                        _to_cfunctype(_callback_reader_init, callbacks.init),
+                                        _to_cfunctype(_callback_reader_clean, callbacks.clean),
+                                        callbacks.user_data)
+    error = c_int(0)
+    reader = _skin.skin_service_attach(skin, byref(attr), byref(task_attr), byref(callbacks_for_c), byref(error))
+    return reader, error, callbacks_for_c
+
+_skin.skin_service_detach.argtypes = [reader]
+service_detach = _skin.skin_service_detach
+
+## drivers
+
+_skin.skin_driver_add.argtypes = [skin, POINTER(driver_attr), POINTER(writer_attr), POINTER(urt.task_attr),
+                                    POINTER(_driver_callbacks), POINTER(c_int)]
+_skin.skin_driver_add.restype = driver
+def driver_add(skin, attr, writer_attr, task_attr, callbacks):
+    """Create a driver
+
+    Note:
+    For functions given as callback, pyskin automatically creates CFUNCTYPE objects.  References
+    to these objects are not kept anywhere and they risk garbage collection.  This function returns
+    an object holding these references as the last element of the return value.  It is important
+    that you keep a reference to this object until the driver is removed."""
+    callbacks_for_c = _driver_callbacks(_to_cfunctype(_callback_driver_details, callbacks.details),
+                                        _to_cfunctype(_callback_driver_acquire, callbacks.acquire),
+                                        _to_cfunctype(_callback_driver_init, callbacks.init),
+                                        _to_cfunctype(_callback_driver_clean, callbacks.clean),
+                                        _to_cfunctype(_callback_driver_writer_init, callbacks.writer_init),
+                                        _to_cfunctype(_callback_driver_writer_clean, callbacks.writer_clean),
+                                        callbacks.user_data)
+    error = c_int(0)
+    driver = _skin.skin_driver_add(skin, byref(attr), byref(writer_attr), byref(task_attr),
+                                    byref(callbacks_for_c), byref(error))
+    return driver, error, callbacks_for_c
+
+_skin.skin_driver_remove.argtypes = [driver]
+driver_remove = _skin.skin_driver_remove
+
+_skin.skin_driver_attach.argtypes = [skin, POINTER(user_attr), POINTER(reader_attr), POINTER(urt.task_attr),
+                                        POINTER(_user_callbacks), POINTER(c_int)]
+_skin.skin_driver_attach.restype = user
+def driver_attach(skin, attr, reader_attr, task_attr, callbacks):
+    """Attach to a driver
+
+    Note:
+    For functions given as callback, pyskin automatically creates CFUNCTYPE objects.  References
+    to these objects are not kept anywhere and they risk garbage collection.  This function returns
+    an object holding these references as the last element of the return value.  It is important
+    that you keep a reference to this object until the driver is detached from."""
+    callbacks_for_c = _user_callbacks(_to_cfunctype(_callback_user_peek, callbacks.peek),
+                                      _to_cfunctype(_callback_user_init, callbacks.init),
+                                      _to_cfunctype(_callback_user_clean, callbacks.clean),
+                                      _to_cfunctype(_callback_user_reader_init, callbacks.reader_init),
+                                      _to_cfunctype(_callback_user_reader_clean, callbacks.reader_clean),
+                                      callbacks.user_data)
+    error = c_int(0)
+    user = _skin.skin_driver_attach(skin, byref(attr), byref(reader_attr), byref(task_attr), byref(callbacks_for_c), byref(error))
+    return user, error, callbacks_for_c
+
+_skin.skin_driver_detach.argtypes = [user]
+driver_detach = _skin.skin_driver_detach
+
+## helpers
+
+_skin.skin_load.argtypes = [skin, POINTER(urt.task_attr)]
+_skin.skin_load.restype = c_int
+def load(skin, task_attr):
+    return _skin.skin_load(skin, byref(task_attr))
+
+_skin.skin_unload.argtypes = [skin]
+unload = _skin.skin_unload
+
+_skin.skin_update.argtypes = [skin, POINTER(urt.task_attr)]
+_skin.skin_update.restype = c_int
+def update(skin, task_attr):
+    return _skin.skin_update(skin, byref(task_attr))
+
+_skin.skin_pause.argtypes = [skin]
+pause = _skin.skin_pause
+
+_skin.skin_resume.argtypes = [skin]
+resume = _skin.skin_resume
+
+_skin.skin_request.argtypes = [skin, urt.sig_atomic_t]
+def request(skin, stop = None):
+    _skin.skin_request(skin, stop)
+
+## info
+
+_skin.skin_writer_count.argtypes = [skin]
+_skin.skin_writer_count.restype = c_size_t
+writer_count = _skin.skin_writer_count
+
+_skin.skin_reader_count.argtypes = [skin]
+_skin.skin_reader_count.restype = c_size_t
+reader_count = _skin.skin_reader_count
+
+_skin.skin_driver_count.argtypes = [skin]
+_skin.skin_driver_count.restype = c_size_t
+driver_count = _skin.skin_driver_count
+
+_skin.skin_user_count.argtypes = [skin]
+_skin.skin_user_count.restype = c_size_t
+user_count = _skin.skin_user_count
+
+_skin.skin_sensor_count.argtypes = [skin]
+_skin.skin_sensor_count.restype = sensor_size
+sensor_count = _skin.skin_sensor_count
+
+_skin.skin_module_count.argtypes = [skin]
+_skin.skin_module_count.restype = module_size
+module_count = _skin.skin_module_count
+
+_skin.skin_patch_count.argtypes = [skin]
+_skin.skin_patch_count.restype = patch_size
+patch_count = _skin.skin_patch_count
+
+_skin.skin_sensor_type_count.argtypes = [skin]
+_skin.skin_sensor_type_count.restype = sensor_type_size
+sensor_type_count = _skin.skin_sensor_type_count
+
+## object access
+
+_skin.skin_for_each_writer.argtypes = [skin, callback_writer, c_void_p]
+_skin.skin_for_each_writer.restype = c_int
+def for_each_writer(skin, callback, data = None):
+    callback_for_c = callback_writer(callback)
+    return _skin.skin_for_each_writer(skin, callback_for_c, data)
+
+_skin.skin_for_each_reader.argtypes = [skin, callback_reader, c_void_p]
+_skin.skin_for_each_reader.restype = c_int
+def for_each_reader(skin, callback, data = None):
+    callback_for_c = callback_reader(callback)
+    return _skin.skin_for_each_reader(skin, callback_for_c, data)
+
+_skin.skin_for_each_driver.argtypes = [skin, callback_driver, c_void_p]
+_skin.skin_for_each_driver.restype = c_int
+def for_each_driver(skin, callback, data = None):
+    callback_for_c = callback_driver(callback)
+    return _skin.skin_for_each_driver(skin, callback_for_c, data)
+
+_skin.skin_for_each_user.argtypes = [skin, callback_user, c_void_p]
+_skin.skin_for_each_user.restype = c_int
+def for_each_user(skin, callback, data = None):
+    callback_for_c = callback_user(callback)
+    return _skin.skin_for_each_user(skin, callback_for_c, data)
+
+## data access
+
+_skin.skin_for_each_sensor.argtypes = [skin, callback_sensor, c_void_p]
+_skin.skin_for_each_sensor.restype = c_int
+def for_each_sensor(skin, callback, data = None):
+    callback_for_c = callback_sensor(callback)
+    return _skin.skin_for_each_sensor(skin, callback_for_c, data)
+
+_skin.skin_for_each_module.argtypes = [skin, callback_module, c_void_p]
+_skin.skin_for_each_module.restype = c_int
+def for_each_module(skin, callback, data = None):
+    callback_for_c = callback_module(callback)
+    return _skin.skin_for_each_module(skin, callback_for_c, data)
+
+_skin.skin_for_each_patch.argtypes = [skin, callback_patch, c_void_p]
+_skin.skin_for_each_patch.restype = c_int
+def for_each_patch(skin, callback, data = None):
+    callback_for_c = callback_patch(callback)
+    return _skin.skin_for_each_patch(skin, callback_for_c, data)
+
+_skin.skin_for_each_sensor_type.argtypes = [skin, callback_sensor_type, c_void_p]
+_skin.skin_for_each_sensor_type.restype = c_int
+def for_each_sensor_type(skin, callback, data = None):
+    callback_for_c = callback_sensor_type(callback)
+    return _skin.skin_for_each_sensor_type(skin, callback_for_c, data)
+
+_skin.skin_for_each_sensor_of_type.argtypes = [skin, sensor_type_id, callback_sensor, c_void_p]
+_skin.skin_for_each_sensor_of_type.restype = int
+def for_each_sensor_of_type(skin, type, callback, data = None):
+    callback_for_c = callback_sensor(callback)
+    return _skin.skin_for_each_sensor_of_type(skin, type, callback_for_c, data)
+
+## hooks
+
+_skin.skin_set_writer_init_hook.argtypes = [skin, hook_writer, c_void_p]
+def set_writer_init_hook(skin, hook, data = None):
+    callback_for_c = hook_writer(hook)
+    _skin.skin_set_writer_init_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_writer_clean_hook.argtypes = [skin, hook_writer, c_void_p]
+def set_writer_clean_hook(skin, hook, data = None):
+    callback_for_c = hook_writer(hook)
+    _skin.skin_set_writer_clean_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_reader_init_hook.argtypes = [skin, hook_reader, c_void_p]
+def set_reader_init_hook(skin, hook, data = None):
+    callback_for_c = hook_reader(hook)
+    _skin.skin_set_reader_init_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_reader_clean_hook.argtypes = [skin, hook_reader, c_void_p]
+def set_reader_clean_hook(skin, hook, data = None):
+    callback_for_c = hook_reader(hook)
+    _skin.skin_set_reader_clean_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_driver_init_hook.argtypes = [skin, hook_driver, c_void_p]
+def set_driver_init_hook(skin, hook, data = None):
+    callback_for_c = hook_driver(hook)
+    _skin.skin_set_driver_init_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_driver_clean_hook.argtypes = [skin, hook_driver, c_void_p]
+def set_driver_clean_hook(skin, hook, data = None):
+    callback_for_c = hook_driver(hook)
+    _skin.skin_set_driver_clean_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_user_init_hook.argtypes = [skin, hook_user, c_void_p]
+def set_user_init_hook(skin, hook, data = None):
+    callback_for_c = hook_user(hook)
+    _skin.skin_set_user_init_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_user_clean_hook.argtypes = [skin, hook_user, c_void_p]
+def set_user_clean_hook(skin, hook, data = None):
+    callback_for_c = hook_user(hook)
+    _skin.skin_set_user_clean_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_sensor_init_hook.argtypes = [skin, hook_sensor, c_void_p]
+def set_sensor_init_hook(skin, hook, data = None):
+    callback_for_c = hook_sensor(hook)
+    _skin.skin_set_sensor_init_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_sensor_clean_hook.argtypes = [skin, hook_sensor, c_void_p]
+def set_sensor_clean_hook(skin, hook, data = None):
+    callback_for_c = hook_sensor(hook)
+    _skin.skin_set_sensor_clean_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_module_init_hook.argtypes = [skin, hook_module, c_void_p]
+def set_module_init_hook(skin, hook, data = None):
+    callback_for_c = hook_module(hook)
+    _skin.skin_set_module_init_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_module_clean_hook.argtypes = [skin, hook_module, c_void_p]
+def set_module_clean_hook(skin, hook, data = None):
+    callback_for_c = hook_module(hook)
+    _skin.skin_set_module_clean_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_patch_init_hook.argtypes = [skin, hook_patch, c_void_p]
+def set_patch_init_hook(skin, hook, data = None):
+    callback_for_c = hook_patch(hook)
+    _skin.skin_set_patch_init_hook(skin, hook, data), callback_for_c
+
+_skin.skin_set_patch_clean_hook.argtypes = [skin, hook_patch, c_void_p]
+def set_patch_clean_hook(skin, hook, data = None):
+    callback_for_c = hook_patch(hook)
+    _skin.skin_set_patch_clean_hook(skin, hook, data), callback_for_c
+
+# writers
+
+_skin.skin_writer_pause.argtypes = [writer]
+_skin.skin_writer_pause.restype = c_int
+writer_pause = _skin.skin_writer_pause
+
+_skin.skin_writer_resume.argtypes = [writer]
+_skin.skin_writer_resume.restype = c_int
+writer_resume = _skin.skin_writer_resume
+
+_skin.skin_writer_is_paused.argtypes = [writer]
+_skin.skin_writer_is_paused.restype = c_bool
+writer_is_paused = _skin.skin_writer_is_paused
+
+_skin.skin_writer_is_active.argtypes = [writer]
+_skin.skin_writer_is_active.restype = c_bool
+writer_is_active = _skin.skin_writer_is_active
+
+_skin.skin_writer_request.argtypes = [writer, urt.sig_atomic_t]
+_skin.skin_writer_request.restype = c_int
+def writer_request(writer, stop = None):
+    return _skin.skin_writer_request(writer, stop)
+
+_skin.skin_writer_request_nonblocking.argtypes = [writer]
+_skin.skin_writer_request_nonblocking.restype = c_int
+writer_request_nonblocking = _skin.skin_writer_request_nonblocking
+
+_skin.skin_writer_await_response.argtypes = [writer, urt.sig_atomic_t]
+_skin.skin_writer_await_response.restype = c_int
+def writer_await_response(writer, stop = None):
+    return _skin.skin_writer_await_response(writer, stop)
+
+_skin.skin_writer_get_driver.argtypes = [writer]
+_skin.skin_writer_get_driver.restype = driver
+skin_writer_get_driver = _skin.skin_writer_get_driver
+
+_skin.skin_writer_get_attr.argtypes = [writer, POINTER(writer_attr)]
+_skin.skin_writer_get_attr.restype = c_int
+def writer_get_attr(writer):
+    attr = writer_attr()
+    ret = _skin.skin_writer_get_attr(writer, byref(attr))
+    return attr, ret
+
+_skin.skin_writer_get_statistics.argtypes = [writer, POINTER(writer_statistics)]
+_skin.skin_writer_get_statistics.restype = c_int
+def writer_get_statistics(writer):
+    stats = writer_statistics()
+    ret = _skin.skin_writer_get_statistics(writer, byref(stats))
+    return stats, ret
+
+_skin.skin_writer_copy_last_buffer.argtypes = [writer]
+writer_copy_last_buffer = _skin.skin_writer_copy_last_buffer
+
+## readers
+
+_skin.skin_reader_pause.argtypes = [reader]
+_skin.skin_reader_pause.restype = c_int
+reader_pause = _skin.skin_reader_pause
+
+_skin.skin_reader_resume.argtypes = [reader]
+_skin.skin_reader_resume.restype = c_int
+reader_resume = _skin.skin_reader_resume
+
+_skin.skin_reader_is_paused.argtypes = [reader]
+_skin.skin_reader_is_paused.restype = c_bool
+reader_is_paused = _skin.skin_reader_is_paused
+
+_skin.skin_reader_is_active.argtypes = [reader]
+_skin.skin_reader_is_active.restype = c_bool
+reader_is_active = _skin.skin_reader_is_active
+
+_skin.skin_reader_request.argtypes = [reader, urt.sig_atomic_t]
+_skin.skin_reader_request.restype = c_int
+def reader_request(reader, stop = None):
+    return _skin.skin_reader_request(reader, stop)
+
+_skin.skin_reader_request_nonblocking.argtypes = [reader]
+_skin.skin_reader_request_nonblocking.restype = c_int
+reader_request_nonblocking = _skin.skin_reader_request_nonblocking
+
+_skin.skin_reader_await_response.argtypes = [reader, urt.sig_atomic_t]
+_skin.skin_reader_await_response.restype = c_int
+def reader_await_response(reader, stop = None):
+    return _skin.skin_reader_await_response(reader, stop)
+
+_skin.skin_reader_get_user.argtypes = [reader]
+_skin.skin_reader_get_user.restype = user
+reader_get_user = _skin.skin_reader_get_user
+
+_skin.skin_reader_get_attr.argtypes = [reader, POINTER(reader_attr)]
+_skin.skin_reader_get_attr.restype = c_int
+def reader_get_attr(reader):
+    attr = reader_attr()
+    ret = _skin.skin_reader_get_attr(reader, byref(attr))
+    return attr, ret
+
+_skin.skin_reader_get_statistics.argtypes = [reader, POINTER(reader_statistics)]
+_skin.skin_reader_get_statistics.restype = c_int
+def reader_get_statistics(reader):
+    stats = reader_statistics()
+    ret = _skin.skin_reader_get_statistics(reader, byref(stats))
+    return stats, ret
+
+# drivers
+
+_skin.skin_driver_get_writer.argtypes = [driver]
+_skin.skin_driver_get_writer.restype = writer
+driver_get_writer = _skin.skin_driver_get_writer
+
+_skin.skin_driver_pause.argtypes = [driver]
+_skin.skin_driver_pause.restype = c_int
+driver_pause = _skin.skin_driver_pause
+
+_skin.skin_driver_resume.argtypes = [driver]
+_skin.skin_driver_resume.restype = c_int
+driver_resume = _skin.skin_driver_resume
+
+_skin.skin_driver_is_paused.argtypes = [driver]
+_skin.skin_driver_is_paused.restype = c_bool
+driver_is_paused = _skin.skin_driver_is_paused
+
+_skin.skin_driver_is_active.argtypes = [driver]
+_skin.skin_driver_is_active.restype = c_bool
+driver_is_active = _skin.skin_driver_is_active
+
+_skin.skin_driver_get_attr.argtypes = [driver, POINTER(driver_attr)]
+_skin.skin_driver_get_attr.restype = c_int
+def driver_get_attr(driver):
+    attr = driver_attr()
+    ret = _skin.skin_driver_get_attr(driver, byref(attr))
+    return attr, ret
+
+_skin.skin_driver_copy_last_buffer.argtypes = [driver]
+driver_copy_last_buffer = _skin.skin_driver_copy_last_buffer
+
+# users
+
+_skin.skin_user_get_reader.argtypes = [user]
+_skin.skin_user_get_reader.restype = reader
+user_get_reader = _skin.skin_user_get_reader
+
+_skin.skin_user_pause.argtypes = [user]
+_skin.skin_user_pause.restype = c_int
+user_pause = _skin.skin_user_pause
+
+_skin.skin_user_resume.argtypes = [user]
+_skin.skin_user_resume.restype = c_int
+user_resume = _skin.skin_user_resume
+
+_skin.skin_user_is_paused.argtypes = [user]
+_skin.skin_user_is_paused.restype = c_bool
+user_is_paused = _skin.skin_user_is_paused
+
+_skin.skin_user_is_active.argtypes = [user]
+_skin.skin_user_is_active.restype = c_bool
+user_is_active = _skin.skin_user_is_active
+
+_skin.skin_user_sensor_count.argtypes = [user]
+_skin.skin_user_sensor_count.restype = sensor_size
+user_sensor_count = _skin.skin_user_sensor_count
+
+_skin.skin_user_module_count.argtypes = [user]
+_skin.skin_user_module_count.restype = module_size
+user_module_count = _skin.skin_user_module_count
+
+_skin.skin_user_patch_count.argtypes = [user]
+_skin.skin_user_patch_count.restype = patch_size
+user_patch_count = _skin.skin_user_patch_count
+
+_skin.skin_user_sensor_type_count.argtypes = [user]
+_skin.skin_user_sensor_type_count.restype = sensor_type_size
+user_sensor_type_count = _skin.skin_user_sensor_type_count
+
+_skin.skin_user_for_each_sensor.argtypes = [user, callback_sensor, c_void_p]
+_skin.skin_user_for_each_sensor.restype = c_int
+def user_for_each_sensor(user, callback, data = None):
+    callback_for_c = callback_sensor(callback)
+    return _skin.skin_user_for_each_sensor(user, callback_for_c, data)
+
+_skin.skin_user_for_each_module.argtypes = [user, callback_module, c_void_p]
+_skin.skin_user_for_each_module.restype = c_int
+def user_for_each_module(user, callback, data = None):
+    callback_For_c = callback_module(callback)
+    return _skin.skin_user_for_each_module(user, callback_for_c, data)
+
+_skin.skin_user_for_each_patch.argtypes = [user, callback_patch, c_void_p]
+_skin.skin_user_for_each_patch.restype = c_int
+def user_for_each_patch(user, callback, data = None):
+    callback_for_c = callback_patch(callback)
+    return _skin.skin_user_for_each_patch(user, callback_for_c, data)
+
+_skin.skin_user_for_each_sensor_type.argtypes = [user, callback_sensor_type, c_void_p]
+_skin.skin_user_for_each_sensor_type.restype = c_int
+def user_for_each_sensor_type(user, callback, data = None):
+    callback_for_c = callback_sensor_type(callback)
+    return _skin.skin_user_for_each_sensor_type(user, callback_for_c, data)
+
+_skin.skin_user_for_each_sensor_of_type.argtypes = [user, sensor_type_id, callback_sensor, c_void_p]
+_skin.skin_user_for_each_sensor_of_type.restype = int
+def user_for_each_sensor_of_type(user, type, callback, data = None):
+    callback_for_c = callback_sensor(callback)
+    return _skin.skin_user_for_each_sensor_of_type(user, type, callback_for_c, data)
+
+# sensors
+
+_skin.skin_sensor_get_response.argtypes = [POINTER(sensor)]
+_skin.skin_sensor_get_response.restype = sensor_response
+sensor_get_response = _skin.skin_sensor_get_response
+
+_skin.skin_sensor_get_module.argtypes = [POINTER(sensor)]
+_skin.skin_sensor_get_module.restype = POINTER(module)
+sensor_get_module = _skin.skin_sensor_get_module
+
+_skin.skin_sensor_get_patch.argtypes = [POINTER(sensor)]
+_skin.skin_sensor_get_patch.restype = POINTER(patch)
+sensor_get_patch = _skin.skin_sensor_get_patch
+
+# modules
+
+_skin.skin_module_sensor_count.argtypes = [POINTER(module)]
+_skin.skin_module_sensor_count.restype = sensor_size
+module_sensor_count = _skin.skin_module_sensor_count
+
+_skin.skin_module_get_patch.argtypes = [POINTER(module)]
+_skin.skin_module_get_patch.restype = POINTER(patch)
+module_get_patch = _skin.skin_module_get_patch
+
+_skin.skin_module_for_each_sensor.argtypes = [POINTER(module), callback_sensor, c_void_p]
+_skin.skin_module_for_each_sensor.restype = c_int
+def module_for_each_sensor(module, callback, data = None):
+    callback_for_c = callback_sensor(callback)
+    return _skin.skin_module_for_each_sensor(module, callback_for_c, data)
+
+# patches
+
+_skin.skin_patch_sensor_count.argtypes = [POINTER(patch)]
+_skin.skin_patch_sensor_count.restype = sensor_size
+patch_sensor_count = _skin.skin_patch_sensor_count
+
+_skin.skin_patch_module_count.argtypes = [POINTER(patch)]
+_skin.skin_patch_module_count.restype = module_size
+patch_module_count = _skin.skin_patch_module_count
+
+_skin.skin_patch_for_each_sensor.argtypes = [POINTER(patch), callback_sensor, c_void_p]
+_skin.skin_patch_for_each_sensor.restype = c_int
+def patch_for_each_sensor(patch, callback, data = None):
+    callback_for_c = callback_sensor(callback)
+    return _skin.skin_patch_for_each_sensor(patch, callback_for_c, data)
+
+_skin.skin_patch_for_each_module.argtypes = [POINTER(patch), callback_module, c_void_p]
+_skin.skin_patch_for_each_module.restype = c_int
+def patch_for_each_module(patch, callback, data = None):
+    callback_for_c = callback_module(callback)
+    return _skin.skin_patch_for_each_module(patch, callback_for_c, data)
+
+# sensor types
+
+_skin.skin_get_sensor_type_name.argtypes = [sensor_type_id]
+_skin.skin_get_sensor_type_name.restype = c_char_p
+get_sensor_type_name = _skin.skin_get_sensor_type_name

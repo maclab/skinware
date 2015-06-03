@@ -1,0 +1,54 @@
+class SkinWriterAttr
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class SkinWriter
+next class SkinWriterCallbacks
+seealso `[SkinWriter]`
+
+This is a C++ interface to `[skin_writer_attr]`.
+
+FUNCTION SkinWriterAttr: (bufferSize: size_t, bufferCount: uint8_t, name: const char *)
+	Constructor
+
+	Set the writer attributes.
+
+	INPUT bufferSize
+		Size of data buffer.  See `[skin_writer_attr::buffer_size](skin_writer_attr#buffer_size)`
+	INPUT bufferCount
+		Number of data buffers.  See `[skin_writer_attr::buffer_count](skin_writer_attr#buffer_count)`
+	INPUT name
+		The name of the writer.  See `[skin_writer_attr::name](skin_writer_attr#name)`
+
+FUNCTION getBufferSize: (): size_t
+	Get size of writer data buffer
+
+	This function returns the writer's buffer size.
+
+	OUTPUT
+		Returns the `[skin_writer_attr::buffer_size](skin_writer_attr#buffer_size)` attribute.
+
+FUNCTION getBufferCount: (): uint8_t
+	Get number of writer data buffers
+
+	This function returns the writer's buffer count.
+
+	OUTPUT
+		Returns the `[skin_writer_attr::buffer_count](skin_writer_attr#buffer_count)` attribute.
+
+FUNCTION getName: (): const char *
+	Get writer name
+
+	This function returns the writer's name.
+
+	OUTPUT
+		Returns the `[skin_writer_attr::name](skin_writer_attr#name)` attribute.

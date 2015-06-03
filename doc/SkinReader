@@ -1,0 +1,120 @@
+class SkinReader
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class Skin
+next class SkinReader
+seealso `[SkinReaderAttr]`
+seealso `[SkinReaderCallbacks]`
+seealso `[Skin::forEachReader](Skin#forEachX)`
+
+This is a C++ interface to `[skin_reader]`.
+
+FUNCTION isValid: (): bool
+	Whether the object is valid
+
+	This function tells whether this object is valid.
+
+	OUTPUT
+		Returns true if the object is valid and can be used.
+
+FUNCTION pause: (): int
+	Pause the reader
+
+	See `[#skin_reader_pause](skin_reader)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION resume: (): int
+	Resume the reader
+
+	See `[#skin_reader_resume](skin_reader)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION isPaused: (): bool
+	Tells whether reader is paused
+
+	See `[#skin_reader_is_paused](skin_reader)`.
+
+	OUTPUT
+		Returns true if reader is paused or false if otherwise or error.
+
+FUNCTION isActive: (): bool
+	Tells whether the writer is active
+
+	See `[#skin_reader_is_active](skin_reader)`.
+
+	OUTPUT
+		Returns true if the writer is still active or false if otherwise or error.
+
+FUNCTION request: (stop: volatile sig_atomic_t * = NULL): int
+	Request read for a sporadic reader and await its completion
+
+	See `[#skin_reader_request](skin_reader)`.
+
+	INPUT stop
+		If given and becomes nonzero, the request is canceled and the function returns.
+	OUTPUT
+		Returns 0 if successful or `ECANCELED` if canceled.
+
+FUNCTION requestNonblocking: (): int
+	Request read for a sporadic reader
+
+	See `[#skin_reader_request_nonblocking](skin_reader)`.
+
+	OUTPUT
+		Returns 0 if successful.
+
+FUNCTION awaitResponse: (stop: volatile sig_atomic_t * = NULL): int
+	Await complation of read previously requested
+
+	See `[#skin_reader_await_response](skin_reader)`.
+
+	INPUT stop
+		If given and becomes nonzero, the request is canceled and the function returns.
+	OUTPUT
+		Returns 0 if successful or `ECANCELED` if canceled.
+
+FUNCTION getUser: (): SkinUser
+	Return user this reader belongs to
+
+	See `[#skin_reader_get_user](skin_reader)`.
+
+	OUTPUT
+		Returns a reference to the user, or an [invalid](SkinUser#isValid) user of it doesn't belong to a user.
+
+FUNCTION getSkin: (): Skin
+	Return main skin object
+
+	This function returns a reference to the main skin object.
+
+	OUTPUT
+		Returns a reference to the main skin object.
+
+FUNCTION getAttr: (): SkinReaderAttr
+	Returns the reader's attributes
+
+	See `[#skin_reader_get_attr](skin_reader)` and `[SkinReaderAttr]`.
+
+	OUTPUT
+		Returns the reader's attributes.
+
+FUNCTION getStatistics: (): SkinReaderStatistics
+	Returns the reader's statistics
+
+	See `[#skin_reader_get_statistics](skin_reader)` and `[SkinReaderStatistics]`.
+
+	OUTPUT
+		Returns the reader's statistics.

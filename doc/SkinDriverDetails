@@ -1,0 +1,67 @@
+class SkinDriverDetails
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class SkinDriverCallbacks
+next class SkinDriver
+seealso `[SkinDriver]`
+
+This is a C++ interface to `[skin_driver_details]`.
+
+VARIABLE overall: SkinDriverAttr
+	Overall view of the skin
+
+	See `[skin_driver_details::overall](skin_driver_details#overall)` and `[SkinDriverAttr]`.
+
+VARIABLE patches: SkinPatchDecl *
+	Patch declarations
+
+	See `[skin_driver_details::patches](skin_driver_details#patches)`.  The `SkinPatchDecl` class has the following public interface:
+
+		```
+		class SkinPatchDecl
+		{
+		public:
+			SkinModuleSize getModuleCount();
+			void setModuleCount(SkinModuleSize count);
+		};
+		```
+
+VARIABLE modules: SkinModuleDecl *
+	Module declarations
+
+	See `[skin_driver_details::modules](skin_driver_details#modules)`.  The `SkinModuleDecl` class has the following public interface:
+
+		```
+		class SkinModuleDecl
+		{
+		public:
+			SkinSensorSize getSensorCount();
+			void setSensorCount(SkinSensorSize count);
+		};
+		```
+
+VARIABLE sensors: SkinSensorDecl *
+	Sensor declarations
+
+	See `[skin_driver_details::sensors](skin_driver_details#sensors)`.  The `SkinSensorDecl` class has the following public interface:
+
+		```
+		class SkinSensorDecl
+		{
+		public:
+			SkinSensorUniqueId getUniqueId();
+			SkinSensorTypeId getType();
+			void setUniqueId(SkinSensorUniqueId uid);
+			void setType(SkinSensorTypeId type);
+		};
+		```

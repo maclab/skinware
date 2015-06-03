@@ -1,0 +1,54 @@
+class SkinDriverAttr
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword skin++
+keyword C++
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous class SkinDriver
+next class SkinDriverCallbacks
+seealso `[SkinDriver]`
+
+This is a C++ interface to `[skin_driver_attr]`.
+
+FUNCTION SkinDriverAttr: (patchCount: SkinPatchSize, moduleCount: SkinModuleSize, sensorCount: SkinSensorSize)
+	Constructor
+
+	Set the driver attributes.
+
+	INPUT patchCount
+		The number of patches in this piece of skin.  See `[skin_driver_attr::patch_count](skin_driver_attr#patch_count)`
+	INPUT moduleCount
+		The number of modules in this piece of skin.  See `[skin_driver_attr::module_count](skin_driver_attr#module_count)`
+	INPUT sensorCount
+		The number of sensors in this piece of skin.  See `[skin_driver_attr::sensor_count](skin_driver_attr#sensor_count)`
+
+FUNCTION getPatchCount: (): SkinPatchSize
+	Get the number of patches
+
+	This function returns the number of patches.
+
+	OUTPUT
+		Returns the `[skin_driver_attr::patch_count](skin_driver_attr#patch_count)` attribute.
+
+FUNCTION getModuleCount: (): SkinModuleSize
+	Get the number of modulees
+
+	This function returns the number of modules.
+
+	OUTPUT
+		Returns the `[skin_driver_attr::module_count](skin_driver_attr#module_count)` attribute.
+
+FUNCTION getSensorCount: (): SkinSensorSize
+	Get the number of sensores
+
+	This function returns the number of sensors.
+
+	OUTPUT
+		Returns the `[skin_driver_attr::sensor_count](skin_driver_attr#sensor_count)` attribute.

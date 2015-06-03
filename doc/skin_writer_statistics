@@ -1,0 +1,59 @@
+struct skin_writer_statistics
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut globals
+shortcut constants
+previous struct skin_writer
+next struct skin
+seealso `[skin_writer]`
+
+This structure holds statistics gathered by a writer.  The time durations calculated are CPU time if the underlying
+real-time system permits, and wall-clock time otherwise.  Furthermore, the times also include synchronization time.
+
+VARIABLE start_time: urt_time
+	The start time of the task
+
+	This is the writer's start time.
+
+VARIABLE worst_write_time: urt_time
+	Worst case execution time of a writer cycle
+
+	This is the worst case execution time of one cycle of the writer.  This includes time spent in synchronization.
+
+VARIABLE best_write_time: urt_time
+	Best case execution time of a writer cycle
+
+	This is the best case execution time of one cycle of the writer.  This includes time spent in synchronization.
+
+VARIABLE accumulated_write_time: urt_time
+	Accumulated execution time of writer cycles
+
+	This is the sum of execution time of each cycle of the writer.  The average execution time can be calculated
+	by dividing this value with `[#write_count]`.
+
+VARIABLE write_count: uint64_t
+	Number of data frames written
+
+	This is the number of times the writer has provided data, i.e. the number of unpaused cycles since the writer
+	was born.
+
+VARIABLE swap_skips: uint64_t
+	Number of swap skips
+
+	This is the number of times the writer has failed to swap buffers, and therefore has decided to overwrite the
+	previous unread-by-any-reader data with new data.  Swap skips may happen if for the whole duration of the writer's
+	cycle no other buffer was released by readers and the writer was forced either to throw away new data, or
+	overwrite last data still unseen by any reader.  This may happen if the system is very heavily loaded.
+
+	Skinware tries to minimize swap skips by making the readers keep track of their [worst case execution time]
+	(skin_reader_statistics#worst_read_time) and try to predict whether they can make the read before the writer
+	is expected to swap the buffers or not.  If they can't make it, they will wait until the writer has finished
+	with the new data, so they will give it a chance to swap buffers before they lock the buffer.
+
+	Swap skips are only meaningful for multi-buffer writers.

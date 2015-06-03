@@ -1,0 +1,52 @@
+globals
+# Skinware
+version version 2.0.0
+author Shahbaz Youssefi
+keyword skin
+keyword middleware
+keyword skinware
+keyword MacLAB
+shortcut index
+shortcut constants
+
+skin
+skin_sensor
+skin_module
+skin_patch
+skin_sensor_type
+skin_writer
+skin_reader
+skin_driver
+skin_user
+skin_writer_attr
+skin_writer_callbacks
+skin_writer_statistics
+skin_reader_attr
+skin_reader_callbacks
+skin_reader_statistics
+skin_driver_attr
+skin_driver_callbacks
+skin_driver_details
+skin_user_attr
+skin_user_callbacks
+
+Skin
+SkinSensor
+SkinModule
+SkinPatch
+SkinSensorType
+SkinWriter
+SkinReader
+SkinDriver
+SkinUser
+SkinWriterAttr
+SkinWriterCallbacks
+SkinWriterStatistics
+SkinReaderAttr
+SkinReaderCallbacks
+SkinReaderStatistics
+SkinDriverAttr
+SkinDriverCallbacks
+SkinDriverDetails
+SkinUserAttr
+SkinUserCallbacks

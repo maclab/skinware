@@ -1,0 +1,80 @@
+Skinware: The Skin Middle-ware
+==============================
+
+    0. Overview
+    -----------
+
+Skinware in its core provides a flexible data chunk transfer mechanism between
+two tasks, as is suitable for a skin-related application.  Generic services
+can be provided and used by starting writers and readers. Skin-tailored drivers
+and users internally use writers and readers, but provide facilities over them
+useful for a skin application.
+
+Table of contents:
+1) Prerequisites
+2) Build and Installation
+3) License
+
+    1. Prerequisites
+    ----------------
+
+First and foremost, you need to have URT installed:
+
+    https://github.com/ShabbyX/URT
+
+URT provides the real-time abstraction layer.  If use use RTAI as the real-time
+back-end, make sure to read README.RTAI.
+
+To compile Skinware, you need the following compilers:
+
+- gcc: for compiling the skin library, the tools and the calibrator,
+- g++: for compiling the C++ library, and various apps.
+
+There are a few graphical libraries needed by the visualizer, but as of the
+current version, they are my own simple libraries and I have included them
+with Skinware.  You will need the following additional libraries:
+
+- SDL   : Simple DirectMedia Library (for window handling) (v1.2)
+- OpenGL: Graphical rendering (higher than v1.2)
+- GLU   : OpenGL utilities library
+
+To build the documentation files, you need DocThis!
+
+- DocThis!: https://github.com/ShabbyX/DocThis
+
+(Let us cleanse this world of the horror that is doxygen!)
+
+To build the documentation in pdf, the following software is also needed:
+
+- pdflatex: To compile LaTeX files
+
+    2. Build and Installation
+    -------------------------
+
+See INSTALL
+
+    3. License
+    ----------
+
+Copyright (C) 2011-2015  Maclab, DIBRIS, Universita di Genova <info@cyskin.com>
+Authored by Shahbaz Youssefi <ShabbyX@gmail.com>
+
+Skinware along with its documentations and accompanying drivers, services
+and software including but not limited to the calibrator and visualizer
+are published under the GNU General Public License version 2.0 or later (GPL v2.0+).
+
+Skinware is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 2 of the License, or
+(at your option) any later version.
+
+Skinware is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Skinware.  If not, see <http://www.gnu.org/licenses/>.
+
+Other included libraries and software (Ngin, Ngin3d, shImage, shFont)
+have their own licenses and are not part of Skinware.
