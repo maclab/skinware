@@ -13,5 +13,5 @@ libNgin3d_la_SOURCES = \
                        Ngin3d_internal.h \
                        Ngin3d_keydef.h \
                        Ngin3d_physics.h \
-                       shmacros.h \
+                       shmacros.h
 libNgin3d_la_CXXFLAGS = -Wall -g

@@ -1,6 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
 
-if HAVE_DOCTHIS
 DT = docthis
 DOCDIR = $(top_srcdir)/doc
 FILES = \
@@ -94,6 +93,18 @@ API_FILES = \
             $(DOCDIR)/SkinReaderStatistics \
             $(DOCDIR)/SkinDriverDetails
 
+EXTRA_DIST = \
+             $(DOCDIR)/index \
+             $(DOCDIR)/constants \
+             $(DOCDIR)/globals \
+             $(DOCDIR)/skin_callback \
+             $(DOCDIR)/skin_hook \
+             $(DOCDIR)/SkinCallback \
+             $(DOCDIR)/SkinHook \
+             $(DOCDIR)/MeanPressureonSkin \
+             $(API_FILES)
+
+if HAVE_DOCTHIS
 V_DOCTHIS = $(V_DOCTHIS_@AM_V@)
 V_DOCTHIS_ = $(V_DOCTHIS_@AM_DEFAULT_V@)
 V_DOCTHIS_0 = @echo "  DOCTHIS " $@;
