@@ -229,6 +229,9 @@ AM_CONDITIONAL(HAVE_DOCTHIS, [test x"$DOCTHIS" = xyes])
 AM_CONDITIONAL(HAVE_PDFLATEX, [test x"$PDFLATEX" = xyes])
 AM_CONDITIONAL(HAVE_KIO, [test x"$have_kio" = xy])
 
+AC_ARG_VAR([KBUILD_CFLAGS],[KBuild C compiler flags])
+AC_ARG_VAR([KBUILD_SYMBOLS],[KBuild symbols files])
+
 AC_CONFIG_FILES([Makefile
                  skin/Makefile
                  skin/src/Makefile
