@@ -25,6 +25,13 @@ First and foremost, you need to have URT installed:
 URT provides the real-time abstraction layer.  If use use RTAI as the real-time
 back-end, make sure to read README.RTAI.
 
+If you are building from source, you would need `autoconf-archive` to properly
+generate the `configure` script.
+
+On a Debian-based distribution, the following would do:
+
+    $ apt install autoconf-archive
+
 To compile Skinware, you need the following compilers:
 
 - gcc: for compiling the skin library, the tools and the calibrator,
@@ -37,6 +44,10 @@ with Skinware.  You will need the following additional libraries:
 - SDL   : Simple DirectMedia Library (for window handling) (v1.2)
 - OpenGL: Graphical rendering (higher than v1.2)
 - GLU   : OpenGL utilities library
+
+On a Debian-based distribution, the following would do:
+
+    $ apt install libgl1-mesa-dev libglu1-mesa-dev libsdl1.2-dev
 
 To build the documentation files, you need DocThis!
 
